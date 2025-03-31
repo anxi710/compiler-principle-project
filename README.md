@@ -4,6 +4,10 @@
 
 本项目使用 C 语言实现一个类 Rust 语言的词法和语法分析器。
 
+## 代码风格约定
+
+1. 尽量编写 `pure function`，而不是 `non-pure function`，即函数尽量不要有副作用 (`side effects`)
+
 ## 文件组织结构说明
 
 ```shell
