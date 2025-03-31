@@ -13,7 +13,7 @@ endif
 CXX := clang++
 
 # Directories
-TARGET_EXEC := compiler
+TARGET_EXEC := toy_compiler
 SRC_DIR := src
 BUILD_DIR := build
 
