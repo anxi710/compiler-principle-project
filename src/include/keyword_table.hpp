@@ -12,13 +12,20 @@
 class KeywordTable {
 public:
     KeywordTable() {
-        this->keywords["if"] = Token::IF;
+        // 不能使用 this->keywords["IF"] = Token::IF 的形式插入
+        // 因为我显式 delete 了 class Token 的默认构造函数，而
+        // 上式会先调用默认构造函数构造一个 Token 对象，然后再拷贝
+        // this->keywords.emplace("if", Token::IF);
     }
 
     ~KeywordTable() = default;
 
-    bool isKeyword(std::string value) {
+    inline bool isKeyword(std::string value) {
         return (keywords.find(value) != keywords.end());
+    }
+
+    inline void addKeyword(std::string name, Token token) {
+        this->keywords.emplace(name, token);
     }
 
 private:

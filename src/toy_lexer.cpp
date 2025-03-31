@@ -2,6 +2,8 @@
 
 Token ToyLexer::nextToken() {
     if (this->pos == this->text.length()) {
-        return Token(TokenType::END);
+        return Token::END;
     }
+
+    return Token::END;
 }

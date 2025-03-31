@@ -7,7 +7,7 @@
 // abstract class lexer: define some utilities and data structure.
 class Lexer {
 public:
-    Lexer() = delete;
+    Lexer() : text(""), pos(0), peek('\0') {}
     Lexer(const std::string text) : text(text), pos(0), peek(text[0]) {}
     ~Lexer() = default;
 

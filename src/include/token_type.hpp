@@ -1,6 +1,9 @@
 #ifndef TOKEN_TYPE_HPP
 #define TOKEN_TYPE_HPP
 
+#include <iostream>
+#include <string>
+
 enum class TokenType {
     // Group 0
     END, // end of file
@@ -12,8 +15,6 @@ enum class TokenType {
     IF, ELSE,
     ID,
     INT,
-
-
     WS,
 
     // Group 2
@@ -23,5 +24,10 @@ enum class TokenType {
     // arbitrary LA
 
 };
+
+/**
+ * @brief
+ */
+const std::string tokenType2str(TokenType type);
 
 #endif
