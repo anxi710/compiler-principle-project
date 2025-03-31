@@ -1,4 +1,4 @@
-# CompilerPrincipleProject
+# Compiler Principle Project
 
 > 同济大学 2024-2025 学年春季学期 编译原理课程作业
 
