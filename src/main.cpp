@@ -7,10 +7,13 @@
 
 // 定义长选项
 struct option long_options[] = {
-    {"help",    no_argument,       nullptr, 'h'},
-    {"version", no_argument,       nullptr, 'v'},
-    {"output",  required_argument, nullptr, 'o'},
-    {0, 0, 0, 0}  // 结束标志
+    {"help",    no_argument,       NULL, 'h'},
+    {"version", no_argument,       NULL, 'v'},
+    {"input",   required_argument, NULL, 'i'},
+    {"output",  required_argument, NULL, 'o'},
+    {"token",   no_argument,       NULL, 't'},
+    {"syntax",  no_argument,       NULL, 's'},
+    {NULL,      0,                 NULL, 0}  // 结束标志
 };
 
 int main(int argc, char* argv[]) {
@@ -21,16 +24,38 @@ int main(int argc, char* argv[]) {
         switch (opt) {
             case 'h':
                 std::cout << "Usage: " << argv[0] << " [options]" << std::endl
+                          << std::endl
+                          << "This is a Rust-like programming language compiler." << std::endl
+                          << "By default, the \'-t\' and \'-s\' options have been configured." << std::endl
+                          << "The output is stored in \"output.token\" and \"output.dot\"." << std::endl
+                          << std::endl
                           << "Options:" << std::endl
-                          << "  -h, --help         show help" << std::endl
-                          << "  -v, -V, --version  show version" << std::endl
-                          << "  -o, --output FILE  set output file" << std::endl;
+                          << "  -h, --help             show help" << std::endl
+                          << "  -v, -V, --version      show version" << std::endl
+                          << "  -i, --input filename   set input file" << std::endl
+                          << "  -o, --output filename  set output file (without suffix)" << std::endl
+                          << "  -t, --token            output the segmented token only" << std::endl
+                          << "  -s, --syntax           output the abstract syntax tree (AST) only" << std::endl
+                          << std::endl
+                          << "Examples:" << std::endl
+                          << "  $ path/to/toy_compiler -t -i test.txt" << std::endl
+                          << "  $ path/to/toy_compiler -s -i test.txt" << std::endl
+                          << "  $ path/to/toy_compiler -t -s -i test.txt" << std::endl
+                          << "  $ path/to/toy_compiler -i test.txt -o output" << std::endl
+                          << std::endl
+                          << "Tips:" << std::endl
+                          << "  Upon completion of the program execution, you can run this command" << std::endl
+                          << "  to generate the abstract syntax tree diagram:" << std::endl
+                          << "    $ dot -Tpng path/to/output.dot -o AST.png" << std::endl;
                 return 0;
             case 'v':
             case 'V':
-                std::cout << "Toy compiler: version 0.01" << std::endl;
+                std::cout << "Toy compiler: version 0.02" << std::endl;
                 std::cout << "This is a toy compiler developed by xh, csx and qsw." << std::endl;
                 std::cout << "Have fun with it!" << std::endl;
+                return 0;
+            case 'i':
+                freopen(optarg, "r", stdin);
                 break;
             case 'o':
                 freopen(optarg, "w", stdout);
