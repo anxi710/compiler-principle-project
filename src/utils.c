@@ -1,26 +1,26 @@
 // 实现 utils.h 中声明的实用函数
-
-#include <stdio.h>
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include "include/token.h"
 #include "include/utils.h"
 
 void
-printToken(int fd, struct Token token) {
-    FILE* out = fdopen(fd, "a");
+printToken(FILE* out, struct Token token) {
+    assert(out != NULL);
 
-    char* type;
+    const char* type;
     switch(token.type) {
         case INT:
-            type = (char*)malloc(4);
-            strcpy(type, "INT");
+            type = "INT";
             break;
         default:
-            dprintf(2, "printToken: invalid token type");
+            fprintf(stderr, "printToken: invalid token type\n");
             exit(1);
     }
 
     fprintf(out, "<type, value>: <%s, %s>", type, token.value);
+    fflush(out);
 
     return;
 }
