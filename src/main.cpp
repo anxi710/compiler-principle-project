@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
     while ((opt = getopt_long(argc, argv, "hvVo:", long_options, &option_index)) != -1) {
         switch (opt) {
             case 'h':
-                std::cout << "Usage: " << argv[0] << " <option>..." << std::endl
+                std::cout << "Usage: " << argv[0] << " [options]" << std::endl
                           << "Options:" << std::endl
                           << "  -h, --help         show help" << std::endl
                           << "  -v, -V, --version  show version" << std::endl
