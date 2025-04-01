@@ -37,7 +37,7 @@ public:
      */
     inline Token getKeyword(std::string value) {
         assert(keywords.find(value) != keywords.end());
-        return keywords[value];
+        return keywords.find(value)->second;
     }
 
     /**
