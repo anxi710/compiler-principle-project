@@ -1,0 +1,13 @@
+#!/bin/bash
+
+echo "Running pre-commit hook: Compiling project..."
+
+# 运行 make
+if ! make; then
+    echo "Error: Compilation failed. Commit aborted!"
+    exit 1
+fi
+
+echo "Compilation successful. Proceeding with commit.\n\n"
+exit 0
+
