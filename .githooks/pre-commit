@@ -8,6 +8,7 @@ if ! make; then
     exit 1
 fi
 
-echo "Compilation successful. Proceeding with commit.\n\n"
+echo "Compilation successful. Proceeding with commit."
+echo ""
 exit 0
 
