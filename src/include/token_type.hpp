@@ -26,7 +26,9 @@ enum class TokenType {
 };
 
 /**
- * @brief
+ * @brief  TokenType 转 string
+ * @param  type enum class TokenType 中的一个
+ * @return 对应的 string
  */
 const std::string tokenType2str(TokenType type);
 

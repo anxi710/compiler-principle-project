@@ -7,6 +7,7 @@
 ## 代码风格约定
 
 1. 尽量编写 `pure function`，而不是 `non-pure function`，即函数尽量不要有副作用 (`side effects`)
+2. 所有动态申请的资源使用 `std::unique_ptr<>` or `std::shared_ptr<>` 管理
 
 ## 文件组织结构说明
 
