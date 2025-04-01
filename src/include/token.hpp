@@ -8,7 +8,8 @@
 class Token {
 public:
     // 保留字 or 关键字
-    static const Token END; // end of file
+    static const Token END;     // end of file
+    static const Token UNKNOWN; // unknown token
     static const Token IF;
 
 public:

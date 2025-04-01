@@ -10,5 +10,5 @@ const std::string tokenType2str(TokenType type) {
     }
 
     std::cerr << "tokenType2str(): error termination." << std::endl;
-    exit(-1);
+    exit(1);
 }

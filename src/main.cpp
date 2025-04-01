@@ -16,13 +16,31 @@ struct option long_options[] = {
     {NULL,      0,                 NULL, 0}  // 结束标志
 };
 
+/**
+ * @brief 编译器初始化
+ */
+void initialize() {
+
+}
+
+/**
+ * @brief   toy compiler 主函数
+ * @details 完成命令行参数解析及函数调用
+ */
 int main(int argc, char* argv[]) {
     int opt;
     int option_index = 0;
 
-    while ((opt = getopt_long(argc, argv, "hvVo:", long_options, &option_index)) != -1) {
+    bool flag_default = true;
+    bool flag_token   = false;
+    bool flag_syntax  = false;
+
+    while ((opt = getopt_long(argc, argv, "hvVi:o:ts", long_options, &option_index)) != -1) {
         switch (opt) {
-            case 'h':
+            default:
+                std::cerr << "command-line argument parsing error!" << std::endl;
+                return 1;
+            case 'h': // help
                 std::cout << "Usage: " << argv[0] << " [options]" << std::endl
                           << std::endl
                           << "This is a Rust-like programming language compiler." << std::endl
@@ -48,8 +66,8 @@ int main(int argc, char* argv[]) {
                           << "  to generate the abstract syntax tree diagram:" << std::endl
                           << "    $ dot -Tpng path/to/output.dot -o AST.png" << std::endl;
                 return 0;
-            case 'v':
-            case 'V':
+            case 'v': // version
+            case 'V': // version
                 /*
                  * 使用语义版本控制 (SemVer) 原则设置版本号
                  * major.minor.patch
@@ -58,18 +76,26 @@ int main(int argc, char* argv[]) {
                 std::cout << "This is a toy compiler developed by xh, csx and qsw." << std::endl;
                 std::cout << "Have fun with it!" << std::endl;
                 return 0;
-            case 'i':
+            case 'i': // input
                 freopen(optarg, "r", stdin);
                 break;
-            case 'o':
+            case 'o': // output
                 freopen(optarg, "w", stdout);
                 break;
-            case '?':  // 无效选项
+            case 't': // token
+                flag_token   = true;
+                flag_default = false;
+                break;
+            case 's': // syntax
+                flag_syntax  = true;
+                flag_default = false;
+                break;
+            case '?': // 无效选项
                 std::cerr << "Unknown option or missing argument" << std::endl;
                 std::cerr << "Try \'compiler --help\' for more information." << std::endl;
                 return 1;
-        }
-    }
+        } // end switch
+    } // end while
 
     return 0;
 }

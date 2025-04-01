@@ -41,9 +41,9 @@ public:
     }
 
 protected:
-    const std::string text; // text to be scanned
-    size_t            pos;  // the next position to be scanned
-    char              peek; // the next character to be scanned
+    std::string text; // text to be scanned
+    size_t      pos;  // the next position to be scanned
+    char        peek; // the next character to be scanned
 };
 
 #endif
