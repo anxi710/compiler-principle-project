@@ -1,16 +1,17 @@
-#ifndef KEYWORD_TABLE_HPP
-#define KEYWORD_TABLE_HPP
+#pragma once
 
 #include <string>
 #include <cassert>
 #include <unordered_map>
-#include "token.hpp"
+#include "include/token.hpp"
 
 // Tips:
 //   不能使用 this->keywords["IF"] = Token::IF 的形式插入
 //   因为我显式 delete 了 class Token 的默认构造函数，而
 //   上式会先调用默认构造函数构造一个 Token 对象，然后再拷贝
 //   this->keywords.emplace("if", Token::IF);
+
+namespace compiler::lexer {
 
 /**
  * @brief   关键字表
@@ -21,6 +22,7 @@ public:
     KeywordTable()  = default;
     ~KeywordTable() = default;
 
+public:
     /**
      * @brief  判断给定的输入值是否是一个关键字
      * @param  value token value]
@@ -53,4 +55,4 @@ private:
     std::unordered_map<std::string, Token> keywords; // keyword hash map
 };
 
-#endif
+} // namespace compiler::lexer

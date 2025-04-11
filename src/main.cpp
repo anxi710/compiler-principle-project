@@ -16,11 +16,25 @@ struct option long_options[] = {
     {NULL,      0,                 NULL, 0}  // 结束标志
 };
 
+compiler::lexer::ToyLexer lexer;
+
+auto initKeywordTable() {
+    using compiler::lexer::KeywordTable;
+    using compiler::lexer::Token;
+
+    std::unique_ptr<KeywordTable> p_keyword_table = std::make_unique<KeywordTable>();
+    p_keyword_table->addKeyword("if", Token::IF);
+
+    return p_keyword_table;
+}
+
 /**
  * @brief 编译器初始化
  */
 void initialize() {
+    auto p_keyword_table = initKeywordTable();
 
+    lexer.setKeywordTable(p_keyword_table);
 }
 
 /**
