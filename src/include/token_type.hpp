@@ -1,8 +1,8 @@
-#ifndef TOKEN_TYPE_HPP
-#define TOKEN_TYPE_HPP
+#pragma once
 
-#include <iostream>
 #include <string>
+
+namespace compiler::lexer {
 
 enum class TokenType {
     // Group 0
@@ -25,11 +25,6 @@ enum class TokenType {
 
 };
 
-/**
- * @brief  TokenType 转 string
- * @param  type enum class TokenType 中的一个
- * @return 对应的 string
- */
 const std::string tokenType2str(TokenType type);
 
-#endif
+} // namespace compiler::lexer

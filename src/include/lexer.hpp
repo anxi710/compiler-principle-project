@@ -1,40 +1,29 @@
-#ifndef LEXER_HPP
-#define LEXER_HPP
+#pragma once
 
 #include <string>
-#include "token.hpp"
+
+namespace compiler::lexer {
+
+class Token;
 
 // abstract class lexer: define some utilities and data structure.
 class Lexer {
 public:
-    Lexer() : text(""), pos(0), peek('\0') {}
-    Lexer(const std::string text) : text(text), pos(0), peek(text[0]) {}
+    Lexer();
+    Lexer(const std::string text);
     ~Lexer() = default;
 
-    /**
-     * @brief 虚函数，获取下一个词法单元
-     */
+public:
     virtual Token nextToken() = 0;
 
-    /**
-     * @brief  向前扫描一个字符
-     * @return 是否到达文本结尾
-     */
-    bool advance() {
-        this->pos++;
-        if (this->pos == this->text.length()) {
-            return true;
-        } else {
-            this->peek = this->text[this->pos];
-            return false;
-        }
-    }
+public:
+    bool advance();
 
     /**
      * @brief 重置当前扫描位置
      * @param pos 设置到的位置
      */
-    void reset(size_t pos) {
+    inline void reset(size_t pos) {
         this->pos  = pos;
         this->peek = text[pos];
         return;
@@ -46,4 +35,4 @@ protected:
     char        peek; // the next character to be scanned
 };
 
-#endif
+} // namespace compiler::lexer

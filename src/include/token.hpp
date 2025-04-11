@@ -1,9 +1,12 @@
-#ifndef TOKEN_HPP
-#define TOKEN_HPP
+#pragma once
 
-#include <sstream>
 #include <string>
-#include "token_type.hpp"
+#include <sstream>
+#include "include/token_type.hpp"
+
+namespace compiler::lexer {
+
+enum class TokenType;
 
 class Token {
 public:
@@ -14,14 +17,15 @@ public:
 
 public:
     Token() = delete;
-    Token(TokenType type, std::string value) : type(type), value(value) {}
+    Token(TokenType type, std::string value);
     ~Token() = default;
 
+public:
     /**
      * @brief  获取 token 的值
      * @return token value
      */
-    const std::string getValue() {
+    inline const std::string getValue() {
         return this->value;
     }
 
@@ -29,7 +33,7 @@ public:
      * @brief  将 token 格式化为一个 string
      * @return 格式化后的字符串
      */
-    const std::string toString() {
+    inline const std::string toString() {
         std::ostringstream oss;
         oss << "token {type: " << tokenType2str(this->type)
             << ", value: " << this->value << "}" << std::endl;
@@ -41,4 +45,4 @@ private:
     std::string value; // 组成 token 的字符串
 };
 
-#endif
+} // namespace compiler::lexer
