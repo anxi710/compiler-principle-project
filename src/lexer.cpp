@@ -18,7 +18,7 @@ Lexer::Lexer(const std::string text) : text(text), pos(0), peek(text[0]) {
  * @brief  向前扫描一个字符
  * @return 是否到达文本结尾
  */
-bool Lexer::advance() {
+bool Lexer::advance(void) {
     this->pos++;
     if (this->pos == this->text.length()) {
         return true;

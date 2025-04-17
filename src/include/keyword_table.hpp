@@ -28,7 +28,7 @@ public:
      * @param  value token value]
      * @return true/false
      */
-    inline bool isKeyword(std::string value) {
+    inline bool iskeyword(std::string value) {
         return (keywords.find(value) != keywords.end());
     }
 
