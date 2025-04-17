@@ -13,9 +13,19 @@ enum class TokenType {
     // lookahead = 1 (LA(1))
     DOT, ADD, SUB,
     IF, ELSE,
+    WHILE,
     ID,
+    I32,
+    LET,
+    RETURN,
+    MUT,
+    FN,
+    FOR,
+    IN,
+    LOOP,
+    BREAK,
+    CONTINUE,
     INT,
-    WS,
 
     // Group 2
     // lookahead = 2

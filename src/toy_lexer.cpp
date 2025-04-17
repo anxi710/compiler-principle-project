@@ -1,24 +1,27 @@
 #include <cctype> // 定义有 isspace(), isalpha() 等函数
+#include <vector>
+#include <regex>
 #include "include/token.hpp"
 #include "include/toy_lexer.hpp"
 #include "include/token_type.hpp"
-#include "include/keyword_table.hpp"
 
 namespace compiler::lexer {
 
-/* constructor` */
+/* constructor */
 
 ToyLexer::ToyLexer() {
     last_matched_pos          = 0;
     longest_valid_prefix_pos  = 0;
     longest_valid_prefix_type = TokenType::UNKNOWN;
+
+    initKeywordTable();
 }
 
 ToyLexer::ToyLexer(const std::string text) : Lexer(text) {
     ToyLexer();
 }
 
-/* constructor` */
+/* constructor */
 
 /* member function definition */
 
@@ -26,12 +29,61 @@ ToyLexer::ToyLexer(const std::string text) : Lexer(text) {
  * @brief  获取下一个词法单元
  * @return next token
  */
-Token ToyLexer::nextToken() {
-    if (this->pos == this->text.length()) {
+Token ToyLexer::nextToken(void) {
+    static const std::vector<std::pair<TokenType, std::regex>> patterns {
+        {TokenType::ID,  std::regex{R"(^[a-zA-Z_]\w+)"}},
+        {TokenType::INT, std::regex{R"(^\d+)"}}
+    };
+
+    // 检测当前是否已经到达结尾
+    if (this->pos >= this->text.length()) {
         return Token::END;
     }
 
-    return Token::END;
+    // 忽略所有空字符
+    while (std::isspace(this->text[this->pos]))
+        ++this->pos;
+
+    // 再次判断是否到结尾ie
+    if (this->pos >= this->text.length()) {
+        return Token::END;
+    }
+
+    // 使用正则表达式检测 INT、ID 两类词法单元
+    std::string view {this->text.substr(this->pos)};
+    for (const auto& [type, expression] : patterns) {
+        std::smatch match;
+        if (std::regex_search(view, match, expression)) {
+            this->pos += match.length(0);
+            if (type == TokenType::ID && this->keyword_table.iskeyword(match.str(0))) {
+                return this->keyword_table.getKeyword(match.str(0));
+            }
+            return {type, match.str(0)};
+        }
+    }
+
+    //TODO 补充对算符的检测
+
+    return Token::UNKNOWN;
+}
+
+/**
+ * @brief 初始化关键词表
+ */
+void ToyLexer::initKeywordTable(void) {
+    keyword_table.addKeyword("i32",      Token::I32);
+    keyword_table.addKeyword("let",      Token::LET);
+    keyword_table.addKeyword("if",       Token::IF);
+    keyword_table.addKeyword("else",     Token::ELSE);
+    keyword_table.addKeyword("while",    Token::WHILE);
+    keyword_table.addKeyword("return",   Token::RETURN);
+    keyword_table.addKeyword("mut",      Token::MUT);
+    keyword_table.addKeyword("fn",       Token::FN);
+    keyword_table.addKeyword("for",      Token::FOR);
+    keyword_table.addKeyword("in",       Token::IN);
+    keyword_table.addKeyword("loop",     Token::LOOP);
+    keyword_table.addKeyword("break",    Token::BREAK);
+    keyword_table.addKeyword("continue", Token::CONTINUE);
 }
 
 /* member function definition */

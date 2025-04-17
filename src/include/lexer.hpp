@@ -17,7 +17,7 @@ public:
     virtual Token nextToken() = 0;
 
 public:
-    bool advance();
+    bool advance(void);
 
     /**
      * @brief 重置当前扫描位置
