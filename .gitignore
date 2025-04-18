@@ -5,10 +5,11 @@
 !.gitignore
 !Makefile
 !README.md
-!**/*.c
-!**/*.h
 !/note/*
 !/docs/*
 !**/*.cpp
 !**/*.hpp
 !.githooks/*
+!.vscode/launch.json
+!.vscode/tasks.json
+!**/Makefile
