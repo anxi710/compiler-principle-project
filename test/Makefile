@@ -11,3 +11,8 @@ endif
 test_token: test_token.cpp  ../src/token.cpp ../src/token_type.cpp
 	@mkdir -p build
 	$(CC) $(CXXFLAGS) -I../src $^ -o build/$@
+
+.PHONY: clean
+
+clean:
+	rm -rf build
