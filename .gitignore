@@ -10,5 +10,6 @@
 !**/*.cpp
 !**/*.hpp
 !.githooks/*
-!.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
 !**/Makefile
