@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug c++ with Make",
+            "name": "compiler debugging",
             "type": "cppdbg",
             "request": "launch",
             "cwd": "${workspaceFolder}",
@@ -25,6 +25,27 @@
                 }
             ],
             "preLaunchTask": "make" // 调用 tasks.json 中名为 "make" 的任务
+        },
+        {
+            "name": "test debugging",
+            "type": "cppdbg",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "program": "${workspaceFolder}/test/build/test_token",
+            "args": [],
+            "environment": [],
+            "stopAtEntry": false,
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "make test" // 调用 tasks.json 中名为 "make test" 的任务
         }
    ]
 }

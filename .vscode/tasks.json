@@ -11,6 +11,17 @@
                 "isDefault": true
             },
             "problemMatcher": []
+        },
+        {
+            "label": "make test",
+            "type": "shell",
+            "command": "cd test; make test_token",
+            "args": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
         }
     ]
 }
