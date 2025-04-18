@@ -15,7 +15,7 @@
         {
             "label": "make test",
             "type": "shell",
-            "command": "cd test; make test",
+            "command": "cd test; make test_token",
             "args": [],
             "group": {
                 "kind": "build",
