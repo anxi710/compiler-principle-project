@@ -13,3 +13,6 @@
 !.vscode/launch.json
 !.vscode/tasks.json
 !**/Makefile
+
+src_regex/*
+
