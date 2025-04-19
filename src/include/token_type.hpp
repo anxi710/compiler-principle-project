@@ -51,7 +51,7 @@ enum class TokenType {
     // Group 3
     // arbitrary LA
     OP_EQ,      //  ==
-    OP_NEQ      //  !=
+    OP_NEQ,     //  !=
     OP_GE,      //  >=
     OP_LE,      //  <=
     DOTS,       //  ..

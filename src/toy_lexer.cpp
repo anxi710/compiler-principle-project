@@ -27,7 +27,7 @@ ToyLexer::ToyLexer(const std::string text) : Lexer(text) {
 
 /**
  * @brief  获取下一个词法单元
- * @return next token
+ * @return  token
  */
 Token ToyLexer::nextToken(void) {
     static const std::vector<std::pair<TokenType, std::regex>> patterns {
@@ -120,106 +120,82 @@ Token ToyLexer::nextToken(void) {
         break;
     
     case '=':
-        if (secondch == '=')
-        {
+        if (secondch == '='){
             this->pos += 2;
             return {TokenType::OP_EQ,"=="}; 
-        }
-        else 
-        {
+        } else {
             this->pos += 1;
             return {TokenType::ASSIGN,"="};
         }
         break;
     
     case '-':
-        if (secondch == '>')
-        {
+        if (secondch == '>'){
             this->pos += 2;
             return {TokenType::ARROW,"->"};
-        }
-        else
-        {
+        } else {
             this->pos += 1;
             return {TokenType::OP_MINUS,"-"};
         }
         break;
     
     case '*':
-        if (secondch == '/')
-        {
+        if (secondch == '/'){
             this->pos += 2;
             return {TokenType::RMUL_COM,"*/"};
-        }
-        else
-        {
+        } else {
             this->pos += 1;
             return {TokenType::OP_MUL,"*"};
         }
         break;
 
     case '/':
-        if (secondch == '/')
-        {
+        if (secondch == '/'){
             this->pos += 2;
             return {TokenType::SIN_COM,"//"};
-        }
-        else if (secondch == '*')
-        {
+        } else if (secondch == '*'){
             this->pos += 2;
             return {TokenType::LMUL_COM,"/*"};
-        }
-        else
-        {
+        } else {
             this->pos += 1;
             return {TokenType::OP_DIV,"/"};
         }
         break;
 
     case '>':
-        if (secondch == '=')
-        {
+        if (secondch == '=') {
             this->pos += 2;
             return {TokenType::OP_GE,">="};
-        }
-        else 
-        {
+        } else {
             this->pos += 1;
             return {TokenType::OP_GT,">"};
         }
         break;
     
     case '<':
-        if (secondch == '=')
-        {
+        if (secondch == '='){
             this->pos += 2;
             return {TokenType::OP_LE,"<="};
-        }
-        else
-        {
+        } else {
             this->pos += 1;
             return {TokenType::OP_LT,"<"};
         }
         break;
 
     case '.':
-        if(secondch == '.')
-        {
+        if(secondch == '.'){
             this->pos += 2;
             return {TokenType::DOTS,".."};
-        }
-        else
-        {
+        } else{
             this->pos += 1;
             return {TokenType::DOT,"."};
         }
         break;
     
     case '!':
-        if(secondch == '=')
-        {
+        if(secondch == '='){
             this->pos += 2;
-            return {TokenType::NEQ,"!="};
+            return {TokenType::OP_NEQ,"!="};
         }
 
     default:
