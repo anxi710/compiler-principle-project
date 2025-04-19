@@ -11,7 +11,6 @@ enum class TokenType {
 
     // Group 1
     // lookahead = 1 (LA(1))
-    DOT, ADD, SUB,
     IF, ELSE,
     WHILE,
     ID,
@@ -27,12 +26,39 @@ enum class TokenType {
     CONTINUE,
     INT,
 
+    LPAREN,     //  (
+    RPAREN,     //  )
+    LBRACE,     //  {
+    RBRACE,     //  }
+    LBRACK,     //  [
+    RBRACK,     //  ]
+    SEMICOLON,  //  ;
+    COLON,      //  :
+    COMMA,      //  ,
+    
+    OP_PLUS,    //  +
     // Group 2
     // lookahead = 2
+    
+    ASSIGN,     //  =
+    OP_MINUS,   //  -
+    OP_MUL,     //  *
+    OP_DIV,     //  /
+    OP_GT,      //  >
+    OP_LT,      //  <
+    DOT,        //  .
 
     // Group 3
     // arbitrary LA
-
+    OP_EQ,      //  ==
+    OP_NEQ      //  !=
+    OP_GE,      //  >=
+    OP_LE,      //  <=
+    DOTS,       //  ..
+    ARROW,      //  ->
+    SIN_COM,    //  //
+    LMUL_COM,   //  /*
+    RMUL_COM   //  */    
 };
 
 const std::string tokenType2str(TokenType type);
