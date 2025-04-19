@@ -62,8 +62,170 @@ Token ToyLexer::nextToken(void) {
         }
     }
 
+    char firstch    =   view[0];
+    char secondch   =   '\0';
+    if(this->text.length() - this->pos > 1)
+        secondch    =   view[1];
     //TODO 补充对算符的检测
+    switch (firstch)
+    {
+    case '(':
+        this->pos += 1;
+        return {TokenType::LPAREN,"("};
+        break;
+           
+    case ')':
+        this->pos += 1;
+        return {TokenType::RPAREN,")"};
+        break;
 
+    case '{':
+        this->pos += 1;
+        return {TokenType::LBRACE,"{"};
+        break;
+        
+    case '}':
+        this->pos += 1;
+        return {TokenType::RBRACE,"}"};
+        break;
+    
+    case '[':
+        this->pos += 1;
+        return {TokenType::LBRACK,"["};
+        break;
+    
+    case ']':
+        this->pos += 1;
+        return {TokenType::RBRACK,"]"};   
+        break;
+        
+    case ';':
+        this->pos += 1;
+        return {TokenType::SEMICOLON,";"};
+        break;
+    
+    case ':':
+        this->pos += 1;
+        return {TokenType::COLON,":"};
+        break;
+    
+    case ',':
+        this->pos += 1;
+        return {TokenType::COMMA,","};
+        break;
+
+    case '+':
+        this->pos += 1;
+        return {TokenType::OP_PLUS,"+"};
+        break;
+    
+    case '=':
+        if (secondch == '=')
+        {
+            this->pos += 2;
+            return {TokenType::OP_EQ,"=="}; 
+        }
+        else 
+        {
+            this->pos += 1;
+            return {TokenType::ASSIGN,"="};
+        }
+        break;
+    
+    case '-':
+        if (secondch == '>')
+        {
+            this->pos += 2;
+            return {TokenType::ARROW,"->"};
+        }
+        else
+        {
+            this->pos += 1;
+            return {TokenType::OP_MINUS,"-"};
+        }
+        break;
+    
+    case '*':
+        if (secondch == '/')
+        {
+            this->pos += 2;
+            return {TokenType::RMUL_COM,"*/"};
+        }
+        else
+        {
+            this->pos += 1;
+            return {TokenType::OP_MUL,"*"};
+        }
+        break;
+
+    case '/':
+        if (secondch == '/')
+        {
+            this->pos += 2;
+            return {TokenType::SIN_COM,"//"};
+        }
+        else if (secondch == '*')
+        {
+            this->pos += 2;
+            return {TokenType::LMUL_COM,"/*"};
+        }
+        else
+        {
+            this->pos += 1;
+            return {TokenType::OP_DIV,"/"};
+        }
+        break;
+
+    case '>':
+        if (secondch == '=')
+        {
+            this->pos += 2;
+            return {TokenType::OP_GE,">="};
+        }
+        else 
+        {
+            this->pos += 1;
+            return {TokenType::OP_GT,">"};
+        }
+        break;
+    
+    case '<':
+        if (secondch == '=')
+        {
+            this->pos += 2;
+            return {TokenType::OP_LE,"<="};
+        }
+        else
+        {
+            this->pos += 1;
+            return {TokenType::OP_LT,"<"};
+        }
+        break;
+
+    case '.':
+        if(secondch == '.')
+        {
+            this->pos += 2;
+            return {TokenType::DOTS,".."};
+        }
+        else
+        {
+            this->pos += 1;
+            return {TokenType::DOT,"."};
+        }
+        break;
+    
+    case '!':
+        if(secondch == '=')
+        {
+            this->pos += 2;
+            return {TokenType::NEQ,"!="};
+        }
+
+    default:
+        break;
+    }
+    
     return Token::UNKNOWN;
 }
 
