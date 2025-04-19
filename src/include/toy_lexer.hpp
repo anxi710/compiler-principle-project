@@ -12,6 +12,9 @@ public:
     ToyLexer(const std::string text);
     ~ToyLexer() = default;
 
+private:
+    void init();
+
 public: // virtual function
     Token nextToken(void);
 
