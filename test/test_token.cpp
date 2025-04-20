@@ -6,7 +6,7 @@ int main(void) {
     using compiler::lexer::Token;
     using compiler::lexer::TokenType;
     using compiler::lexer::ToyLexer;
-    ToyLexer tl("let mut x = 42; if x > 0 { return x; } ");
+    ToyLexer tl {"let mut x = 42; if x > 0 { return x; } "};
     //ToyLexer tl("let mut  + ...");
     //ToyLexer tl("_x123");
     //ToyLexer tl("x123");
