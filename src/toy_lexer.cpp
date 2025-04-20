@@ -9,7 +9,19 @@ namespace compiler::lexer {
 
 /* constructor */
 
-ToyLexer::ToyLexer() {
+ToyLexer::ToyLexer() : Lexer("") {
+    init();
+}
+
+ToyLexer::ToyLexer(const std::string text) : Lexer(text) {
+    init();
+}
+
+/* constructor */
+
+/* member function definition */
+
+void ToyLexer::init() {
     last_matched_pos          = 0;
     longest_valid_prefix_pos  = 0;
     longest_valid_prefix_type = TokenType::UNKNOWN;
@@ -17,21 +29,13 @@ ToyLexer::ToyLexer() {
     initKeywordTable();
 }
 
-ToyLexer::ToyLexer(const std::string text) : Lexer(text) {
-    ToyLexer();
-}
-
-/* constructor */
-
-/* member function definition */
-
 /**
  * @brief  获取下一个词法单元
  * @return  token
  */
 Token ToyLexer::nextToken(void) {
     static const std::vector<std::pair<TokenType, std::regex>> patterns {
-        {TokenType::ID,  std::regex{R"(^[a-zA-Z_]\w+)"}},
+        {TokenType::ID,  std::regex{R"(^[a-zA-Z_]\w*)"}},
         {TokenType::INT, std::regex{R"(^\d+)"}}
     };
 
@@ -73,62 +77,51 @@ Token ToyLexer::nextToken(void) {
         this->pos += 1;
         return {TokenType::LPAREN,"("};
         break;
-           
     case ')':
         this->pos += 1;
         return {TokenType::RPAREN,")"};
         break;
-
     case '{':
         this->pos += 1;
         return {TokenType::LBRACE,"{"};
         break;
-        
     case '}':
         this->pos += 1;
         return {TokenType::RBRACE,"}"};
         break;
-    
     case '[':
         this->pos += 1;
         return {TokenType::LBRACK,"["};
         break;
-    
     case ']':
         this->pos += 1;
-        return {TokenType::RBRACK,"]"};   
+        return {TokenType::RBRACK,"]"};
         break;
-        
     case ';':
         this->pos += 1;
         return {TokenType::SEMICOLON,";"};
         break;
-    
     case ':':
         this->pos += 1;
         return {TokenType::COLON,":"};
         break;
-    
     case ',':
         this->pos += 1;
         return {TokenType::COMMA,","};
         break;
-
     case '+':
         this->pos += 1;
         return {TokenType::OP_PLUS,"+"};
         break;
-    
     case '=':
         if (secondch == '='){
             this->pos += 2;
-            return {TokenType::OP_EQ,"=="}; 
+            return {TokenType::OP_EQ,"=="};
         } else {
             this->pos += 1;
             return {TokenType::ASSIGN,"="};
         }
         break;
-    
     case '-':
         if (secondch == '>'){
             this->pos += 2;
@@ -138,7 +131,6 @@ Token ToyLexer::nextToken(void) {
             return {TokenType::OP_MINUS,"-"};
         }
         break;
-    
     case '*':
         if (secondch == '/'){
             this->pos += 2;
@@ -148,7 +140,6 @@ Token ToyLexer::nextToken(void) {
             return {TokenType::OP_MUL,"*"};
         }
         break;
-
     case '/':
         if (secondch == '/'){
             this->pos += 2;
@@ -161,7 +152,6 @@ Token ToyLexer::nextToken(void) {
             return {TokenType::OP_DIV,"/"};
         }
         break;
-
     case '>':
         if (secondch == '=') {
             this->pos += 2;
@@ -171,7 +161,6 @@ Token ToyLexer::nextToken(void) {
             return {TokenType::OP_GT,">"};
         }
         break;
-    
     case '<':
         if (secondch == '='){
             this->pos += 2;
@@ -181,7 +170,6 @@ Token ToyLexer::nextToken(void) {
             return {TokenType::OP_LT,"<"};
         }
         break;
-
     case '.':
         if(secondch == '.'){
             this->pos += 2;
@@ -191,17 +179,15 @@ Token ToyLexer::nextToken(void) {
             return {TokenType::DOT,"."};
         }
         break;
-    
     case '!':
         if(secondch == '='){
             this->pos += 2;
             return {TokenType::OP_NEQ,"!="};
         }
-
     default:
         break;
     }
-    
+
     return Token::UNKNOWN;
 }
 
