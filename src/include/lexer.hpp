@@ -1,23 +1,27 @@
 #pragma once
 
 #include <string>
+#include <optional>
+#include "token.hpp"
 
-namespace compiler::lexer {
-
-class Token;
+namespace lexer::base {
 
 // abstract class lexer: define some utilities and data structure.
 class Lexer {
 public:
     Lexer();
-    Lexer(const std::string text);
-    ~Lexer() = default;
+
+    // Perfect forwarding
+    template<typename T>
+    Lexer(T&& text): text(std::forward<T>(text)), pos(0), peek(text[0]) {}
+
+    virtual ~Lexer() = default;
 
 public:
-    virtual Token nextToken() = 0;
+    virtual std::optional<token::Token> nextToken() = 0;
 
 public:
-    bool advance(void);
+    bool advance();
 
     /**
      * @brief 重置当前扫描位置
@@ -26,13 +30,12 @@ public:
     inline void reset(size_t pos) {
         this->pos  = pos;
         this->peek = text[pos];
-        return;
     }
 
 protected:
     std::string text; // text to be scanned
-    size_t      pos;  // the next position to be scanned
+    std::size_t pos;  // the next position to be scanned
     char        peek; // the next character to be scanned
 };
 
-} // namespace compiler::lexer
+} // namespace lexer::base

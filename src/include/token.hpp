@@ -3,48 +3,53 @@
 #include <string>
 #include "include/token_type.hpp"
 
-namespace compiler::lexer {
+namespace lexer::token {
 
-enum class TokenType;
+enum class Type;
 
 class Token {
 public:
     // 关键字
-    static const Token END;     // end of file
-    static const Token UNKNOWN; // unknown token
+    static const Token END; // end of file
+    static const Token IF;
+    static const Token FN;
+    static const Token IN;
     static const Token I32;
     static const Token LET;
-    static const Token IF;
-    static const Token ELSE;
-    static const Token WHILE;
-    static const Token RETURN;
-    static const Token MUT;
-    static const Token FN;
     static const Token FOR;
-    static const Token IN;
+    static const Token MUT;
+    static const Token ELSE;
     static const Token LOOP;
     static const Token BREAK;
+    static const Token WHILE;
+    static const Token RETURN;
     static const Token CONTINUE;
 
 public:
-    Token() = delete;
-    Token(TokenType type, std::string value);
+    Token() : type(Type::DEFAULT), value("") {}
+    Token(Type type, std::string value);
     ~Token() = default;
+
+    Token& operator=(const Token& rhs) = default;
+
+    bool operator==(const Token& rhs) {
+        return this->type == rhs.type && this->value == rhs.value;
+    }
 
 public:
     /**
      * @brief  获取 token 的值
      * @return token value
      */
-    inline const std::string getValue(void) {
+    inline const std::string& getValue() {
         return this->value;
     }
 
-    const std::string toString(void);
+    const std::string toString();
 
 private:
-    TokenType   type;      // token type
-    std::string value;     // 组成 token 的字符串
+    Type        type;  // token type
+    std::string value; // 组成 token 的字符串
 };
 
-} // namespace compiler::lexer
+} // namespace lexer::token

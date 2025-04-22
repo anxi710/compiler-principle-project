@@ -1,14 +1,10 @@
 #include "include/lexer.hpp"
 
-namespace compiler::lexer {
+namespace lexer::base {
 
 /* constructor */
 
-Lexer::Lexer() : text(""), pos(0), peek('\0') {
-}
-
-Lexer::Lexer(const std::string text) : text(text), pos(0), peek(text[0]) {
-}
+Lexer::Lexer() : text(""), pos(0), peek('\0') {}
 
 /* constructor */
 
@@ -30,4 +26,4 @@ bool Lexer::advance(void) {
 
 /* member function definition */
 
-} // namespace compiler::lexer
+} // namespace lexer::base

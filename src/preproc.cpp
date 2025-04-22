@@ -1,23 +1,25 @@
 #include "include/preproc.hpp"
 
-namespace compiler::preproc {
+namespace preproc {
 
 /**
  * @brief  删除输入字符流中的注释
- * @param  text 输入字符串（将被原地修改）
- * @return void
+ * @param  text 输入字符串
+ * @return 删除后的字符串
  */
-void removeAnnotations(std::string& text) {
-    std::string result;
-    size_t i = 0;
-    int depth = 0;
+std::string removeAnnotations(std::string text) {
+    std::string result {}; // 删除注释后的字符串
+    std::size_t i      {}; // index
+    int         depth  {}; // 嵌套深度
+
     while (i < text.length()) {
         if (depth == 0 && text[i] == '/' && i + 1 < text.length()) {
             if (text[i + 1] == '/') {
                 // 单行注释，跳过直到换行
                 i += 2;
-                while (i < text.length() && text[i] != '\n') 
+                while (i < text.length() && text[i] != '\n') {
                     i++;
+                }
             } else if (text[i + 1] == '*') {
                 // 块注释开始
                 depth++;
@@ -40,8 +42,9 @@ void removeAnnotations(std::string& text) {
         } else {
             result += text[i++];
         }
-    }
-    text = result;
+    } // end while
+
+    return result;
 }
 
-} // namespace compiler::preproc
+} // namespace preproc

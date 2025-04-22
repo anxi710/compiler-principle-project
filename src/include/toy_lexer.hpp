@@ -1,40 +1,38 @@
 #pragma once
 
-#include <string>
 #include "include/lexer.hpp"
 #include "include/keyword_table.hpp"
 
-namespace compiler::lexer {
+namespace lexer::impl {
 
-class ToyLexer : public Lexer {
+class ToyLexer : public base::Lexer {
 public:
     ToyLexer();
-    ToyLexer(const std::string text);
+
+    template<typename T>
+    ToyLexer(T&& text) : Lexer(std::forward<T>(text)) {
+        initKeywordTable();
+    }
+
     ~ToyLexer() = default;
 
-private:
-    void init();
-
 public: // virtual function
-    Token nextToken(void);
+    std::optional<token::Token> nextToken();
 
 public:
     /**
-     * @brief 设置待分析的文本
+     * @brief 重新设置待分析的文本
      * @param text 文本字符串
      */
-    inline void setText(std::string text) {
-        this->text = text;
+    inline void resetText(std::string&& text) {
+        this->text = std::move(text);
     }
 
 private:
-    void initKeywordTable(void);
+    void initKeywordTable();
 
 private:
-    size_t       last_matched_pos;          // 上一次匹配成功的位置
-    size_t       longest_valid_prefix_pos;  // 当前匹配到的最长合法前缀位置
-    TokenType    longest_valid_prefix_type; // 当前匹配到的最长合法前缀对应的 token 类型
-    KeywordTable keyword_table;             // 关键词表
+    keyword::KeywordTable keyword_table;             // 关键词表
 };
 
-} // namespace compiler::lexer
+} // namespace lexer::impl

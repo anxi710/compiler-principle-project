@@ -5,13 +5,7 @@
 #include <unordered_map>
 #include "include/token.hpp"
 
-// Tips:
-//   不能使用 this->keywords["IF"] = Token::IF 的形式插入
-//   因为我显式 delete 了 class Token 的默认构造函数，而
-//   上式会先调用默认构造函数构造一个 Token 对象，然后再拷贝
-//   this->keywords.emplace("if", Token::IF);
-
-namespace compiler::lexer {
+namespace lexer::keyword {
 
 /**
  * @brief   关键字表
@@ -37,7 +31,7 @@ public:
      * @param  value token value
      * @return keyword token
      */
-    inline Token getKeyword(std::string value) {
+    inline token::Token getKeyword(std::string value) {
         assert(keywords.find(value) != keywords.end());
         return keywords.find(value)->second;
     }
@@ -47,12 +41,12 @@ public:
      * @param name  keyword name
      * @param token keyword token
      */
-    inline void addKeyword(std::string name, Token token) {
+    inline void addKeyword(std::string name, token::Token token) {
         this->keywords.emplace(name, token);
     }
 
 private:
-    std::unordered_map<std::string, Token> keywords; // keyword hash map
+    std::unordered_map<std::string, token::Token> keywords; // keyword hash map
 };
 
-} // namespace compiler::lexer
+} // namespace lexer::keyword
