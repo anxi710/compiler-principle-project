@@ -6,7 +6,6 @@ namespace compiler::lexer {
 /* keywords initialization */
 
 const Token Token::END      {TokenType::END,      ""};
-const Token Token::UNKNOWN  {TokenType::UNKNOWN,  ""};
 const Token Token::I32      {TokenType::I32,      "i32"};
 const Token Token::LET      {TokenType::LET,      "let"};
 const Token Token::IF       {TokenType::IF,       "if"};

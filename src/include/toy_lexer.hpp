@@ -1,6 +1,5 @@
 #pragma once
 
-#include <string>
 #include "include/lexer.hpp"
 #include "include/keyword_table.hpp"
 
@@ -31,9 +30,6 @@ private:
     void initKeywordTable(void);
 
 private:
-    size_t       last_matched_pos;          // 上一次匹配成功的位置
-    size_t       longest_valid_prefix_pos;  // 当前匹配到的最长合法前缀位置
-    TokenType    longest_valid_prefix_type; // 当前匹配到的最长合法前缀对应的 token 类型
     KeywordTable keyword_table;             // 关键词表
 };
 

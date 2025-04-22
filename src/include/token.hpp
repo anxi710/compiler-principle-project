@@ -11,7 +11,6 @@ class Token {
 public:
     // 关键字
     static const Token END;     // end of file
-    static const Token UNKNOWN; // unknown token
     static const Token I32;
     static const Token LET;
     static const Token IF;
@@ -27,9 +26,11 @@ public:
     static const Token CONTINUE;
 
 public:
-    Token() = delete;
+    Token() : type(TokenType::UNKNOWN), value("") {}
     Token(TokenType type, std::string value);
     ~Token() = default;
+
+    Token& operator=(const Token& rhs) = default;
 
 public:
     /**

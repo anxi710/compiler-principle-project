@@ -1,4 +1,6 @@
-#include <cctype> // 定义有 isspace(), isalpha() 等函数
+#include <iostream>
+#include <cstdlib>
+#include <cctype>
 #include <vector>
 #include <regex>
 #include "include/token.hpp"
@@ -22,10 +24,6 @@ ToyLexer::ToyLexer(const std::string text) : Lexer(text) {
 /* member function definition */
 
 void ToyLexer::init() {
-    last_matched_pos          = 0;
-    longest_valid_prefix_pos  = 0;
-    longest_valid_prefix_type = TokenType::UNKNOWN;
-
     initKeywordTable();
 }
 
@@ -45,10 +43,11 @@ Token ToyLexer::nextToken(void) {
     }
 
     // 忽略所有空字符
-    while (std::isspace(this->text[this->pos]))
+    while (std::isspace(this->text[this->pos])) {
         ++this->pos;
+    }
 
-    // 再次判断是否到结尾ie
+    // 再次判断是否到结尾
     if (this->pos >= this->text.length()) {
         return Token::END;
     }
@@ -66,129 +65,112 @@ Token ToyLexer::nextToken(void) {
         }
     }
 
-    char firstch    =   view[0];
-    char secondch   =   '\0';
-    if(this->text.length() - this->pos > 1)
-        secondch    =   view[1];
-    //TODO 补充对算符的检测
-    switch (firstch)
-    {
+    Token token       {};        // 识别到的词法单元
+    char  first_char  {view[0]}; // 当前看到的第一个字符
+    char  second_char {};        // 当前看到的第二个字符 - 用于 lookahead
+    if(this->text.length() - this->pos > 1) {
+        second_char = view[1];
+    }
+
+    // 检测算符和标点符号
+    switch (first_char) {
+    default:
+        break;
     case '(':
-        this->pos += 1;
-        return {TokenType::LPAREN,"("};
+        token = Token{TokenType::LPAREN, std::string{"("}};
         break;
     case ')':
-        this->pos += 1;
-        return {TokenType::RPAREN,")"};
+        token = Token{TokenType::RPAREN, std::string{")"}};
         break;
     case '{':
-        this->pos += 1;
-        return {TokenType::LBRACE,"{"};
+        token = Token{TokenType::LBRACE, std::string{"{"}};
         break;
     case '}':
-        this->pos += 1;
-        return {TokenType::RBRACE,"}"};
+        token = Token{TokenType::RBRACE, std::string{"}"}};
         break;
     case '[':
-        this->pos += 1;
-        return {TokenType::LBRACK,"["};
+        token = Token{TokenType::LBRACK, std::string{"["}};
         break;
     case ']':
-        this->pos += 1;
-        return {TokenType::RBRACK,"]"};
+        token = Token{TokenType::RBRACK, std::string{"]"}};
         break;
     case ';':
-        this->pos += 1;
-        return {TokenType::SEMICOLON,";"};
+        token = Token{TokenType::SEMICOLON, std::string{";"}};
         break;
     case ':':
-        this->pos += 1;
-        return {TokenType::COLON,":"};
+        token = Token{TokenType::COLON, std::string{":"}};
         break;
     case ',':
-        this->pos += 1;
-        return {TokenType::COMMA,","};
+        token = Token{TokenType::COMMA, std::string{","}};
         break;
     case '+':
-        this->pos += 1;
-        return {TokenType::OP_PLUS,"+"};
+        token = Token{TokenType::OP_PLUS, std::string{"+"}};
         break;
     case '=':
-        if (secondch == '='){
-            this->pos += 2;
-            return {TokenType::OP_EQ,"=="};
+        if (second_char == '='){
+            token = Token{TokenType::OP_EQ, std::string{"=="}};
         } else {
-            this->pos += 1;
-            return {TokenType::ASSIGN,"="};
+            token = Token{TokenType::ASSIGN, std::string{"="}};
         }
         break;
     case '-':
-        if (secondch == '>'){
-            this->pos += 2;
-            return {TokenType::ARROW,"->"};
+        if (second_char == '>'){
+            token = Token{TokenType::ARROW, std::string{"->"}};
         } else {
-            this->pos += 1;
-            return {TokenType::OP_MINUS,"-"};
+            token = Token{TokenType::OP_MINUS, std::string{"-"}};
         }
         break;
     case '*':
-        if (secondch == '/'){
-            this->pos += 2;
-            return {TokenType::RMUL_COM,"*/"};
+        if (second_char == '/'){
+            token = Token{TokenType::RMUL_COM, std::string{"*/"}};
         } else {
-            this->pos += 1;
-            return {TokenType::OP_MUL,"*"};
+            token = Token{TokenType::OP_MUL, std::string{"*"}};
         }
         break;
     case '/':
-        if (secondch == '/'){
-            this->pos += 2;
-            return {TokenType::SIN_COM,"//"};
-        } else if (secondch == '*'){
-            this->pos += 2;
-            return {TokenType::LMUL_COM,"/*"};
+        if (second_char == '/'){
+            token = Token{TokenType::SIN_COM, std::string{"//"}};
+        } else if (second_char == '*'){
+            token = Token{TokenType::LMUL_COM, std::string{"/*"}};
         } else {
-            this->pos += 1;
-            return {TokenType::OP_DIV,"/"};
+            token = Token{TokenType::OP_DIV, std::string{"/"}};
         }
         break;
     case '>':
-        if (secondch == '=') {
-            this->pos += 2;
-            return {TokenType::OP_GE,">="};
+        if (second_char == '=') {
+            token = Token{TokenType::OP_GE, std::string{">="}};
         } else {
-            this->pos += 1;
-            return {TokenType::OP_GT,">"};
+            token = Token{TokenType::OP_GT, std::string{">"}};
         }
         break;
     case '<':
-        if (secondch == '='){
-            this->pos += 2;
-            return {TokenType::OP_LE,"<="};
+        if (second_char == '='){
+            token = Token{TokenType::OP_LE, std::string{"<="}};
         } else {
-            this->pos += 1;
-            return {TokenType::OP_LT,"<"};
+            token = Token{TokenType::OP_LT, std::string{"<"}};
         }
         break;
     case '.':
-        if(secondch == '.'){
-            this->pos += 2;
-            return {TokenType::DOTS,".."};
+        if(second_char == '.'){
+            token = Token{TokenType::DOTS, std::string{".."}};
         } else{
-            this->pos += 1;
-            return {TokenType::DOT,"."};
+            token = Token{TokenType::DOT, std::string{"."}};
         }
         break;
     case '!':
-        if(secondch == '='){
-            this->pos += 2;
-            return {TokenType::OP_NEQ,"!="};
+        if(second_char == '='){
+            token = Token{TokenType::OP_NEQ, std::string{"!="}};
         }
-    default:
         break;
     }
 
-    return Token::UNKNOWN;
+    if (token.getValue().length() > 0) {
+        this->pos += token.getValue().length();
+        return token;
+    } else {
+        std::cerr << "ToyLexer::nextToken(): unknown token" << std::endl;
+        exit(1);
+    }
 }
 
 /**

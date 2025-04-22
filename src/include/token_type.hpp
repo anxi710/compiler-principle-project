@@ -35,11 +35,11 @@ enum class TokenType {
     SEMICOLON,  //  ;
     COLON,      //  :
     COMMA,      //  ,
-    
+
     OP_PLUS,    //  +
+
     // Group 2
     // lookahead = 2
-    
     ASSIGN,     //  =
     OP_MINUS,   //  -
     OP_MUL,     //  *
@@ -58,7 +58,7 @@ enum class TokenType {
     ARROW,      //  ->
     SIN_COM,    //  //
     LMUL_COM,   //  /*
-    RMUL_COM   //  */    
+    RMUL_COM    //  */
 };
 
 const std::string tokenType2str(TokenType type);
