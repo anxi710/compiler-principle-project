@@ -4,6 +4,6 @@
 
 namespace compiler::preproc {
 
-void removeAnnotations(std::string text);
+void removeAnnotations(std::string& text);
 
 } // namespace compiler::preproc
