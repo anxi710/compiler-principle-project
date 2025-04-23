@@ -8,11 +8,13 @@ namespace compiler::lexer {
 class ToyLexer : public Lexer {
 public:
     ToyLexer();
-    ToyLexer(const std::string text);
-    ~ToyLexer() = default;
 
-private:
-    void init();
+    template<typename T>
+    ToyLexer(T&& text) : Lexer(std::forward<T>(text)) {
+        initKeywordTable();
+    }
+
+    ~ToyLexer() = default;
 
 public: // virtual function
     Token nextToken(void);
@@ -22,8 +24,8 @@ public:
      * @brief 设置待分析的文本
      * @param text 文本字符串
      */
-    inline void setText(std::string text) {
-        this->text = text;
+    inline void setText(std::string&& text) {
+        this->text = std::move(text);
     }
 
 private:

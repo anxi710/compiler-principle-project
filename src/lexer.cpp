@@ -4,11 +4,7 @@ namespace compiler::lexer {
 
 /* constructor */
 
-Lexer::Lexer() : text(""), pos(0), peek('\0') {
-}
-
-Lexer::Lexer(const std::string text) : text(text), pos(0), peek(text[0]) {
-}
+Lexer::Lexer() : text(""), pos(0), peek('\0') {}
 
 /* constructor */
 

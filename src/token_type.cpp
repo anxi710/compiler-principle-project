@@ -10,52 +10,95 @@ namespace compiler::lexer {
  */
 const std::string tokenType2str(TokenType type) {
     switch (type) {
-        case TokenType::END:        return "END";
-        case TokenType::UNKNOWN:    return "UNKNOWN";
-        case TokenType::IF:         return "IF";
-        case TokenType::ELSE:       return "ELSE";
-        case TokenType::WHILE:      return "WHILE";
-        case TokenType::ID:         return "ID";
-        case TokenType::I32:        return "I32";
-        case TokenType::LET:        return "LET";
-        case TokenType::RETURN:     return "RETURN";
-        case TokenType::MUT:        return "MUT";
-        case TokenType::FN:         return "FN";
-        case TokenType::FOR:        return "FOR";
-        case TokenType::IN:         return "IN";
-        case TokenType::LOOP:       return "LOOP";
-        case TokenType::BREAK:      return "BREAK";
-        case TokenType::CONTINUE:   return "CONTINUE";
-        case TokenType::INT:        return "INT";
-        case TokenType::LPAREN:     return "LPAREN";
-        case TokenType::RPAREN:     return "RPAREN";
-        case TokenType::LBRACE:     return "LBRACE";
-        case TokenType::RBRACE:     return "RBRACE";
-        case TokenType::LBRACK:     return "LBRACK";
-        case TokenType::RBRACK:     return "RBRACK";
-        case TokenType::SEMICOLON:  return "SEMICOLON";
-        case TokenType::COLON:      return "COLON";
-        case TokenType::COMMA:      return "COMMA";
-        case TokenType::OP_PLUS:    return "OP_PLUS";
-        case TokenType::ASSIGN:     return "ASSIGN";
-        case TokenType::OP_MINUS:   return "OP_MINUS";
-        case TokenType::OP_MUL:     return "OP_MUL";
-        case TokenType::OP_DIV:     return "OP_DIV";
-        case TokenType::OP_GT:      return "OP_GT";
-        case TokenType::OP_LT:      return "OP_LT";
-        case TokenType::DOT:        return "DOT";
-        case TokenType::OP_EQ:      return "OP_EQ";
-        case TokenType::OP_NEQ:     return "OP_NEQ";
-        case TokenType::OP_GE:      return "OP_GE";
-        case TokenType::OP_LE:      return "OP_LE";
-        case TokenType::DOTS:       return "DOTS";
-        case TokenType::ARROW:      return "ARROW";
-        case TokenType::SIN_COM:    return "SIN_COM";
-        case TokenType::LMUL_COM:   return "LMUL_COM";
-        case TokenType::RMUL_COM:   return "RMUL_COM";
-        default:                    return "UNKNOWN_TOKEN";
-    }
-
+        case TokenType::END:
+            return std::string{"END"};
+        case TokenType::UNKNOWN:
+            return std::string{"UNKNOWN"};
+        case TokenType::IF:
+            return std::string{"IF"};
+        case TokenType::ELSE:
+            return std::string{"ELSE"};
+        case TokenType::WHILE:
+            return std::string{"WHILE"};
+        case TokenType::ID:
+            return std::string{"ID"};
+        case TokenType::I32:
+            return std::string{"I32"};
+        case TokenType::LET:
+            return std::string{"LET"};
+        case TokenType::RETURN:
+            return std::string{"RETURN"};
+        case TokenType::MUT:
+            return std::string{"MUT"};
+        case TokenType::FN:
+            return std::string{"FN"};
+        case TokenType::FOR:
+            return std::string{"FOR"};
+        case TokenType::IN:
+            return std::string{"IN"};
+        case TokenType::LOOP:
+            return std::string{"LOOP"};
+        case TokenType::BREAK:
+            return std::string{"BREAK"};
+        case TokenType::CONTINUE:
+            return std::string{"CONTINUE"};
+        case TokenType::INT:
+            return std::string{"INT"};
+        case TokenType::LPAREN:
+            return std::string{"LPAREN"};
+        case TokenType::RPAREN:
+            return std::string{"RPAREN"};
+        case TokenType::LBRACE:
+            return std::string{"LBRACE"};
+        case TokenType::RBRACE:
+            return std::string{"RBRACE"};
+        case TokenType::LBRACK:
+            return std::string{"LBRACK"};
+        case TokenType::RBRACK:
+            return std::string{"RBRACK"};
+        case TokenType::SEMICOLON:
+            return std::string{"SEMICOLON"};
+        case TokenType::COLON:
+            return std::string{"COLON"};
+        case TokenType::COMMA:
+            return std::string{"COMMA"};
+        case TokenType::OP_PLUS:
+            return std::string{"OP_PLUS"};
+        case TokenType::ASSIGN:
+            return std::string{"ASSIGN"};
+        case TokenType::OP_MINUS:
+            return std::string{"OP_MINUS"};
+        case TokenType::OP_MUL:
+            return std::string{"OP_MUL"};
+        case TokenType::OP_DIV:
+            return std::string{"OP_DIV"};
+        case TokenType::OP_GT:
+            return std::string{"OP_GT"};
+        case TokenType::OP_LT:
+            return std::string{"OP_LT"};
+        case TokenType::DOT:
+            return std::string{"DOT"};
+        case TokenType::OP_EQ:
+            return std::string{"OP_EQ"};
+        case TokenType::OP_NEQ:
+            return std::string{"OP_NEQ"};
+        case TokenType::OP_GE:
+            return std::string{"OP_GE"};
+        case TokenType::OP_LE:
+            return std::string{"OP_LE"};
+        case TokenType::DOTS:
+            return std::string{"DOTS"};
+        case TokenType::ARROW:
+            return std::string{"ARROW"};
+        case TokenType::SIN_COM:
+            return std::string{"SIN_COM"};
+        case TokenType::LMUL_COM:
+            return std::string{"LMUL_COM"};
+        case TokenType::RMUL_COM:
+            return std::string{"RMUL_COM"};
+        default:
+            return std::string{"UNKNOWN_TOKEN"};
+    } // end switch
 
     std::cerr << "tokenType2str(): error termination." << std::endl;
     exit(1);

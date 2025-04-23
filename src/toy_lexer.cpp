@@ -1,8 +1,8 @@
-#include <iostream>
-#include <cstdlib>
+#include <regex>
 #include <cctype>
 #include <vector>
-#include <regex>
+#include <cstdlib>
+#include <iostream>
 #include "include/token.hpp"
 #include "include/toy_lexer.hpp"
 #include "include/token_type.hpp"
@@ -12,24 +12,16 @@ namespace compiler::lexer {
 /* constructor */
 
 ToyLexer::ToyLexer() : Lexer("") {
-    init();
-}
-
-ToyLexer::ToyLexer(const std::string text) : Lexer(text) {
-    init();
+    initKeywordTable();
 }
 
 /* constructor */
 
 /* member function definition */
 
-void ToyLexer::init() {
-    initKeywordTable();
-}
-
 /**
  * @brief  获取下一个词法单元
- * @return  token
+ * @return token
  */
 Token ToyLexer::nextToken(void) {
     static const std::vector<std::pair<TokenType, std::regex>> patterns {

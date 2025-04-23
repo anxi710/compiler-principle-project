@@ -10,8 +10,12 @@ class Token;
 class Lexer {
 public:
     Lexer();
-    Lexer(const std::string text);
-    ~Lexer() = default;
+
+    // Perfect forwarding
+    template<typename T>
+    Lexer(T&& text): text(std::forward<T>(text)), pos(0), peek(text[0]) {}
+
+    virtual ~Lexer() = default;
 
 public:
     virtual Token nextToken() = 0;
