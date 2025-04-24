@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include "include/token.hpp"
 
-namespace compiler::lexer {
+namespace lexer::keyword {
 
 /**
  * @brief   关键字表
@@ -31,7 +31,7 @@ public:
      * @param  value token value
      * @return keyword token
      */
-    inline Token getKeyword(std::string value) {
+    inline token::Token getKeyword(std::string value) {
         assert(keywords.find(value) != keywords.end());
         return keywords.find(value)->second;
     }
@@ -41,12 +41,12 @@ public:
      * @param name  keyword name
      * @param token keyword token
      */
-    inline void addKeyword(std::string name, Token token) {
+    inline void addKeyword(std::string name, token::Token token) {
         this->keywords.emplace(name, token);
     }
 
 private:
-    std::unordered_map<std::string, Token> keywords; // keyword hash map
+    std::unordered_map<std::string, token::Token> keywords; // keyword hash map
 };
 
-} // namespace compiler::lexer
+} // namespace lexer::keyword

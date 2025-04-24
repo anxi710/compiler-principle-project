@@ -1,100 +1,98 @@
 #include <iostream>
 #include "include/token_type.hpp"
 
-namespace compiler::lexer {
+namespace lexer::token {
 
 /**
- * @brief  TokenType 转 string
- * @param  type enum class TokenType 中的一个
+ * @brief  token::Type 转 string
+ * @param  type enum class token::Type 中的一个
  * @return 对应的 string
  */
-const std::string tokenType2str(TokenType type) {
+const std::string tokenType2str(Type type) {
     switch (type) {
-        case TokenType::END:
+        case Type::END:
             return std::string{"END"};
-        case TokenType::UNKNOWN:
-            return std::string{"UNKNOWN"};
-        case TokenType::IF:
+        case Type::IF:
             return std::string{"IF"};
-        case TokenType::ELSE:
+        case Type::ELSE:
             return std::string{"ELSE"};
-        case TokenType::WHILE:
+        case Type::WHILE:
             return std::string{"WHILE"};
-        case TokenType::ID:
+        case Type::ID:
             return std::string{"ID"};
-        case TokenType::I32:
+        case Type::I32:
             return std::string{"I32"};
-        case TokenType::LET:
+        case Type::LET:
             return std::string{"LET"};
-        case TokenType::RETURN:
+        case Type::RETURN:
             return std::string{"RETURN"};
-        case TokenType::MUT:
+        case Type::MUT:
             return std::string{"MUT"};
-        case TokenType::FN:
+        case Type::FN:
             return std::string{"FN"};
-        case TokenType::FOR:
+        case Type::FOR:
             return std::string{"FOR"};
-        case TokenType::IN:
+        case Type::IN:
             return std::string{"IN"};
-        case TokenType::LOOP:
+        case Type::LOOP:
             return std::string{"LOOP"};
-        case TokenType::BREAK:
+        case Type::BREAK:
             return std::string{"BREAK"};
-        case TokenType::CONTINUE:
+        case Type::CONTINUE:
             return std::string{"CONTINUE"};
-        case TokenType::INT:
+        case Type::INT:
             return std::string{"INT"};
-        case TokenType::LPAREN:
+        case Type::LPAREN:
             return std::string{"LPAREN"};
-        case TokenType::RPAREN:
+        case Type::RPAREN:
             return std::string{"RPAREN"};
-        case TokenType::LBRACE:
+        case Type::LBRACE:
             return std::string{"LBRACE"};
-        case TokenType::RBRACE:
+        case Type::RBRACE:
             return std::string{"RBRACE"};
-        case TokenType::LBRACK:
+        case Type::LBRACK:
             return std::string{"LBRACK"};
-        case TokenType::RBRACK:
+        case Type::RBRACK:
             return std::string{"RBRACK"};
-        case TokenType::SEMICOLON:
+        case Type::SEMICOLON:
             return std::string{"SEMICOLON"};
-        case TokenType::COLON:
+        case Type::COLON:
             return std::string{"COLON"};
-        case TokenType::COMMA:
+        case Type::COMMA:
             return std::string{"COMMA"};
-        case TokenType::OP_PLUS:
+        case Type::OP_PLUS:
             return std::string{"OP_PLUS"};
-        case TokenType::ASSIGN:
+        case Type::ASSIGN:
             return std::string{"ASSIGN"};
-        case TokenType::OP_MINUS:
+        case Type::OP_MINUS:
             return std::string{"OP_MINUS"};
-        case TokenType::OP_MUL:
+        case Type::OP_MUL:
             return std::string{"OP_MUL"};
-        case TokenType::OP_DIV:
+        case Type::OP_DIV:
             return std::string{"OP_DIV"};
-        case TokenType::OP_GT:
+        case Type::OP_GT:
             return std::string{"OP_GT"};
-        case TokenType::OP_LT:
+        case Type::OP_LT:
             return std::string{"OP_LT"};
-        case TokenType::DOT:
+        case Type::DOT:
             return std::string{"DOT"};
-        case TokenType::OP_EQ:
+        case Type::OP_EQ:
             return std::string{"OP_EQ"};
-        case TokenType::OP_NEQ:
+        case Type::OP_NEQ:
             return std::string{"OP_NEQ"};
-        case TokenType::OP_GE:
+        case Type::OP_GE:
             return std::string{"OP_GE"};
-        case TokenType::OP_LE:
+        case Type::OP_LE:
             return std::string{"OP_LE"};
-        case TokenType::DOTS:
+        case Type::DOTS:
             return std::string{"DOTS"};
-        case TokenType::ARROW:
+        case Type::ARROW:
             return std::string{"ARROW"};
-        case TokenType::SIN_COM:
+        case Type::SIN_COM:
             return std::string{"SIN_COM"};
-        case TokenType::LMUL_COM:
+        case Type::LMUL_COM:
             return std::string{"LMUL_COM"};
-        case TokenType::RMUL_COM:
+        case Type::RMUL_COM:
             return std::string{"RMUL_COM"};
         default:
             return std::string{"UNKNOWN_TOKEN"};
@@ -104,4 +102,4 @@ const std::string tokenType2str(TokenType type) {
     exit(1);
 }
 
-} // namespace compiler::lexer
+} // namespace lexer::token

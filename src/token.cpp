@@ -1,31 +1,31 @@
 #include <sstream>
 #include "include/token.hpp"
 
-namespace compiler::lexer {
+namespace lexer::token {
 
 /* keywords initialization */
 
-const Token Token::END      {TokenType::END,      ""};
-const Token Token::I32      {TokenType::I32,      "i32"};
-const Token Token::LET      {TokenType::LET,      "let"};
-const Token Token::IF       {TokenType::IF,       "if"};
-const Token Token::ELSE     {TokenType::ELSE,     "else"};
-const Token Token::WHILE    {TokenType::WHILE,    "while"};
-const Token Token::RETURN   {TokenType::RETURN,   "return"};
-const Token Token::MUT      {TokenType::MUT,      "mut"};
-const Token Token::FN       {TokenType::FN,       "fn"};
-const Token Token::FOR      {TokenType::FOR,      "for"};
-const Token Token::IN       {TokenType::IN,       "in"};
-const Token Token::LOOP     {TokenType::LOOP,     "loop"};
-const Token Token::BREAK    {TokenType::BREAK,    "break"};
-const Token Token::CONTINUE {TokenType::CONTINUE, "continue"};
+const Token Token::END      {Type::END,      ""};
+const Token Token::I32      {Type::I32,      "i32"};
+const Token Token::LET      {Type::LET,      "let"};
+const Token Token::IF       {Type::IF,       "if"};
+const Token Token::ELSE     {Type::ELSE,     "else"};
+const Token Token::WHILE    {Type::WHILE,    "while"};
+const Token Token::RETURN   {Type::RETURN,   "return"};
+const Token Token::MUT      {Type::MUT,      "mut"};
+const Token Token::FN       {Type::FN,       "fn"};
+const Token Token::FOR      {Type::FOR,      "for"};
+const Token Token::IN       {Type::IN,       "in"};
+const Token Token::LOOP     {Type::LOOP,     "loop"};
+const Token Token::BREAK    {Type::BREAK,    "break"};
+const Token Token::CONTINUE {Type::CONTINUE, "continue"};
 
 
 /* keywords initialization */
 
 /* constructor */
 
-Token::Token(TokenType type, std::string value) : type(type), value(value) {
+Token::Token(Type type, std::string value) : type(type), value(value) {
 }
 
 /* constructor */
@@ -40,11 +40,11 @@ const std::string Token::toString(void) {
     std::ostringstream oss;
 
     oss << "<type: " << tokenType2str(type) << ", value: "
-        << value << ">" << std::endl;
+        << value << ">";
 
     return oss.str();
 }
 
 /* function member definition */
 
-} // namespace compiler::lexer
+} // namespace lexer::token

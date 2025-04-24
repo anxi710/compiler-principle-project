@@ -3,9 +3,9 @@
 #include "include/lexer.hpp"
 #include "include/keyword_table.hpp"
 
-namespace compiler::lexer {
+namespace lexer::impl {
 
-class ToyLexer : public Lexer {
+class ToyLexer : public base::Lexer {
 public:
     ToyLexer();
 
@@ -17,22 +17,22 @@ public:
     ~ToyLexer() = default;
 
 public: // virtual function
-    Token nextToken(void);
+    std::optional<token::Token> nextToken();
 
 public:
     /**
-     * @brief 设置待分析的文本
+     * @brief 重新设置待分析的文本
      * @param text 文本字符串
      */
-    inline void setText(std::string&& text) {
+    inline void resetText(std::string&& text) {
         this->text = std::move(text);
     }
 
 private:
-    void initKeywordTable(void);
+    void initKeywordTable();
 
 private:
-    KeywordTable keyword_table;             // 关键词表
+    keyword::KeywordTable keyword_table;             // 关键词表
 };
 
-} // namespace compiler::lexer
+} // namespace lexer::impl

@@ -1,6 +1,6 @@
 #include "include/lexer.hpp"
 
-namespace compiler::lexer {
+namespace lexer::base {
 
 /* constructor */
 
@@ -26,4 +26,4 @@ bool Lexer::advance(void) {
 
 /* member function definition */
 
-} // namespace compiler::lexer
+} // namespace lexer::base

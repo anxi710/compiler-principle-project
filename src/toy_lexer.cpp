@@ -7,7 +7,7 @@
 #include "include/toy_lexer.hpp"
 #include "include/token_type.hpp"
 
-namespace compiler::lexer {
+namespace lexer::impl {
 
 /* constructor */
 
@@ -23,10 +23,11 @@ ToyLexer::ToyLexer() : Lexer("") {
  * @brief  获取下一个词法单元
  * @return token
  */
-Token ToyLexer::nextToken(void) {
-    static const std::vector<std::pair<TokenType, std::regex>> patterns {
-        {TokenType::ID,  std::regex{R"(^[a-zA-Z_]\w*)"}},
-        {TokenType::INT, std::regex{R"(^\d+)"}}
+std::optional<token::Token> ToyLexer::nextToken() {
+    using token::Token;
+    static const std::vector<std::pair<token::Type, std::regex>> patterns {
+        {token::Type::ID,  std::regex{R"(^[a-zA-Z_]\w*)"}},
+        {token::Type::INT, std::regex{R"(^\d+)"}}
     };
 
     // 检测当前是否已经到达结尾
@@ -50,10 +51,10 @@ Token ToyLexer::nextToken(void) {
         std::smatch match;
         if (std::regex_search(view, match, expression)) {
             this->pos += match.length(0);
-            if (type == TokenType::ID && this->keyword_table.iskeyword(match.str(0))) {
+            if (type == token::Type::ID && this->keyword_table.iskeyword(match.str(0))) {
                 return this->keyword_table.getKeyword(match.str(0));
             }
-            return {type, match.str(0)};
+            return Token{type, match.str(0)};
         }
     }
 
@@ -69,99 +70,99 @@ Token ToyLexer::nextToken(void) {
     default:
         break;
     case '(':
-        token = Token{TokenType::LPAREN, std::string{"("}};
+        token = Token{token::Type::LPAREN, std::string{"("}};
         break;
     case ')':
-        token = Token{TokenType::RPAREN, std::string{")"}};
+        token = Token{token::Type::RPAREN, std::string{")"}};
         break;
     case '{':
-        token = Token{TokenType::LBRACE, std::string{"{"}};
+        token = Token{token::Type::LBRACE, std::string{"{"}};
         break;
     case '}':
-        token = Token{TokenType::RBRACE, std::string{"}"}};
+        token = Token{token::Type::RBRACE, std::string{"}"}};
         break;
     case '[':
-        token = Token{TokenType::LBRACK, std::string{"["}};
+        token = Token{token::Type::LBRACK, std::string{"["}};
         break;
     case ']':
-        token = Token{TokenType::RBRACK, std::string{"]"}};
+        token = Token{token::Type::RBRACK, std::string{"]"}};
         break;
     case ';':
-        token = Token{TokenType::SEMICOLON, std::string{";"}};
+        token = Token{token::Type::SEMICOLON, std::string{";"}};
         break;
     case ':':
-        token = Token{TokenType::COLON, std::string{":"}};
+        token = Token{token::Type::COLON, std::string{":"}};
         break;
     case ',':
-        token = Token{TokenType::COMMA, std::string{","}};
+        token = Token{token::Type::COMMA, std::string{","}};
         break;
     case '+':
-        token = Token{TokenType::OP_PLUS, std::string{"+"}};
+        token = Token{token::Type::OP_PLUS, std::string{"+"}};
         break;
     case '=':
         if (second_char == '='){
-            token = Token{TokenType::OP_EQ, std::string{"=="}};
+            token = Token{token::Type::OP_EQ, std::string{"=="}};
         } else {
-            token = Token{TokenType::ASSIGN, std::string{"="}};
+            token = Token{token::Type::ASSIGN, std::string{"="}};
         }
         break;
     case '-':
         if (second_char == '>'){
-            token = Token{TokenType::ARROW, std::string{"->"}};
+            token = Token{token::Type::ARROW, std::string{"->"}};
         } else {
-            token = Token{TokenType::OP_MINUS, std::string{"-"}};
+            token = Token{token::Type::OP_MINUS, std::string{"-"}};
         }
         break;
     case '*':
         if (second_char == '/'){
-            token = Token{TokenType::RMUL_COM, std::string{"*/"}};
+            token = Token{token::Type::RMUL_COM, std::string{"*/"}};
         } else {
-            token = Token{TokenType::OP_MUL, std::string{"*"}};
+            token = Token{token::Type::OP_MUL, std::string{"*"}};
         }
         break;
     case '/':
         if (second_char == '/'){
-            token = Token{TokenType::SIN_COM, std::string{"//"}};
+            token = Token{token::Type::SIN_COM, std::string{"//"}};
         } else if (second_char == '*'){
-            token = Token{TokenType::LMUL_COM, std::string{"/*"}};
+            token = Token{token::Type::LMUL_COM, std::string{"/*"}};
         } else {
-            token = Token{TokenType::OP_DIV, std::string{"/"}};
+            token = Token{token::Type::OP_DIV, std::string{"/"}};
         }
         break;
     case '>':
         if (second_char == '=') {
-            token = Token{TokenType::OP_GE, std::string{">="}};
+            token = Token{token::Type::OP_GE, std::string{">="}};
         } else {
-            token = Token{TokenType::OP_GT, std::string{">"}};
+            token = Token{token::Type::OP_GT, std::string{">"}};
         }
         break;
     case '<':
         if (second_char == '='){
-            token = Token{TokenType::OP_LE, std::string{"<="}};
+            token = Token{token::Type::OP_LE, std::string{"<="}};
         } else {
-            token = Token{TokenType::OP_LT, std::string{"<"}};
+            token = Token{token::Type::OP_LT, std::string{"<"}};
         }
         break;
     case '.':
         if(second_char == '.'){
-            token = Token{TokenType::DOTS, std::string{".."}};
+            token = Token{token::Type::DOTS, std::string{".."}};
         } else{
-            token = Token{TokenType::DOT, std::string{"."}};
+            token = Token{token::Type::DOT, std::string{"."}};
         }
         break;
     case '!':
         if(second_char == '='){
-            token = Token{TokenType::OP_NEQ, std::string{"!="}};
+            token = Token{token::Type::OP_NEQ, std::string{"!="}};
         }
         break;
     }
 
-    if (token.getValue().length() > 0) {
+    if (!token.getValue().empty()) {
         this->pos += token.getValue().length();
         return token;
     } else {
         std::cerr << "ToyLexer::nextToken(): unknown token" << std::endl;
-        exit(1);
+        return std::nullopt;
     }
 }
 
@@ -169,6 +170,7 @@ Token ToyLexer::nextToken(void) {
  * @brief 初始化关键词表
  */
 void ToyLexer::initKeywordTable(void) {
+    using token::Token;
     keyword_table.addKeyword("i32",      Token::I32);
     keyword_table.addKeyword("let",      Token::LET);
     keyword_table.addKeyword("if",       Token::IF);
@@ -186,4 +188,4 @@ void ToyLexer::initKeywordTable(void) {
 
 /* member function definition */
 
-} // namespace compiler::lexer
+} // namespace lexer::impl

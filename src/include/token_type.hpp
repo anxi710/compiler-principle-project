@@ -2,29 +2,27 @@
 
 #include <string>
 
-namespace compiler::lexer {
+namespace lexer::token {
 
-enum class TokenType {
+// token 类型
+enum class Type {
+    DEFAULT, // 默认值，无意义
+
     // Group 0
     END, // end of file
-    UNKNOWN, // unknown value
 
     // Group 1
-    // lookahead = 1 (LA(1))
+    ID, INT, // identifier, integer
     IF, ELSE,
-    WHILE,
-    ID,
+    WHILE, FOR,
     I32,
     LET,
     RETURN,
     MUT,
     FN,
-    FOR,
     IN,
     LOOP,
-    BREAK,
-    CONTINUE,
-    INT,
+    BREAK, CONTINUE,
 
     LPAREN,     //  (
     RPAREN,     //  )
@@ -39,7 +37,6 @@ enum class TokenType {
     OP_PLUS,    //  +
 
     // Group 2
-    // lookahead = 2
     ASSIGN,     //  =
     OP_MINUS,   //  -
     OP_MUL,     //  *
@@ -48,8 +45,6 @@ enum class TokenType {
     OP_LT,      //  <
     DOT,        //  .
 
-    // Group 3
-    // arbitrary LA
     OP_EQ,      //  ==
     OP_NEQ,     //  !=
     OP_GE,      //  >=
@@ -61,6 +56,6 @@ enum class TokenType {
     RMUL_COM    //  */
 };
 
-const std::string tokenType2str(TokenType type);
+const std::string tokenType2str(Type type);
 
-} // namespace compiler::lexer
+} // namespace lexer::token

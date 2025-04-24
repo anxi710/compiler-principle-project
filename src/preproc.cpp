@@ -1,6 +1,6 @@
 #include "include/preproc.hpp"
 
-namespace compiler::preproc {
+namespace preproc {
 
 /**
  * @brief  删除输入字符流中的注释
@@ -8,9 +8,9 @@ namespace compiler::preproc {
  * @return 删除后的字符串
  */
 std::string removeAnnotations(std::string text) {
-    std::string result;
-    size_t i = 0;
-    int depth = 0;
+    std::string result {}; // 删除注释后的字符串
+    std::size_t i      {}; // index
+    int         depth  {}; // 嵌套深度
 
     while (i < text.length()) {
         if (depth == 0 && text[i] == '/' && i + 1 < text.length()) {
@@ -42,9 +42,9 @@ std::string removeAnnotations(std::string text) {
         } else {
             result += text[i++];
         }
-    }
+    } // end while
 
     return result;
 }
 
-} // namespace compiler::preproc
+} // namespace preproc
