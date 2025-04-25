@@ -16,6 +16,10 @@ test_keyword_table: test_keyword_table.cpp ../src/token.cpp ../src/token_type.cp
 	@mkdir -p build
 	$(CC) $(CXXFLAGS) -I../src $^ -o build/$@
 
+test_rtti: test_rtti.cpp
+	@mkdir -p build
+	$(CC) $(CXXFLAGS) -I ../src $^ -o build/$@
+
 .PHONY: clean
 
 clean:
