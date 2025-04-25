@@ -9,7 +9,7 @@ namespace lexer::base {
 // abstract class lexer: define some utilities and data structure.
 class Lexer {
 public:
-    Lexer();
+    Lexer() : text(""), pos(0), peek('\0') {}
 
     // Perfect forwarding
     template<typename T>
@@ -21,8 +21,6 @@ public:
     virtual std::optional<token::Token> nextToken() = 0;
 
 public:
-    bool advance();
-
     /**
      * @brief 重置当前扫描位置
      * @param pos 设置到的位置

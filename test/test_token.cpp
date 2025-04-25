@@ -3,9 +3,8 @@
 #include "../src/include/toy_lexer.hpp"
 
 int main(void) {
-    using compiler::lexer::Token;
-    using compiler::lexer::TokenType;
-    using compiler::lexer::ToyLexer;
+    using lexer::token::Token;
+    using lexer::impl::ToyLexer;
     ToyLexer tl {"let mut x = 42; if x > 0 { return x; } "};
     //ToyLexer tl("let mut  + ...");
     //ToyLexer tl("_x123");
@@ -13,7 +12,7 @@ int main(void) {
     //ToyLexer tl(" x");
     for(int i=20;i>0;i--)
     {
-        std::cout << tl.nextToken().toString();
+        std::cout << tl.nextToken()->toString();
     }
 
 

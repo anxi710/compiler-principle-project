@@ -5,9 +5,9 @@
 #include "../src/include/keyword_table.hpp"
 
 int main(void) {
-    using compiler::lexer::KeywordTable;
-    using compiler::lexer::TokenType;
-    using compiler::lexer::Token;
+    using lexer::keyword::KeywordTable;
+    using lexer::token::Type;
+    using lexer::token::Token;
 
     KeywordTable keyword_table;
     keyword_table.addKeyword("let", Token::LET);

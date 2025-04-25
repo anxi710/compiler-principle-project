@@ -12,7 +12,7 @@
             // each arugment should be written separately
             // even values separated by spaces
             // example: ["-i", "input.txt"]
-            "args": [],
+            "args": ["-i", "test/test_case/1.rs", "-p"],
             "environment": [],
             "stopAtEntry": false,
             "externalConsole": false,

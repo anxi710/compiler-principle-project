@@ -1,13 +1,15 @@
 #pragma once
 
-#include "include/lexer.hpp"
-#include "include/keyword_table.hpp"
+#include "lexer.hpp"
+#include "keyword_table.hpp"
 
 namespace lexer::impl {
 
 class ToyLexer : public base::Lexer {
 public:
-    ToyLexer();
+    ToyLexer() : Lexer("") {
+        initKeywordTable();
+    }
 
     template<typename T>
     ToyLexer(T&& text) : Lexer(std::forward<T>(text)) {
@@ -32,7 +34,7 @@ private:
     void initKeywordTable();
 
 private:
-    keyword::KeywordTable keyword_table;             // 关键词表
+    keyword::KeywordTable keyword_table; // 关键词表
 };
 
 } // namespace lexer::impl
