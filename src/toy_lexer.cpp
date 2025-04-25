@@ -5,19 +5,8 @@
 #include <iostream>
 #include "include/token.hpp"
 #include "include/toy_lexer.hpp"
-#include "include/token_type.hpp"
 
 namespace lexer::impl {
-
-/* constructor */
-
-ToyLexer::ToyLexer() : Lexer("") {
-    initKeywordTable();
-}
-
-/* constructor */
-
-/* member function definition */
 
 /**
  * @brief  获取下一个词法单元
@@ -160,10 +149,9 @@ std::optional<token::Token> ToyLexer::nextToken() {
     if (!token.getValue().empty()) {
         this->pos += token.getValue().length();
         return token;
-    } else {
-        std::cerr << "ToyLexer::nextToken(): unknown token" << std::endl;
-        return std::nullopt;
     }
+
+    return std::nullopt; // 识别到未知 token
 }
 
 /**
@@ -171,21 +159,19 @@ std::optional<token::Token> ToyLexer::nextToken() {
  */
 void ToyLexer::initKeywordTable(void) {
     using token::Token;
+    keyword_table.addKeyword("if",       Token::IF);
+    keyword_table.addKeyword("fn",       Token::FN);
+    keyword_table.addKeyword("in",       Token::IN);
     keyword_table.addKeyword("i32",      Token::I32);
     keyword_table.addKeyword("let",      Token::LET);
-    keyword_table.addKeyword("if",       Token::IF);
+    keyword_table.addKeyword("mut",      Token::MUT);
+    keyword_table.addKeyword("for",      Token::FOR);
+    keyword_table.addKeyword("loop",     Token::LOOP);
     keyword_table.addKeyword("else",     Token::ELSE);
+    keyword_table.addKeyword("break",    Token::BREAK);
     keyword_table.addKeyword("while",    Token::WHILE);
     keyword_table.addKeyword("return",   Token::RETURN);
-    keyword_table.addKeyword("mut",      Token::MUT);
-    keyword_table.addKeyword("fn",       Token::FN);
-    keyword_table.addKeyword("for",      Token::FOR);
-    keyword_table.addKeyword("in",       Token::IN);
-    keyword_table.addKeyword("loop",     Token::LOOP);
-    keyword_table.addKeyword("break",    Token::BREAK);
     keyword_table.addKeyword("continue", Token::CONTINUE);
 }
-
-/* member function definition */
 
 } // namespace lexer::impl

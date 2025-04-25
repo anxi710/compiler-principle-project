@@ -3,7 +3,7 @@
 #include <string>
 #include <cassert>
 #include <unordered_map>
-#include "include/token.hpp"
+#include "token.hpp"
 
 namespace lexer::keyword {
 
@@ -22,7 +22,7 @@ public:
      * @param  value token value]
      * @return true/false
      */
-    inline bool iskeyword(std::string value) {
+    inline bool iskeyword(std::string value) const {
         return (keywords.find(value) != keywords.end());
     }
 
@@ -31,7 +31,7 @@ public:
      * @param  value token value
      * @return keyword token
      */
-    inline token::Token getKeyword(std::string value) {
+    inline token::Token getKeyword(std::string value) const {
         assert(keywords.find(value) != keywords.end());
         return keywords.find(value)->second;
     }

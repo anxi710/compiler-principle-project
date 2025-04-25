@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include "include/token_type.hpp"
+#include "token_type.hpp"
 
 namespace lexer::token {
 
@@ -27,7 +27,7 @@ public:
 
 public:
     Token() : type(Type::DEFAULT), value("") {}
-    Token(Type type, std::string value);
+    Token(Type type, std::string value) : type(type), value(value) {}
     ~Token() = default;
 
     Token& operator=(const Token& rhs) = default;
@@ -41,11 +41,19 @@ public:
      * @brief  获取 token 的值
      * @return token value
      */
-    inline const std::string& getValue() {
+    inline const std::string& getValue() const {
         return this->value;
     }
 
-    const std::string toString();
+    /**
+     * @brief  获取 token 的类型
+     * @return token type
+     */
+    inline const Type getType() const {
+        return this->type;
+    }
+
+    const std::string toString() const;
 
 private:
     Type        type;  // token type

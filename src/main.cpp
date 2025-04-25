@@ -4,14 +4,16 @@
 #include <fstream>
 #include <iostream>
 #include <getopt.h>
+#include "include/ast.hpp"
 #include "include/utils.hpp"
-#include "include/token.hpp"
+#include "include/parser.hpp"
 #include "include/preproc.hpp"
 #include "include/toy_lexer.hpp"
 #include "include/keyword_table.hpp"
 
 
-std::unique_ptr<lexer::base::Lexer> lex {}; // 词法分析器
+std::unique_ptr<lexer::base::Lexer>   lex  {}; // 词法分析器
+std::unique_ptr<parser::base::Parser> pars {}; // 语法分析器
 
 /**
  * @brief 编译器初始化
@@ -21,7 +23,7 @@ void initialize(std::ifstream& in) {
     oss << in.rdbuf();
     std::string text {oss.str()};
 
-    lex = std::make_unique<lexer::impl::ToyLexer>(preproc::removeAnnotations(text));
+    lex  = std::make_unique<lexer::impl::ToyLexer>(preproc::removeAnnotations(text));
 }
 
 /**
@@ -97,10 +99,10 @@ auto argumentParsing(int argc, char* argv[]) {
 void printToken(std::ofstream& out) {
     while(true) {
         if (auto token = lex->nextToken()) {
-            if (*token == lexer::token::Token::END) {
+            if (token.value() == lexer::token::Token::END) {
                 break;
             }
-            out << token->toString() << std::endl;
+            out << token.value().toString() << std::endl;
         } else { // 未正确识别 token
             exit(1);
         }
@@ -112,7 +114,18 @@ void printToken(std::ofstream& out) {
  * @param out 输出文件流
  */
 void printAST(std::ofstream& out) {
+    std::function<std::optional<lexer::token::Token>()> nextTokenFunc = []() {
+        return lex->nextToken();
+    };
+    pars = std::make_unique<parser::base::Parser>(nextTokenFunc);
 
+    try {
+        auto ast = pars->parseProgram();
+        std::cout << "Parsing success" << std::endl;
+        //TODO 添加 dot 格式打印 AST 功能
+    } catch (const std::runtime_error& e) {
+        std::cerr << "Parsing error: " << e.what() << std::endl;
+    }
 }
 
 /**
