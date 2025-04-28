@@ -24,10 +24,38 @@
 
 ```shell
 .
-├── docs         # 文档
-├── Makefile     # 构建文件
-├── note         # 参考资料和笔记
-├── README.md    # this file
-└── src          # 源代码
-    └── include  # 头文件
+├── build            # 目标文件目录
+├── docs             # 参考资料
+│   ├── allstar.pdf  # Adaptive LL(*) Algorithm
+│   ├── maximal_munch.pdf
+│   └── 【Rust版】大作业1：词法和语法分析工具设计与实现.pdf
+├── note           # 设计文档及笔记
+│   └── parser.md  # 语法分析器相关设计文档
+├── Makefile       # 构建文件
+├── README.md      # this file
+├── src            # 源代码
+│   ├── ast.cpp
+│   ├── include                # 头文件
+│   │   ├── ast.hpp            # Abstract Syntax Tree
+│   │   ├── keyword_table.hpp  # Keyword Table
+│   │   ├── lexer.hpp          # Lexer
+│   │   ├── parser.hpp         # Parser
+│   │   ├── preproc.hpp        # Preprocess
+│   │   ├── token.hpp          # Token
+│   │   ├── token_type.hpp     # Token Type
+│   │   ├── toy_lexer.hpp      # Toy Lexer
+│   │   └── utils.hpp          # Utilities
+│   ├── main.cpp
+│   ├── parser.cpp
+│   ├── preproc.cpp
+│   ├── token.cpp
+│   ├── token_type.cpp
+│   ├── toy_lexer.cpp
+│   └── utils.cpp
+└── test
+    │── build      # 目标文件目录
+    ├── Makefile   # 测试用例构建文件
+    ├── test_case  # 用于词法和语法分析器的测试用例（一组用类 Rust 词法和语法编写的程序）
+    └── *.cpp      # 模块测试用例
+
 ```
