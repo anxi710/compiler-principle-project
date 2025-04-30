@@ -28,6 +28,9 @@ public:
 public:
     Token() : type(Type::DEFAULT), value("") {}
     Token(Type type, std::string value) : type(type), value(value) {}
+    Token(const Token& other) : type(other.type), value(other.value) {}
+    Token(Token&& other) : type(std::move(other.type)), value(std::move(other.value)) {}
+
     ~Token() = default;
 
     Token& operator=(const Token& rhs) = default;
