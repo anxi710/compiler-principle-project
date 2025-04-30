@@ -18,6 +18,7 @@
 
 - Prog -> Decls
 - Decls -> Decl Decls | $\epsilon$
+  - Decls -> (Decl)*
 - Decl -> FuncDecl
 - FuncDecl -> FuncHeaderDecl BlockStmt
 - FuncHeaderDecl -> _fn_ \<ID\> _(_ Args _)_
@@ -37,9 +38,10 @@
 
 **1.4 函数输入（前置规则 0.1, 0.2, 1.1）**
 
-- Args -> Arg | Arg _;_ Args
-  - 迭代形式：Args -> Arg (_;_ Arg)*
+- Args -> Arg | Arg _,_ Args
+  - 迭代形式：Args -> Arg (_,_ Arg)*
 - Arg -> VarDecl _:_ VarType
+  - Arg -> _mut_ \<ID\> : _i32_
 
 **1.5 函数输出（前置规则 0.2, 1.1, 1.3, 3.1）**
 
@@ -59,7 +61,7 @@
 **2.3 变量声明赋值语句（前置规则 0.1, 0.2, 1.2, 3.1）**:
 
 - Stmt -> VarDeclAssignStmt
-- VarDeclAssignStmt -> _let_ VarDecl (_:_ VarType)? _;_
+- VarDeclAssignStmt -> _let_ VarDecl (_:_ VarType)? _=_ Expr _;_
 
 **3.1 基本表达式（前置规则 0.3）**:
 
