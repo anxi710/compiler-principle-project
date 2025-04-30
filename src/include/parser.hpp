@@ -25,6 +25,11 @@ private:
     ast::FuncDeclPtr       parseFuncDecl();
     ast::FuncHeaderDeclPtr parseFuncHeaderDecl();
     ast::BlockStmtPtr      parseBlockStmt();
+    ast::RetStmtPtr        parseRetStmt();
+    ast::ArgPtr            parseArg();
+    ast::VarDeclStmtPtr    parseVarDeclStmt();
+    ast::AssignStmtPtr     parseAssignStmt();
+    ast::ExprPtr           parseExpr();
 
 private:
     std::function<std::optional<lexer::token::Token>()> nextTokenFunc; // 获取下一个 token

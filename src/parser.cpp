@@ -96,17 +96,26 @@ ast::FuncHeaderDeclPtr Parser::parseFuncHeaderDecl() {
     std::string name = current->getValue(); // function name
 
     expect(TokenType::LPAREN, "Expected '('");
+
     std::vector<ast::ArgPtr> argv {};
-    // while (!check(lexer::token::Type::RPAREN)) {
-    //     expect(lexer::token::Type::ID, "Expected parameter name");
-    //     argv.push_back(current->getValue());
-    //     advance();
-    //     if (match(TokenType::COMMA)) continue;
-    //     break;
-    // }
+    while(!check(TokenType::RPAREN)) {
+        argv.push_back(parseArg());
+        if (!check(TokenType::COMMA)) {
+            break;
+        }
+        advance();
+    }
+
     expect(TokenType::RPAREN, "Expected ')'");
 
-    return std::make_shared<ast::FuncHeaderDecl>(name, argv);
+    if (check(TokenType::ARROW)) {
+        expect(TokenType::ARROW, "Expected '->'");
+        expect(TokenType::I32, "Expected 'i32'");
+
+        return std::make_shared<ast::FuncHeaderDecl>(name, argv, TokenType::I32);
+    }
+
+    return std::make_shared<ast::FuncHeaderDecl>(name, argv, std::nullopt);
 }
 
 /**
@@ -120,19 +129,125 @@ ast::BlockStmtPtr Parser::parseBlockStmt() {
     using TokenType = lexer::token::Type;
     expect(TokenType::LBRACE, "Expected '{' for block");
 
-    std::vector<ast::StmtPtr> stmts;
+    std::vector<ast::StmtPtr> stmts {};
     while (!check(TokenType::RBRACE)) {
+        if (check(TokenType::LET)) {
+            stmts.push_back(parseVarDeclStmt());
+        }
+        if (check(TokenType::RETURN)) {
+            stmts.push_back(parseRetStmt());
+        }
+        if (check(TokenType::ID)) {
+            stmts.push_back(parseAssignStmt());
+        }
         if (check(TokenType::SEMICOLON)) {
             stmts.push_back(std::make_shared<ast::Stmt>());
             advance();
-        } else {
-            advance();
-            break; //DEBUG
         }
     }
 
     expect(TokenType::RBRACE, "Expected '}' for block");
     return std::make_shared<ast::BlockStmt>(stmts);
+}
+
+/**
+ * @brief  解析返回语句
+ * @return ast::RetStmtPtr - AST Return Statement 结点指针
+ */
+[[nodiscard]]
+ast::RetStmtPtr Parser::parseRetStmt() {
+    using TokenType = lexer::token::Type;
+    expect(TokenType::RETURN, "Expected 'return'");
+
+    expect(TokenType::SEMICOLON, "Expected ';'");
+
+    return std::make_shared<ast::RetStmt>(std::nullopt);
+}
+
+/**
+ * @brief  解析参数
+ * @return ast::ArgPtr - AST Argument 结点指针
+ */
+[[nodiscard]]
+ast::ArgPtr Parser::parseArg() {
+    using TokenType = lexer::token::Type;
+    expect(TokenType::MUT, "Expected 'mut'");
+    expect(TokenType::ID, "Expected '<ID>'");
+    std::string name = current.value().getValue();
+    expect(TokenType::COLON, "Expected ':'");
+    expect(TokenType::I32, "Expected 'i32'");
+
+    return std::make_shared<ast::Arg>(name);
+}
+
+/**
+ * @brief  解析变量声明语句或变量声明赋值语句
+ * @return ast::VarDeclStmtPtr - AST Variable Declaration Statement 结点指针
+ */
+[[nodiscard]]
+ast::VarDeclStmtPtr Parser::parseVarDeclStmt() {
+    using TokenType = lexer::token::Type;
+    expect(TokenType::LET, "Expected 'let'");
+    expect(TokenType::MUT, "Expected 'mut'");
+    expect(TokenType::ID, "Expected '<ID>'");
+    lexer::token::Token identifier {current.value()};
+
+    TokenType type;
+    bool has_type = false;
+    if (check(TokenType::COLON)) {
+        has_type = true;
+        expect(TokenType::COLON, "Expected ':'");
+        expect(TokenType::I32, "Expected 'i32'");
+        type = current.value().getType();
+    }
+
+    ast::ExprPtr expr;
+    bool flag_assign = false;
+    if (check(TokenType::ASSIGN)) {
+        flag_assign = true;
+        advance();
+        expr = parseExpr();
+    }
+
+    expect(TokenType::SEMICOLON, "Expected ';'");
+
+    if (flag_assign) {
+        std::make_shared<ast::VarDeclAssignStmt>(true, std::move(identifier),
+        (has_type ? std::optional<TokenType>{type} : std::nullopt), expr);
+    }
+    return std::make_shared<ast::VarDeclStmt>(true, std::move(identifier),
+        (has_type ? std::optional<TokenType>{type} : std::nullopt));
+}
+
+/**
+ * @brief  解析赋值语句
+ * @return ast::AssignStmtPtr - AST Assignment Statement 结点指针
+ */
+[[nodiscard]]
+ast::AssignStmtPtr Parser::parseAssignStmt() {
+    using TokenType = lexer::token::Type;
+    expect(TokenType::ID, "Expected '<ID>'");
+    std::string name = current.value().getValue();
+    expect(TokenType::ASSIGN, "Expected '='");
+    ast::ExprPtr expr = Parser::parseExpr();
+    expect(TokenType::SEMICOLON, "Expected ';'");
+
+    return std::make_shared<ast::AssignStmt>(name, expr);
+}
+
+/**
+ * @brief  解析表达式
+ * @return ast::ExprPtr - AST Expression 结点指针
+ */
+[[nodiscard]]
+ast::ExprPtr Parser::parseExpr() {
+    using TokenType = lexer::token::Type;
+
+    //TODO 补充其他类型表达式的解析
+    expect(TokenType::INT, "Expected '<INT>'");
+    int value = atoi(current->getValue().c_str());
+
+    return std::make_shared<ast::Number>(value);
 }
 
 /* member function definition */
