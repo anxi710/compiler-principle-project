@@ -127,7 +127,7 @@ struct VarDeclAssignStmt : VarDeclStmt {
 using  VarDeclAssignStmtPtr = std::shared_ptr<VarDeclAssignStmt>;
 
 struct Variable : Expr {
-    std::string name;
+    std::string name; // 变量名
 
     Variable() = default;
     template<typename T>
@@ -136,7 +136,7 @@ struct Variable : Expr {
 using  VariablePtr = std::shared_ptr<Variable>;
 
 struct Number : Expr {
-    int value;
+    int value; // 值
 
     Number() = default;
     Number(int value) : value(value) {}
@@ -147,13 +147,14 @@ struct ArithmeticExpr : Expr {
     ExprPtr            lhs; // 左操作数
     lexer::token::Type op;  // operator
     ExprPtr            rhs; // 右操作数
+
     ArithmeticExpr(ExprPtr lhs, lexer::token::Type op, ExprPtr rhs)
         : lhs(std::move(lhs)), op(op), rhs(std::move(rhs)) {}
 };
 using ArithmeticExprPtr = std::shared_ptr<ArithmeticExpr>;
 
 struct CallExpr : Expr {
-    std::string          callee; 
+    std::string          callee;
     std::vector<ExprPtr> arguments;
 
     CallExpr(std::string name, std::vector<ExprPtr> args)

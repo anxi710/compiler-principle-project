@@ -20,7 +20,7 @@ private:
     void advance();
     bool match(lexer::token::Type type);
     bool check(lexer::token::Type type) const;
-    bool check_2(lexer::token::Type type) const;
+    bool checkAhead(lexer::token::Type type);
     void expect(lexer::token::Type type, const std::string& error_msg);
 
     ast::FuncDeclPtr       parseFuncDecl();
@@ -39,10 +39,9 @@ private:
     ast::CallExprPtr       parseCallExpr();
 
 private:
-    std::function<std::optional<lexer::token::Token>()>
-        nextTokenFunc;                                                 // 获取下一个 token
+    std::function<std::optional<lexer::token::Token>()> nextTokenFunc; // 获取下一个 token
     std::optional<lexer::token::Token>                  current;       // 当前看到的 token
-    mutable std::optional<lexer::token::Token>          lookahead;     // 往后看一个 token
+    std::optional<lexer::token::Token>                  lookahead;     // 往后看一个 token
 };
 
 } // namespace parser::base
