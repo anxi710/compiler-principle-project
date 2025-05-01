@@ -34,10 +34,13 @@ private:
     ast::ExprPtr           parseCmpExpr();
     ast::ExprPtr           parseAddExpr();
     ast::ExprPtr           parseMulExpr();
+    ast::ExprPtr           parseFactorExpr();
     ast::ExprPtr           parseElementExpr();
+    ast::CallExprPtr       parseCallExpr();
 
 private:
-    std::function<std::optional<lexer::token::Token>()> nextTokenFunc; // 获取下一个 token
+    std::function<std::optional<lexer::token::Token>()>
+        nextTokenFunc;                                                 // 获取下一个 token
     std::optional<lexer::token::Token>                  current;       // 当前看到的 token
     mutable std::optional<lexer::token::Token>          lookahead;     // 往后看一个 token
 };

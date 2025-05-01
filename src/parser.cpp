@@ -154,15 +154,14 @@ ast::BlockStmtPtr Parser::parseBlockStmt() {
         if (check(TokenType::RETURN)) {
             stmts.push_back(parseRetStmt());
         }
-        if (check(TokenType::ID) && check_2(TokenType::ASSIGN)) {
-            stmts.push_back(parseAssignStmt());
-        }
-        if (check(TokenType::SEMICOLON))        {
+        if (check(TokenType::SEMICOLON)){
             stmts.push_back(std::make_shared<ast::Stmt>());
             advance();
         }
-        if (check(TokenType::INT) || check(TokenType::ID) || check(TokenType::LPAREN))
-        {
+        if (check(TokenType::ID)&&check_2(TokenType::ASSIGN)) {
+            stmts.push_back(parseAssignStmt());
+        }
+        else if (check(TokenType::INT) || check(TokenType::ID) || check(TokenType::LPAREN)){
             parseExpr();
         }
     }
@@ -179,10 +178,13 @@ ast::BlockStmtPtr Parser::parseBlockStmt() {
 ast::RetStmtPtr Parser::parseRetStmt() {
     using TokenType = lexer::token::Type;
     expect(TokenType::RETURN, "Expected 'return'");
-
+    if (check(TokenType::SEMICOLON)){
+        expect(TokenType::SEMICOLON, "Expected ';'");
+        return std::make_shared<ast::RetStmt>(std::nullopt);
+    }
+    ast::ExprPtr ret = Parser::parseCmpExpr();
     expect(TokenType::SEMICOLON, "Expected ';'");
-
-    return std::make_shared<ast::RetStmt>(std::nullopt);
+    return std::make_shared<ast::RetStmt>(ret);
 }
 
 /**
@@ -267,7 +269,7 @@ ast::ExprPtr Parser::parseExpr() {
     return expr;
 }
 /**
- * @brief  解析比较表达式（最顶层）
+ * @brief  解析比较表达式（最顶层，即为Expr）
  * @return ast::ArithmeticExprPtr - AST Expression 结点指针（若无，则为下一层的加法表达式）
  */
 [[nodiscard]]
@@ -307,18 +309,18 @@ ast::ExprPtr Parser::parseAddExpr(){
     return left;
 }
 /**
- * @brief  解析乘法表达式
- * @return ast::ArithmeticExprPtr - AST Expression 结点指针（若无，则为下一层的元素）
+ * @brief  解析乘法表达式（即为Item）
+ * @return ast::ArithmeticExprPtr - AST Expression 结点指针（若无，则为下一层的因子）
  */
 [[nodiscard]]
 ast::ExprPtr Parser::parseMulExpr(){
     using TokenType = lexer::token::Type;
 
-    ast::ExprPtr left = Parser::parseElementExpr();
+    ast::ExprPtr left = Parser::parseFactorExpr();
     while (check(TokenType::OP_MUL) || check(TokenType::OP_DIV)) {
         TokenType op_token = current->getType();
         advance();
-        ast::ExprPtr right = Parser::parseElementExpr();
+        ast::ExprPtr right = Parser::parseFactorExpr();
         left = std::make_shared<ast::ArithmeticExpr>(std::move(left),
                                                      op_token, std::move(right));
     } // end while
@@ -326,10 +328,18 @@ ast::ExprPtr Parser::parseMulExpr(){
     return left;
 }
 /**
+ * @brief  解析因子
+ * @return ast:: - AST Expression 结点指针（3.1-2因子与元素相同，此处预留）
+ */
+[[nodiscard]] 
+ast::ExprPtr Parser::parseFactorExpr(){
+    return parseElementExpr();
+}
+/**
  * @brief  解析元素
  * @return ast::Number or ast::Variable - AST Expression 结点指针
  */
-[[nodiscard]]
+[[nodiscard]] 
 ast::ExprPtr Parser::parseElementExpr(){
     using TokenType = lexer::token::Type;
     
@@ -344,12 +354,41 @@ ast::ExprPtr Parser::parseElementExpr(){
         advance();
         return std::make_shared<ast::Number>(value);
     } else if (check(TokenType::ID)) {
-        std::string name = current->getValue();
-        advance();
-        return std::make_shared<ast::Variable>(name);
+        if (check_2(TokenType::LPAREN)){
+            return parseCallExpr();
+        }else{
+            std::string name = current->getValue();
+            advance();
+            return std::make_shared<ast::Variable>(name);
+        }
+            
     } else {
         throw std::runtime_error("Unexpected token in expression: " + current->getValue());
     }
+}
+/**
+ * @brief  解析函数调用
+ * @return ast::CallExpr - AST Expression 结点指针
+ */
+[[nodiscard]] 
+ast::CallExprPtr Parser::parseCallExpr(){
+    using TokenType = lexer::token::Type;
+
+    expect(TokenType::ID, "Expected function name");
+    std::string name = current->getValue(); // function name
+    expect(TokenType::LPAREN, "Expected '('");
+
+    std::vector<ast::ExprPtr> argv{};
+    while(!check(TokenType::RPAREN)) {
+        argv.push_back(parseCmpExpr());
+        if (!check(TokenType::COMMA)) {
+            break;
+        }
+        advance();
+    }
+
+    expect(TokenType::RPAREN, "Expected ')'");
+    return std::make_shared<ast::CallExpr>(name, argv);
 }
 /* member function definition */
 

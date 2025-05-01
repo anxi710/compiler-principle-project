@@ -152,6 +152,15 @@ struct ArithmeticExpr : Expr {
 };
 using ArithmeticExprPtr = std::shared_ptr<ArithmeticExpr>;
 
+struct CallExpr : Expr {
+    std::string          callee; 
+    std::vector<ExprPtr> arguments;
+
+    CallExpr(std::string name, std::vector<ExprPtr> args)
+        : callee(std::move(name)), arguments(std::move(args)) {}
+};
+using CallExprPtr = std::shared_ptr<CallExpr>;
+
 void ast2Dot(std::ofstream& out, const ProgPtr p_prog);
 
 } // namespace parser::ast
