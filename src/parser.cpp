@@ -18,7 +18,12 @@ Parser::Parser(std::function<std::optional<lexer::token::Token>()> nextTokenFunc
  * @brief 向前扫描一个 token
  */
 void Parser::advance() {
-    current = nextTokenFunc();
+    if (lookahead.has_value()) {
+        current = lookahead;
+        lookahead.reset();  
+    } else {
+        current = nextTokenFunc();
+    }
 }
 
 /**
@@ -41,6 +46,18 @@ bool Parser::match(lexer::token::Type type) {
  */
 bool Parser::check(lexer::token::Type type) const {
     return current.has_value() && current.value().getType() == type;
+}
+
+/**
+ * @brief  检查下一个看到的 token 是否存在，如果存在判断其类型是否为给定值
+ * @param  type 指定的 token 类型
+ * @return 是否通过检查
+ */
+bool Parser::check_2(lexer::token::Type type) const{
+    if (!lookahead.has_value()){
+        lookahead = nextTokenFunc(); // 获取下一个 token
+    }
+    return lookahead.has_value() && lookahead->getType() == type;
 }
 
 /**
@@ -137,12 +154,16 @@ ast::BlockStmtPtr Parser::parseBlockStmt() {
         if (check(TokenType::RETURN)) {
             stmts.push_back(parseRetStmt());
         }
-        if (check(TokenType::ID)) {
+        if (check(TokenType::ID) && check_2(TokenType::ASSIGN)) {
             stmts.push_back(parseAssignStmt());
         }
-        if (check(TokenType::SEMICOLON)) {
+        if (check(TokenType::SEMICOLON))        {
             stmts.push_back(std::make_shared<ast::Stmt>());
             advance();
+        }
+        if (check(TokenType::INT) || check(TokenType::ID) || check(TokenType::LPAREN))
+        {
+            parseExpr();
         }
     }
 
@@ -231,7 +252,6 @@ ast::AssignStmtPtr Parser::parseAssignStmt() {
     expect(TokenType::ASSIGN, "Expected '='");
     ast::ExprPtr expr = Parser::parseCmpExpr();
     expect(TokenType::SEMICOLON, "Expected ';'");
-
     return std::make_shared<ast::AssignStmt>(name, expr);
 }
 
@@ -242,7 +262,7 @@ ast::AssignStmtPtr Parser::parseAssignStmt() {
 [[nodiscard]]
 ast::ExprPtr Parser::parseExpr() {
     using TokenType = lexer::token::Type;
-    ast::ExprPtr expr = Parser::parseCmpExpr();
+    auto expr = Parser::parseCmpExpr();
     expect(TokenType::SEMICOLON, "Expected ';'");
     return expr;
 }
@@ -261,8 +281,8 @@ ast::ExprPtr Parser::parseCmpExpr(){
         TokenType op_token = current->getType();
         advance();
         ast::ExprPtr right = Parser::parseAddExpr();
-        left = std::make_shared<ast::ArithmeticExpr>(std::move(left), 
-                                std::optional<TokenType>{op_token}, std::move(right));
+        left = std::make_shared<ast::ArithmeticExpr>(std::move(left),
+                                                     op_token, std::move(right));
     } // end while
 
     return left;
@@ -280,8 +300,8 @@ ast::ExprPtr Parser::parseAddExpr(){
         TokenType op_token = current->getType();
         advance();
         ast::ExprPtr right = Parser::parseMulExpr();
-        left = std::make_shared<ast::ArithmeticExpr>(std::move(left), 
-                                std::optional<TokenType>{op_token}, std::move(right));
+        left = std::make_shared<ast::ArithmeticExpr>(std::move(left),
+                                                     op_token, std::move(right));
     }// end while
 
     return left;
@@ -300,7 +320,7 @@ ast::ExprPtr Parser::parseMulExpr(){
         advance();
         ast::ExprPtr right = Parser::parseElementExpr();
         left = std::make_shared<ast::ArithmeticExpr>(std::move(left),
-                                std::optional<TokenType>{op_token}, std::move(right));
+                                                     op_token, std::move(right));
     } // end while
 
     return left;
