@@ -147,6 +147,8 @@ struct ArithmeticExpr : Expr {
     ExprPtr            lhs; // 左操作数
     lexer::token::Type op;  // operator
     ExprPtr            rhs; // 右操作数
+    ArithmeticExpr(ExprPtr lhs, lexer::token::Type op, ExprPtr rhs)
+        : lhs(std::move(lhs)), op(op), rhs(std::move(rhs)) {}
 };
 using ArithmeticExprPtr = std::shared_ptr<ArithmeticExpr>;
 

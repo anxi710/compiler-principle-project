@@ -26,7 +26,7 @@ void Parser::advance() {
  * @param  type 需要匹配的 token 类型
  * @return 是否成功匹配
  */
-bool Parser::match(lexer::token::Type type) {
+bool Parser::match(lexer::token::Type type) {  
     if (check(type)) {
         advance();
         return true;
@@ -138,7 +138,7 @@ ast::BlockStmtPtr Parser::parseBlockStmt() {
             stmts.push_back(parseRetStmt());
         }
         if (check(TokenType::ID)) {
-            stmts.push_back(parseAssignStmt());
+            stmt s.push_back(parseAssignStmt());
         }
         if (check(TokenType::SEMICOLON)) {
             stmts.push_back(std::make_shared<ast::Stmt>());
@@ -206,7 +206,7 @@ ast::VarDeclStmtPtr Parser::parseVarDeclStmt() {
     if (check(TokenType::ASSIGN)) {
         flag_assign = true;
         advance();
-        expr = parseExpr();
+        expr = parseCmpExpr();
     }
 
     expect(TokenType::SEMICOLON, "Expected ';'");
@@ -229,27 +229,105 @@ ast::AssignStmtPtr Parser::parseAssignStmt() {
     expect(TokenType::ID, "Expected '<ID>'");
     std::string name = current.value().getValue();
     expect(TokenType::ASSIGN, "Expected '='");
-    ast::ExprPtr expr = Parser::parseExpr();
+    ast::ExprPtr expr = Parser::parseCmpExpr();
     expect(TokenType::SEMICOLON, "Expected ';'");
 
     return std::make_shared<ast::AssignStmt>(name, expr);
 }
 
 /**
- * @brief  解析表达式
- * @return ast::ExprPtr - AST Expression 结点指针
+ * @brief  解析表达式，用递归下降解析分层处理运算优先级
+ * @return  最顶层比较表达式
  */
 [[nodiscard]]
 ast::ExprPtr Parser::parseExpr() {
     using TokenType = lexer::token::Type;
-
-    //TODO 补充其他类型表达式的解析
-    expect(TokenType::INT, "Expected '<INT>'");
-    int value = atoi(current->getValue().c_str());
-
-    return std::make_shared<ast::Number>(value);
+    ast::ExprPtr expr = Parser::parseCmpExpr();
+    expect(TokenType::SEMICOLON, "Expected ';'");
+    return expr;
 }
+/**
+ * @brief  解析比较表达式（最顶层）
+ * @return ast::ArithmeticExprPtr - AST Expression 结点指针（若无，则为下一层的加法表达式）
+ */
+[[nodiscard]]
+ast::ExprPtr Parser::parseCmpExpr(){
+    using TokenType = lexer::token::Type;
 
+    ast::ExprPtr left = Parser::parseAddExpr();
+    while (check(TokenType::OP_LT) || check(TokenType::OP_LE) ||
+           check(TokenType::OP_GT) || check(TokenType::OP_GE) ||
+           check(TokenType::OP_EQ) || check(TokenType::OP_NEQ)) {
+        auto op_token = current->getType();
+        advance();
+        ast::ExprPtr right = Parser::parseAddExpr();
+        left = std::make_shared<ast::ArithmeticExpr>(std::move(left), op_token, std::move(right));
+    } // end while
+
+    return left;
+}
+/**
+ * @brief  解析加法表达式
+ * @return ast::ArithmeticExprPtr - AST Expression 结点指针（若无，则为下一层的乘法表达式）
+ */
+[[nodiscard]]
+ast::ExprPtr Parser::parseAddExpr(){
+    using TokenType = lexer::token::Type;
+
+    ast::ExprPtr left = Parser::parseMulExpr();
+    while (check(TokenType::OP_PLUS) || check(TokenType::OP_MINUS)) {
+        auto op_token = current->getType();
+        advance();
+        ast::ExprPtr right = Parser::parseMulExpr();
+        left = std::make_shared<ast::ArithmeticExpr>(std::move(left), op_token, std::move(right));
+    }// end while
+
+    return left;
+}
+/**
+ * @brief  解析乘法表达式
+ * @return ast::ArithmeticExprPtr - AST Expression 结点指针（若无，则为下一层的元素）
+ */
+[[nodiscard]]
+ast::ExprPtr Parser::parseMulExpr(){
+    using TokenType = lexer::token::Type;
+
+    ast::ExprPtr left = Parser::parseElementExpr();
+    while (check(TokenType::OP_MUL) || check(TokenType::OP_DIV)) {
+        auto op_token = current->getType();
+        advance();
+        ast::ExprPtr right = Parser::parseElementExpr();
+        left = std::make_shared<ast::ArithmeticExpr>(std::move(left), op_token, std::move(right));
+    } // end while
+
+    return left;
+}
+/**
+ * @brief  解析元素
+ * @return ast::Number or ast::Variable - AST Expression 结点指针
+ */
+[[nodiscard]]
+ast::ExprPtr Parser::parseElementExpr(){
+    using TokenType = lexer::token::Type;
+    
+    if (check(TokenType::LPAREN)){
+        advance();
+        ast::ExprPtr expr = Parser::parseCmpExpr();
+        expect(TokenType::RPAREN, "Expected ')'");
+        return expr;
+    }
+    if (check(TokenType::INT)){
+        int value = std::stoi(current->getValue());
+        advance();
+        return std::make_shared<ast::Number>(value);
+    } else if (check(TokenType::ID)) {
+        std::string name = current->getValue();
+        advance();
+        return std::make_shared<ast::Variable>(name);
+    } else {
+        throw std::runtime_error("Unexpected token in expression: " + current->getValue());
+    }
+}
 /* member function definition */
 
 } // namespace parser::base

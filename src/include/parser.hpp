@@ -30,6 +30,10 @@ private:
     ast::VarDeclStmtPtr    parseVarDeclStmt();
     ast::AssignStmtPtr     parseAssignStmt();
     ast::ExprPtr           parseExpr();
+    ast::ExprPtr           parseCmpExpr();
+    ast::ExprPtr           parseAddExpr();
+    ast::ExprPtr           parseMulExpr();
+    ast::ExprPtr           parseElementExpr();
 
 private:
     std::function<std::optional<lexer::token::Token>()> nextTokenFunc; // 获取下一个 token
