@@ -258,10 +258,11 @@ ast::ExprPtr Parser::parseCmpExpr(){
     while (check(TokenType::OP_LT) || check(TokenType::OP_LE) ||
            check(TokenType::OP_GT) || check(TokenType::OP_GE) ||
            check(TokenType::OP_EQ) || check(TokenType::OP_NEQ)) {
-        auto op_token = current->getType();
+        TokenType op_token = current->getType();
         advance();
         ast::ExprPtr right = Parser::parseAddExpr();
-        left = std::make_shared<ast::ArithmeticExpr>(std::move(left), op_token, std::move(right));
+        left = std::make_shared<ast::ArithmeticExpr>(std::move(left), 
+                                std::optional<TokenType>{op_token}, std::move(right));
     } // end while
 
     return left;
@@ -276,10 +277,11 @@ ast::ExprPtr Parser::parseAddExpr(){
 
     ast::ExprPtr left = Parser::parseMulExpr();
     while (check(TokenType::OP_PLUS) || check(TokenType::OP_MINUS)) {
-        auto op_token = current->getType();
+        TokenType op_token = current->getType();
         advance();
         ast::ExprPtr right = Parser::parseMulExpr();
-        left = std::make_shared<ast::ArithmeticExpr>(std::move(left), op_token, std::move(right));
+        left = std::make_shared<ast::ArithmeticExpr>(std::move(left), 
+                                std::optional<TokenType>{op_token}, std::move(right));
     }// end while
 
     return left;
@@ -294,10 +296,11 @@ ast::ExprPtr Parser::parseMulExpr(){
 
     ast::ExprPtr left = Parser::parseElementExpr();
     while (check(TokenType::OP_MUL) || check(TokenType::OP_DIV)) {
-        auto op_token = current->getType();
+        TokenType op_token = current->getType();
         advance();
         ast::ExprPtr right = Parser::parseElementExpr();
-        left = std::make_shared<ast::ArithmeticExpr>(std::move(left), op_token, std::move(right));
+        left = std::make_shared<ast::ArithmeticExpr>(std::move(left),
+                                std::optional<TokenType>{op_token}, std::move(right));
     } // end while
 
     return left;
