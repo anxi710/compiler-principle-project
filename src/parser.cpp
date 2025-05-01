@@ -138,7 +138,7 @@ ast::BlockStmtPtr Parser::parseBlockStmt() {
             stmts.push_back(parseRetStmt());
         }
         if (check(TokenType::ID)) {
-            stmt s.push_back(parseAssignStmt());
+            stmts.push_back(parseAssignStmt());
         }
         if (check(TokenType::SEMICOLON)) {
             stmts.push_back(std::make_shared<ast::Stmt>());
