@@ -13,6 +13,7 @@
 !.vscode/launch.json
 !.vscode/tasks.json
 !**/Makefile
+!test/test_case/*.rs
 
 src_regex/*
 
