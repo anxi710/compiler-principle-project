@@ -173,23 +173,20 @@ ast::BlockStmtPtr Parser::parseBlockStmt() {
         }
         else if (check(TokenType::BREAK))
         {
-            stmts.push_back(std::make_shared<ast::Stmt>());
-            
+            stmts.push_back(std::make_shared<ast::BreakStmt>());
             advance();
             expect(TokenType::SEMICOLON,"Expected ';' after Break");
         }
         else if (check(TokenType::CONTINUE))
         {
-            stmts.push_back(std::make_shared<ast::Stmt>());
+            stmts.push_back(std::make_shared<ast::ContinueStmt>());
             advance();
             expect(TokenType::SEMICOLON,"Expected ';' after Continue");
         }
         else if (check(TokenType::SEMICOLON)){
-            stmts.push_back(std::make_shared<ast::Stmt>());
+            stmts.push_back(std::make_shared<ast::NullStmt>());
             advance();
         }
-
-
     }
 
     expect(TokenType::RBRACE, "Expected '}' for block");
@@ -223,9 +220,11 @@ ast::RetStmtPtr Parser::parseRetStmt() {
 [[nodiscard]]
 ast::ArgPtr Parser::parseArg() {
     using TokenType = lexer::token::Type;
+
     expect(TokenType::MUT, "Expected 'mut'");
     expect(TokenType::ID, "Expected '<ID>'");
     std::string name = current.value().getValue();
+
     expect(TokenType::COLON, "Expected ':'");
     expect(TokenType::I32, "Expected 'i32'");
 
@@ -298,8 +297,11 @@ ast::AssignStmtPtr Parser::parseAssignStmt() {
 [[nodiscard]]
 ast::ExprPtr Parser::parseExpr() {
     using TokenType = lexer::token::Type;
+
     auto expr = Parser::parseCmpExpr();
+
     expect(TokenType::SEMICOLON, "Expected ';'");
+
     return expr;
 }
 
@@ -308,7 +310,7 @@ ast::ExprPtr Parser::parseExpr() {
  * @return ast::ArithmeticExprPtr - AST Expression 结点指针（若无，则为下一层的加法表达式）
  */
 [[nodiscard]]
-ast::ExprPtr Parser::parseCmpExpr(){
+ast::ExprPtr Parser::parseCmpExpr() {
     using TokenType = lexer::token::Type;
 
     ast::ExprPtr left = Parser::parseAddExpr();
@@ -330,7 +332,7 @@ ast::ExprPtr Parser::parseCmpExpr(){
  * @return ast::ArithmeticExprPtr - AST Expression 结点指针（若无，则为下一层的乘法表达式）
  */
 [[nodiscard]]
-ast::ExprPtr Parser::parseAddExpr(){
+ast::ExprPtr Parser::parseAddExpr() {
     using TokenType = lexer::token::Type;
 
     ast::ExprPtr left = Parser::parseMulExpr();
@@ -350,7 +352,7 @@ ast::ExprPtr Parser::parseAddExpr(){
  * @return ast::ArithmeticExprPtr - AST Expression 结点指针（若无，则为下一层的因子）
  */
 [[nodiscard]]
-ast::ExprPtr Parser::parseMulExpr(){
+ast::ExprPtr Parser::parseMulExpr() {
     using TokenType = lexer::token::Type;
 
     ast::ExprPtr left = Parser::parseFactorExpr();
@@ -370,7 +372,7 @@ ast::ExprPtr Parser::parseMulExpr(){
  * @return ast:: - AST Expression 结点指针（3.1-2因子与元素相同，此处预留）
  */
 [[nodiscard]]
-ast::ExprPtr Parser::parseFactorExpr(){
+ast::ExprPtr Parser::parseFactorExpr() {
     return parseElementExpr();
 }
 
@@ -379,23 +381,23 @@ ast::ExprPtr Parser::parseFactorExpr(){
  * @return ast::Number or ast::Variable - AST Expression 结点指针
  */
 [[nodiscard]]
-ast::ExprPtr Parser::parseElementExpr(){
+ast::ExprPtr Parser::parseElementExpr() {
     using TokenType = lexer::token::Type;
 
-    if (check(TokenType::LPAREN)){
+    if (check(TokenType::LPAREN)) {
         advance();
         ast::ExprPtr expr = Parser::parseCmpExpr();
         expect(TokenType::RPAREN, "Expected ')'");
         return expr;
     }
-    if (check(TokenType::INT)){
+    if (check(TokenType::INT)) {
         int value = std::stoi(current->getValue());
         advance();
         return std::make_shared<ast::Number>(value);
     } else if (check(TokenType::ID)) {
-        if (checkAhead(TokenType::LPAREN)){
+        if (checkAhead(TokenType::LPAREN)) {
             return parseCallExpr();
-        }else{
+        } else {
             std::string name = current->getValue();
             advance();
             return std::make_shared<ast::Variable>(name);
@@ -410,7 +412,7 @@ ast::ExprPtr Parser::parseElementExpr(){
  * @return ast::CallExpr - AST Expression 结点指针
  */
 [[nodiscard]]
-ast::CallExprPtr Parser::parseCallExpr(){
+ast::CallExprPtr Parser::parseCallExpr() {
     using TokenType = lexer::token::Type;
 
     expect(TokenType::ID, "Expected function name");
@@ -430,27 +432,29 @@ ast::CallExprPtr Parser::parseCallExpr(){
     return std::make_shared<ast::CallExpr>(name, argv);
 }
 
-/** 
- * @brief  解析IF语句
- * @return ast::IfStmtPtr - AST IF Statement 结点指针
+/**
+ * @brief  解析 if 语句
+ * @return ast::IfStmtPtr - AST If Statement 结点指针
  */
-ast::IfStmtPtr Parser::parseIfStmt(){
+ast::IfStmtPtr Parser::parseIfStmt() {
     using TokenType = lexer::token::Type;
 
-    expect(TokenType::IF, "Expected 'IF'");
+    expect(TokenType::IF, "Expected 'if'");
     auto expr   = parseCmpExpr();
     auto block  = parseBlockStmt();
+
     std::vector<ast::ElseClausePtr> elcls{};
-    while(check(TokenType::ELSE))
-    {
+    while(check(TokenType::ELSE)) {
         advance();
         bool end = !check(TokenType::IF);
         elcls.push_back(parseElseClause());
-        if (end)
+        if (end) {
             break;
+        }
     }
-    
-    return std::make_shared<ast::IfStmt>(std::move(expr),std::move(block),std::move(elcls));
+
+    return std::make_shared<ast::IfStmt>(std::move(expr),
+        std::move(block), std::move(elcls));
 }
 
 
@@ -458,65 +462,69 @@ ast::IfStmtPtr Parser::parseIfStmt(){
  * @brief 解析Else/Else if 语句
  * @return ast::ElseClausePtr - AST ELSE Statment 结点指针
  */
-ast::ElseClausePtr Parser::parseElseClause()
-{
+ast::ElseClausePtr Parser::parseElseClause() {
     using TokenType = lexer::token::Type;
-    if(check(TokenType::IF))
-    {
+
+    if(check(TokenType::IF)) {
         advance();
-        auto expr = parseCmpExpr();      
+        auto expr = parseCmpExpr();
         auto block = parseBlockStmt();
-        return std::make_shared<ast::ElseClause>(std::move(expr),std::move(block));
-    }
-    else
-    {
+        return std::make_shared<ast::ElseClause>(std::move(expr), std::move(block));
+    } else {
         auto block = parseBlockStmt();
-        return std::make_shared<ast::ElseClause>(std::nullopt,std::move(block));
+        return std::make_shared<ast::ElseClause>(std::nullopt, std::move(block));
     }
 }
+
 /**
  * @brief 解析While语句
  * @return ast::WhileStmtPtr - AST While Statment 结点指针
  */
-
-ast::WhileStmtPtr Parser::parseWhileStmt()
-{
+ast::WhileStmtPtr Parser::parseWhileStmt() {
     using TokenType = lexer::token::Type;
+
     expect(TokenType::WHILE,"Expected 'while'");
+
     auto expr = parseCmpExpr();
     auto block = parseBlockStmt();
-    return std::make_shared<ast::WhileStmt>(std::move(expr),std::move(block));
+
+    return std::make_shared<ast::WhileStmt>(std::move(expr), std::move(block));
 }
+
 /**
  * @brief 解析For语句
  * @return ast::ForStmtPtr - AST For Statment 结点指针
  */
-
-ast::ForStmtPtr Parser::parseForStmt()
-{
+ast::ForStmtPtr Parser::parseForStmt() {
     using TokenType = lexer::token::Type;
+
     expect(TokenType::FOR,"Expected 'for'");
     expect(TokenType::MUT, "Expected 'mut'");
     expect(TokenType::ID, "Expected '<ID>'");
     lexer::token::Token identifier {current.value()};
+
     expect(TokenType::IN,"Expected 'in'");
+
     auto expr1 = parseCmpExpr();
     expect(TokenType::DOTS,"Expected '..'");
+
     auto expr2 = parseCmpExpr();
     auto block = parseBlockStmt();
-    return std::make_shared<ast::ForStmt>(std::move(identifier.getValue()),std::move(expr1),std::move(expr2),std::move(block));
+
+    return std::make_shared<ast::ForStmt>(std::move(identifier.getValue()),
+        std::move(expr1), std::move(expr2), std::move(block));
 }
 
 /**
  * @brief 解析Loop语句
  * @return ast::LoopStmtPtr - AST Loop Statment 结点指针
  */
-
-ast::LoopStmtPtr Parser::parseLoopStmt()
-{
+ast::LoopStmtPtr Parser::parseLoopStmt() {
     using TokenType = lexer::token::Type;
+
     expect(TokenType::LOOP,"Expected 'loop'");
     auto block = parseBlockStmt();
+
     return std::make_shared<ast::LoopStmt>(std::move(block));
 }
 

@@ -151,70 +151,77 @@ struct ArithmeticExpr : Expr {
     ArithmeticExpr(ExprPtr lhs, lexer::token::Type op, ExprPtr rhs)
         : lhs(std::move(lhs)), op(op), rhs(std::move(rhs)) {}
 };
-using ArithmeticExprPtr = std::shared_ptr<ArithmeticExpr>;
+using  ArithmeticExprPtr = std::shared_ptr<ArithmeticExpr>;
 
 struct CallExpr : Expr {
     std::string          callee;
     std::vector<ExprPtr> arguments;
 
-    CallExpr(std::string name, std::vector<ExprPtr> args)
-        : callee(std::move(name)), arguments(std::move(args)) {}
+    template<typename T>
+    CallExpr(std::string name, T&& args) : callee(name), arguments(std::forward<T>(args)) {}
 };
-using CallExprPtr = std::shared_ptr<CallExpr>;
+using  CallExprPtr = std::shared_ptr<CallExpr>;
 
-
-struct ElseClause : Stmt{
-    std::optional<ExprPtr>  expr;
+struct ElseClause : Stmt {
+    std::optional<ExprPtr>  expr;  // else (if expr)?
     BlockStmtPtr            block;
 
-    template<typename T>
-    ElseClause(T&& expr, BlockStmtPtr block)
-        : expr(std::forward<T>(expr)), block(std::move(block)) {}
-    
-    ElseClause(std::nullopt_t, BlockStmtPtr block)
-        : expr(std::nullopt), block(std::move(block)) {}
-
+    template<typename T1, typename T2>
+    ElseClause(T1&& expr, T2&& block)
+        : expr(std::forward<T1>(expr)), block(std::forward<T2>(block)) {}
 };
-using ElseClausePtr = std::shared_ptr<ElseClause>;
+using  ElseClausePtr = std::shared_ptr<ElseClause>;
 
-
-struct IfStmt : Stmt{
+struct IfStmt : Stmt {
     ExprPtr                     expr;
     BlockStmtPtr                block;
-    std::vector<ElseClausePtr>  elcls;
-    template<typename T>
-    IfStmt(T&& expr,BlockStmtPtr block,std::vector<ElseClausePtr> clauses):
-        expr(std::forward<T>(expr)),block(std::move(block)),elcls(std::move(clauses)){}
+    std::vector<ElseClausePtr>  elcls; // else clauses
+
+    template<typename T1, typename T2, typename T3>
+    IfStmt(T1&& expr, T2&& block, T3&& clauses): expr(std::forward<T1>(expr)),
+        block(std::forward<T2>(block)), elcls(std::forward<T3>(clauses)) {}
 };
-using IfStmtPtr = std::shared_ptr<IfStmt>;
+using  IfStmtPtr = std::shared_ptr<IfStmt>;
 
-
-struct WhileStmt : Stmt{
+struct WhileStmt : Stmt {
     ExprPtr         expr;
     BlockStmtPtr    block;
-    template<typename T>
-    WhileStmt(T&& expr,BlockStmtPtr block):
-        expr(std::forward<T>(expr)),block(std::move(block)){}
-};
-using WhileStmtPtr = std::shared_ptr<WhileStmt>;
 
-struct ForStmt : Stmt{
+    template<typename T1, typename T2>
+    WhileStmt(T1&& expr, T2&& block):
+        expr(std::forward<T1>(expr)), block(std::forward<T2>(block)) {}
+};
+using  WhileStmtPtr = std::shared_ptr<WhileStmt>;
+
+struct ForStmt : Stmt {
     std::string name;
     ExprPtr     lexpr;
     ExprPtr     rexpr;
     BlockStmtPtr   block;
-    template<typename T1,typename T2>
-    ForStmt(std::string name,T1&& expr1,T2&& expr2,BlockStmtPtr block):
-        name(std::move(name)),lexpr(std::forward<T1>(expr1)),rexpr(std::forward<T2>(expr2)),block(std::move(block)){}
+
+    template<typename T1, typename T2, typename T3>
+    ForStmt(std::string name, T1&& expr1, T2&& expr2, T3&& block):
+        name(std::move(name)), lexpr(std::forward<T1>(expr1)),
+        rexpr(std::forward<T2>(expr2)), block(std::forward<T3>(block)){}
 };
-using ForStmtPtr = std::shared_ptr<ForStmt>;
+using  ForStmtPtr = std::shared_ptr<ForStmt>;
 
-
-struct LoopStmt : Stmt{
+struct LoopStmt : Stmt {
     BlockStmtPtr    block;
-    LoopStmt(BlockStmtPtr block):block(std::move(block)){}
+
+    template<typename T>
+    LoopStmt(T&& block) : block(std::forward<T>(block)){}
 };
-using LoopStmtPtr = std::shared_ptr<LoopStmt>;
+using  LoopStmtPtr = std::shared_ptr<LoopStmt>;
+
+struct BreakStmt : Stmt {};
+using  BreakStmtPtr = std::shared_ptr<BreakStmt>;
+
+struct ContinueStmt : Stmt {};
+using  ContinueStmtPtr = std::shared_ptr<ContinueStmt>;
+
+struct NullStmt : Stmt {};
+using  NullStmtPtr = std::shared_ptr<NullStmt>;
 
 void ast2Dot(std::ofstream& out, const ProgPtr p_prog);
 
