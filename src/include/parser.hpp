@@ -37,6 +37,11 @@ private:
     ast::ExprPtr           parseFactorExpr();
     ast::ExprPtr           parseElementExpr();
     ast::CallExprPtr       parseCallExpr();
+    ast::IfStmtPtr         parseIfStmt();
+    ast::ElseClausePtr     parseElseClause();
+    ast::WhileStmtPtr      parseWhileStmt();
+    ast::ForStmtPtr        parseForStmt();
+    ast::LoopStmtPtr       parseLoopStmt();
 
 private:
     std::function<std::optional<lexer::token::Token>()> nextTokenFunc; // 获取下一个 token

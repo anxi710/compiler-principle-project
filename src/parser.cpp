@@ -156,12 +156,40 @@ ast::BlockStmtPtr Parser::parseBlockStmt() {
             stmts.push_back(parseAssignStmt());
         }
         else if (check(TokenType::INT) || check(TokenType::ID) || check(TokenType::LPAREN)){
-            parseExpr();
+            stmts.push_back(parseExpr());
+        }
+        //begin csx 5.2
+        else if (check(TokenType::IF)){
+            stmts.push_back(parseIfStmt());
+        }
+        else if (check(TokenType::WHILE)){
+            stmts.push_back(parseWhileStmt());
+        }
+        else if (check(TokenType::FOR)){
+            stmts.push_back(parseForStmt());
+        }
+        else if (check(TokenType::LOOP)){
+            stmts.push_back(parseLoopStmt());
+        }
+        else if (check(TokenType::BREAK))
+        {
+            stmts.push_back(std::make_shared<ast::Stmt>());
+            
+            advance();
+            expect(TokenType::SEMICOLON,"Expected ';' after Break");
+        }
+        else if (check(TokenType::CONTINUE))
+        {
+            stmts.push_back(std::make_shared<ast::Stmt>());
+            advance();
+            expect(TokenType::SEMICOLON,"Expected ';' after Continue");
         }
         else if (check(TokenType::SEMICOLON)){
             stmts.push_back(std::make_shared<ast::Stmt>());
             advance();
         }
+
+
     }
 
     expect(TokenType::RBRACE, "Expected '}' for block");
@@ -400,6 +428,96 @@ ast::CallExprPtr Parser::parseCallExpr(){
 
     expect(TokenType::RPAREN, "Expected ')'");
     return std::make_shared<ast::CallExpr>(name, argv);
+}
+
+/** 
+ * @brief  解析IF语句
+ * @return ast::IfStmtPtr - AST IF Statement 结点指针
+ */
+ast::IfStmtPtr Parser::parseIfStmt(){
+    using TokenType = lexer::token::Type;
+
+    expect(TokenType::IF, "Expected 'IF'");
+    auto expr   = parseCmpExpr();
+    auto block  = parseBlockStmt();
+    std::vector<ast::ElseClausePtr> elcls{};
+    while(check(TokenType::ELSE))
+    {
+        advance();
+        bool end = !check(TokenType::IF);
+        elcls.push_back(parseElseClause());
+        if (end)
+            break;
+    }
+    
+    return std::make_shared<ast::IfStmt>(std::move(expr),std::move(block),std::move(elcls));
+}
+
+
+/**
+ * @brief 解析Else/Else if 语句
+ * @return ast::ElseClausePtr - AST ELSE Statment 结点指针
+ */
+ast::ElseClausePtr Parser::parseElseClause()
+{
+    using TokenType = lexer::token::Type;
+    if(check(TokenType::IF))
+    {
+        advance();
+        auto expr = parseCmpExpr();      
+        auto block = parseBlockStmt();
+        return std::make_shared<ast::ElseClause>(std::move(expr),std::move(block));
+    }
+    else
+    {
+        auto block = parseBlockStmt();
+        return std::make_shared<ast::ElseClause>(std::nullopt,std::move(block));
+    }
+}
+/**
+ * @brief 解析While语句
+ * @return ast::WhileStmtPtr - AST While Statment 结点指针
+ */
+
+ast::WhileStmtPtr Parser::parseWhileStmt()
+{
+    using TokenType = lexer::token::Type;
+    expect(TokenType::WHILE,"Expected 'while'");
+    auto expr = parseCmpExpr();
+    auto block = parseBlockStmt();
+    return std::make_shared<ast::WhileStmt>(std::move(expr),std::move(block));
+}
+/**
+ * @brief 解析For语句
+ * @return ast::ForStmtPtr - AST For Statment 结点指针
+ */
+
+ast::ForStmtPtr Parser::parseForStmt()
+{
+    using TokenType = lexer::token::Type;
+    expect(TokenType::FOR,"Expected 'for'");
+    expect(TokenType::MUT, "Expected 'mut'");
+    expect(TokenType::ID, "Expected '<ID>'");
+    lexer::token::Token identifier {current.value()};
+    expect(TokenType::IN,"Expected 'in'");
+    auto expr1 = parseCmpExpr();
+    expect(TokenType::DOTS,"Expected '..'");
+    auto expr2 = parseCmpExpr();
+    auto block = parseBlockStmt();
+    return std::make_shared<ast::ForStmt>(std::move(identifier.getValue()),std::move(expr1),std::move(expr2),std::move(block));
+}
+
+/**
+ * @brief 解析Loop语句
+ * @return ast::LoopStmtPtr - AST Loop Statment 结点指针
+ */
+
+ast::LoopStmtPtr Parser::parseLoopStmt()
+{
+    using TokenType = lexer::token::Type;
+    expect(TokenType::LOOP,"Expected 'loop'");
+    auto block = parseBlockStmt();
+    return std::make_shared<ast::LoopStmt>(std::move(block));
 }
 
 /* member function definition */

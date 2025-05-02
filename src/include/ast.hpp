@@ -83,7 +83,7 @@ struct FuncDecl : Decl {
 using  FuncDeclPtr = std::shared_ptr<FuncDecl>;
 
 // Expression
-struct Expr {
+struct Expr :Stmt {
     virtual ~Expr() = default;
 };
 using  ExprPtr = std::shared_ptr<Expr>;
@@ -161,6 +161,60 @@ struct CallExpr : Expr {
         : callee(std::move(name)), arguments(std::move(args)) {}
 };
 using CallExprPtr = std::shared_ptr<CallExpr>;
+
+
+struct ElseClause : Stmt{
+    std::optional<ExprPtr>  expr;
+    BlockStmtPtr            block;
+
+    template<typename T>
+    ElseClause(T&& expr, BlockStmtPtr block)
+        : expr(std::forward<T>(expr)), block(std::move(block)) {}
+    
+    ElseClause(std::nullopt_t, BlockStmtPtr block)
+        : expr(std::nullopt), block(std::move(block)) {}
+
+};
+using ElseClausePtr = std::shared_ptr<ElseClause>;
+
+
+struct IfStmt : Stmt{
+    ExprPtr                     expr;
+    BlockStmtPtr                block;
+    std::vector<ElseClausePtr>  elcls;
+    template<typename T>
+    IfStmt(T&& expr,BlockStmtPtr block,std::vector<ElseClausePtr> clauses):
+        expr(std::forward<T>(expr)),block(std::move(block)),elcls(std::move(clauses)){}
+};
+using IfStmtPtr = std::shared_ptr<IfStmt>;
+
+
+struct WhileStmt : Stmt{
+    ExprPtr         expr;
+    BlockStmtPtr    block;
+    template<typename T>
+    WhileStmt(T&& expr,BlockStmtPtr block):
+        expr(std::forward<T>(expr)),block(std::move(block)){}
+};
+using WhileStmtPtr = std::shared_ptr<WhileStmt>;
+
+struct ForStmt : Stmt{
+    std::string name;
+    ExprPtr     lexpr;
+    ExprPtr     rexpr;
+    BlockStmtPtr   block;
+    template<typename T1,typename T2>
+    ForStmt(std::string name,T1&& expr1,T2&& expr2,BlockStmtPtr block):
+        name(std::move(name)),lexpr(std::forward<T1>(expr1)),rexpr(std::forward<T2>(expr2)),block(std::move(block)){}
+};
+using ForStmtPtr = std::shared_ptr<ForStmt>;
+
+
+struct LoopStmt : Stmt{
+    BlockStmtPtr    block;
+    LoopStmt(BlockStmtPtr block):block(std::move(block)){}
+};
+using LoopStmtPtr = std::shared_ptr<LoopStmt>;
 
 void ast2Dot(std::ofstream& out, const ProgPtr p_prog);
 
