@@ -54,7 +54,9 @@ bool Parser::check(lexer::token::Type type) const {
  * @return 是否通过检查
  */
 bool Parser::checkAhead(lexer::token::Type type) {
-    lookahead = nextTokenFunc(); // 获取下一个 token
+    if (!lookahead.has_value()) {
+        lookahead = nextTokenFunc(); // 获取下一个 token
+    }
     return lookahead.has_value() && lookahead->getType() == type;
 }
 
@@ -460,7 +462,7 @@ ast::IfStmtPtr Parser::parseIfStmt() {
 
 /**
  * @brief 解析Else/Else if 语句
- * @return ast::ElseClausePtr - AST ELSE Statment 结点指针
+ * @return ast::ElseClausePtr - AST ELSE Statement 结点指针
  */
 ast::ElseClausePtr Parser::parseElseClause() {
     using TokenType = lexer::token::Type;
@@ -478,7 +480,7 @@ ast::ElseClausePtr Parser::parseElseClause() {
 
 /**
  * @brief 解析While语句
- * @return ast::WhileStmtPtr - AST While Statment 结点指针
+ * @return ast::WhileStmtPtr - AST While Statement 结点指针
  */
 ast::WhileStmtPtr Parser::parseWhileStmt() {
     using TokenType = lexer::token::Type;
@@ -493,7 +495,7 @@ ast::WhileStmtPtr Parser::parseWhileStmt() {
 
 /**
  * @brief 解析For语句
- * @return ast::ForStmtPtr - AST For Statment 结点指针
+ * @return ast::ForStmtPtr - AST For Statement 结点指针
  */
 ast::ForStmtPtr Parser::parseForStmt() {
     using TokenType = lexer::token::Type;
@@ -517,7 +519,7 @@ ast::ForStmtPtr Parser::parseForStmt() {
 
 /**
  * @brief 解析Loop语句
- * @return ast::LoopStmtPtr - AST Loop Statment 结点指针
+ * @return ast::LoopStmtPtr - AST Loop Statement 结点指针
  */
 ast::LoopStmtPtr Parser::parseLoopStmt() {
     using TokenType = lexer::token::Type;
