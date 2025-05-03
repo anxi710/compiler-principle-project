@@ -133,10 +133,18 @@ struct FuncDecl : Decl {
 using  FuncDeclPtr = std::shared_ptr<FuncDecl>;
 
 // Expression
-struct Expr :Stmt {
+struct Expr {
     virtual ~Expr() = default;
 };
 using  ExprPtr = std::shared_ptr<Expr>;
+
+struct ExprStmt : Stmt {
+    ExprPtr expr;
+
+    template<typename T>
+    ExprStmt(T&& expr) : expr(std::forward<T>(expr)) {}
+};
+using  ExprStmtPtr = std::shared_ptr<ExprStmt>;
 
 struct Variable : Expr {
     std::string name; // 变量名
@@ -189,7 +197,8 @@ struct AssignStmt : Stmt {
     ExprPtr     expr; // expression
 
     template<typename T>
-    AssignStmt(std::string var, RefType type, T&& expr) : var(var), type(type), expr(std::forward<T>(expr)) {}
+    AssignStmt(std::string var, RefType type, T&& expr)
+        : var(var), type(type), expr(std::forward<T>(expr)) {}
 };
 using  AssignStmtPtr = std::shared_ptr<AssignStmt>;
 
@@ -237,7 +246,7 @@ struct IfStmt : Stmt {
     std::vector<ElseClausePtr>  elcls; // else clauses
 
     template<typename T1, typename T2, typename T3>
-    IfStmt(T1&& expr, T2&& block, T3&& clauses): expr(std::forward<T1>(expr)),
+    IfStmt(T1&& expr, T2&& block, T3&& clauses) : expr(std::forward<T1>(expr)),
         block(std::forward<T2>(block)), elcls(std::forward<T3>(clauses)) {}
 };
 using  IfStmtPtr = std::shared_ptr<IfStmt>;
@@ -247,8 +256,8 @@ struct WhileStmt : Stmt {
     BlockStmtPtr    block;
 
     template<typename T1, typename T2>
-    WhileStmt(T1&& expr, T2&& block):
-        expr(std::forward<T1>(expr)), block(std::forward<T2>(block)) {}
+    WhileStmt(T1&& expr, T2&& block)
+        : expr(std::forward<T1>(expr)), block(std::forward<T2>(block)) {}
 };
 using  WhileStmtPtr = std::shared_ptr<WhileStmt>;
 
@@ -259,7 +268,7 @@ struct ForStmt : Stmt {
     BlockStmtPtr block;
 
     template<typename T, typename T1, typename T2, typename T3>
-    ForStmt(T&& var, T1&& expr1, T2&& expr2, T3&& block):
+    ForStmt(T&& var, T1&& expr1, T2&& expr2, T3&& block) :
         var(std::forward<T>(var)), lexpr(std::forward<T1>(expr1)),
         rexpr(std::forward<T2>(expr2)), block(std::forward<T3>(block)){}
 };
@@ -281,6 +290,15 @@ using  ContinueStmtPtr = std::shared_ptr<ContinueStmt>;
 
 struct NullStmt : Stmt {};
 using  NullStmtPtr = std::shared_ptr<NullStmt>;
+
+struct FuncExprBlockStmt : Expr, BlockStmt {
+    ExprPtr expr; // the final expression
+
+    template <typename T1, typename T2>
+    FuncExprBlockStmt(T1&& stmts, T2&& expr)
+        : BlockStmt(std::forward<T1>(stmts)), expr(std::forward<T2>(expr)) {}
+};
+using  FuncExprBlockStmtPtr = std::shared_ptr<FuncExprBlockStmt>;
 
 void ast2Dot(std::ofstream& out, const ProgPtr p_prog);
 
