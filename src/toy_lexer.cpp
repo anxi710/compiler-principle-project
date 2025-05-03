@@ -144,6 +144,9 @@ std::optional<token::Token> ToyLexer::nextToken() {
             token = Token{token::Type::OP_NEQ, std::string{"!="}};
         }
         break;
+    case '&':
+        token = Token{token::Type::Ref, std::string{"&"}};
+        break;
     }
 
     if (!token.getValue().empty()) {
