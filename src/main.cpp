@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <getopt.h>
+#include <filesystem>
 #include "include/ast.hpp"
 #include "include/utils.hpp"
 #include "include/parser.hpp"
@@ -170,6 +171,15 @@ int main(int argc, char* argv[]) {
     in.close();
     out_token.close();
     out_parse.close();
+
+    std::string base = out_file.empty() ? "output" : out_file;
+    if (!flag_default) {
+        if (flag_token && !flag_parse) {
+            std::filesystem::remove(base + ".dot");
+        } else if (flag_parse && !flag_token) {
+            std::filesystem::remove(base + ".token");
+        }
+    }
 
     return 0;
 }
