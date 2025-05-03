@@ -43,27 +43,41 @@ struct VarDecl : Decl {
 };
 using  VarDeclPtr = std::shared_ptr<VarDecl>;
 
+enum class RefType {
+    normal,    // 普通变量
+    deref,     // 解引用
+    immutable, // 不可变引用
+    mutableref // 可变引用
+};
+
 struct VarType : Node {
+    RefType ref_type;
+
+    VarType() : ref_type(RefType::normal) {}
+    VarType(RefType ref_type) : ref_type(ref_type) {}
     virtual ~VarType() = default;
 };
 using  VarTypePtr = std::shared_ptr<VarType>;
 
-struct Integer : VarType {};
+struct Integer : VarType {
+    Integer() : VarType() {}
+    Integer(RefType ref_type) : VarType(ref_type) {}
+};
 using  IntegerPtr = std::shared_ptr<Integer>;
 
 struct Array : VarType {
     int cnt; // 数组中元素个数
 
-    Array() = default;
-    Array(int cnt) : cnt(cnt) {}
+    Array() : VarType(), cnt(0) {}
+    Array(int cnt, RefType ref_type = RefType::normal) : VarType(ref_type), cnt(cnt) {}
 };
 using  ArrayPtr = std::shared_ptr<Array>;
 
 struct Tuple : VarType {
     int cnt; // 元组中元素个数
 
-    Tuple() = default;
-    Tuple(int cnt) : cnt(cnt) {}
+    Tuple() : VarType(), cnt(0) {}
+    Tuple(int cnt, RefType ref_type = RefType::normal) : VarType(ref_type), cnt(cnt) {}
 };
 using TuplePtr = std::shared_ptr<Tuple>;
 
@@ -141,6 +155,15 @@ struct Number : Expr {
 };
 using  NumberPtr = std::shared_ptr<Number>;
 
+struct Factor : Expr {
+    RefType ref_type;
+    ExprPtr element;
+
+    template<typename T>
+    Factor(RefType ref_type, T&& element) : ref_type(ref_type), element(std::forward<T>(element)) {}
+};
+using  FactorPtr = std::shared_ptr<Factor>;
+
 // Return Statement
 struct RetStmt : Stmt {
     std::optional<ExprPtr> ret_val; // return value (an expression)
@@ -162,10 +185,11 @@ using  VarDeclStmtPtr = std::shared_ptr<VarDeclStmt>;
 
 struct AssignStmt : Stmt {
     std::string var;  // variable
+    RefType     type; // dereference or normal
     ExprPtr     expr; // expression
 
     template<typename T>
-    AssignStmt(std::string var, T&& expr) : var(var), expr(std::forward<T>(expr)) {}
+    AssignStmt(std::string var, RefType type, T&& expr) : var(var), type(type), expr(std::forward<T>(expr)) {}
 };
 using  AssignStmtPtr = std::shared_ptr<AssignStmt>;
 
