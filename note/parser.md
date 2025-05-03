@@ -122,7 +122,7 @@
 
 **6.2 借用和引用（前置规则 3.1, 6.1）**:
 
-- Factor -> _\*_ Factor | _&_ mut Factor | _&_ Factor
+- Factor -> _\*_ Factor | _&_ _mut_ Factor | _&_ Factor
 - VarType -> _&_ mut VarType | _&_ VarType
 
 `&mut` - 可变引用；`&` - 不可变引用；`*` - 解引用
