@@ -128,11 +128,11 @@ ast::FuncHeaderDeclPtr Parser::parseFuncHeaderDecl() {
     if (check(TokenType::ARROW)) {
         expect(TokenType::ARROW, "Expected '->'");
         expect(TokenType::I32, "Expected 'i32'");
-
-        return std::make_shared<ast::FuncHeaderDecl>(name, argv, TokenType::I32);
+        auto type = std::make_shared<ast::Integer>();
+        return std::make_shared<ast::FuncHeaderDecl>(name, std::move(argv), std::move(type));
     }
 
-    return std::make_shared<ast::FuncHeaderDecl>(name, argv, std::nullopt);
+    return std::make_shared<ast::FuncHeaderDecl>(name, std::move(argv), std::nullopt);
 }
 
 /**
@@ -225,12 +225,13 @@ ast::ArgPtr Parser::parseArg() {
 
     expect(TokenType::MUT, "Expected 'mut'");
     expect(TokenType::ID, "Expected '<ID>'");
-    std::string name = current.value().getValue();
+    auto var = std::make_shared<ast::VarDecl>(true, current->getValue());
 
     expect(TokenType::COLON, "Expected ':'");
     expect(TokenType::I32, "Expected 'i32'");
+    auto type = std::make_shared<ast::Integer>();
 
-    return std::make_shared<ast::Arg>(name);
+    return std::make_shared<ast::Arg>(std::move(var), std::move(type));
 }
 
 /**
@@ -244,15 +245,15 @@ ast::VarDeclStmtPtr Parser::parseVarDeclStmt() {
     expect(TokenType::LET, "Expected 'let'");
     expect(TokenType::MUT, "Expected 'mut'");
     expect(TokenType::ID, "Expected '<ID>'");
-    lexer::token::Token identifier {current.value()};
+    auto identifier  = std::make_shared<ast::VarDecl>(true, current->getValue());
 
-    TokenType type;
+    ast::VarTypePtr type;
     bool has_type = false;
     if (check(TokenType::COLON)) {
         has_type = true;
         expect(TokenType::COLON, "Expected ':'");
         expect(TokenType::I32, "Expected 'i32'");
-        type = current.value().getType();
+        type = std::make_shared<ast::Integer>();
     }
 
     ast::ExprPtr expr;
@@ -266,11 +267,11 @@ ast::VarDeclStmtPtr Parser::parseVarDeclStmt() {
     expect(TokenType::SEMICOLON, "Expected ';'");
 
     if (flag_assign) {
-        std::make_shared<ast::VarDeclAssignStmt>(true, std::move(identifier),
-        (has_type ? std::optional<TokenType>{type} : std::nullopt), expr);
+        std::make_shared<ast::VarDeclAssignStmt>(std::move(identifier),
+        (has_type ? std::optional<ast::VarTypePtr>{type} : std::nullopt), expr);
     }
-    return std::make_shared<ast::VarDeclStmt>(true, std::move(identifier),
-        (has_type ? std::optional<TokenType>{type} : std::nullopt));
+    return std::make_shared<ast::VarDeclStmt>(std::move(identifier),
+        (has_type ? std::optional<ast::VarTypePtr>{type} : std::nullopt));
 }
 
 /**
@@ -282,14 +283,14 @@ ast::AssignStmtPtr Parser::parseAssignStmt() {
     using TokenType = lexer::token::Type;
 
     expect(TokenType::ID, "Expected '<ID>'");
-    std::string name = current.value().getValue();
+    std::string var = current.value().getValue();
 
     expect(TokenType::ASSIGN, "Expected '='");
     ast::ExprPtr expr = Parser::parseCmpExpr();
 
     expect(TokenType::SEMICOLON, "Expected ';'");
 
-    return std::make_shared<ast::AssignStmt>(name, expr);
+    return std::make_shared<ast::AssignStmt>(var, expr);
 }
 
 /**

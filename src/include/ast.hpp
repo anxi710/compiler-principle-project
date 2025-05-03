@@ -34,11 +34,46 @@ struct Prog : Node {
 };
 using  ProgPtr = std::shared_ptr<Prog>;
 
+struct VarDecl : Decl {
+    bool        mutable_; // mutable or not
+    std::string name;     // variable name
+
+    VarDecl() = default;
+    VarDecl(bool mutable_, std::string name) : mutable_(mutable_), name(name) {}
+};
+using  VarDeclPtr = std::shared_ptr<VarDecl>;
+
+struct VarType : Node {
+    virtual ~VarType() = default;
+};
+using  VarTypePtr = std::shared_ptr<VarType>;
+
+struct Integer : VarType {};
+using  IntegerPtr = std::shared_ptr<Integer>;
+
+struct Array : VarType {
+    int cnt; // 数组中元素个数
+
+    Array() = default;
+    Array(int cnt) : cnt(cnt) {}
+};
+using  ArrayPtr = std::shared_ptr<Array>;
+
+struct Tuple : VarType {
+    int cnt; // 元组中元素个数
+
+    Tuple() = default;
+    Tuple(int cnt) : cnt(cnt) {}
+};
+using TuplePtr = std::shared_ptr<Tuple>;
+
 // Argument
 struct Arg : Node {
-    std::string name;
+    VarDeclPtr var;  // variable
+    VarTypePtr type; // variable type
 
-    Arg(std::string name) : name(name) {}
+    template<typename T1, typename T2>
+    Arg(T1&& var, T2&& type) : var(std::forward<T1>(var)), type(std::forward<T2>(type)) {}
 };
 using  ArgPtr = std::shared_ptr<Arg>;
 
@@ -60,13 +95,14 @@ using  BlockStmtPtr = std::shared_ptr<BlockStmt>;
 // FuncHeaderDecl -> fn <ID> ( Args )
 // Function header declaration
 struct FuncHeaderDecl : Decl {
-    std::string                       name;        // function name
-    std::vector<ArgPtr>               argv;        // argument vector
-    std::optional<lexer::token::Type> retval_type; // return value type
+    std::string               name;        // function name
+    std::vector<ArgPtr>       argv;        // argument vector
+    std::optional<VarTypePtr> retval_type; // return value type
 
     template<typename T1, typename T2>
-    FuncHeaderDecl(T1&& name, T2&& argv, std::optional<lexer::token::Type> retval_type)
-        : name(std::forward<T1>(name)), argv(std::forward<T2>(argv)), retval_type(retval_type) {}
+    FuncHeaderDecl(std::string name, T1&& argv, T2&& retval_type)
+        : name(name), argv(std::forward<T1>(argv)),
+          retval_type(std::forward<T2>(retval_type)) {}
 };
 using  FuncHeaderDeclPtr = std::shared_ptr<FuncHeaderDecl>;
 
@@ -88,44 +124,6 @@ struct Expr :Stmt {
 };
 using  ExprPtr = std::shared_ptr<Expr>;
 
-// Return Statement
-struct RetStmt : Stmt {
-    std::optional<ExprPtr> ret_val; // return value (an expression)
-
-    template<typename T>
-    RetStmt(T&& ret_val) : ret_val(std::forward<T>(ret_val)) {}
-};
-using  RetStmtPtr = std::shared_ptr<RetStmt>;
-
-struct VarDeclStmt : Stmt, Decl {
-    bool                               mutable_; // mutable 是一个保留字
-    lexer::token::Token                id;       // variable (identifier)
-    std::optional<lexer::token::Type>  type;     // variable type
-
-    template<typename T>
-    VarDeclStmt(bool mutable_, T&& id, std::optional<lexer::token::Type> type)
-        : mutable_(mutable_), id(std::forward<T>(id)), type(type) {}
-};
-using  VarDeclStmtPtr = std::shared_ptr<VarDeclStmt>;
-
-struct AssignStmt : Stmt {
-    std::string name;
-    ExprPtr     expr;
-
-    template<typename T>
-    AssignStmt(std::string name, T&& expr) : name(name), expr(std::forward<T>(expr)) {}
-};
-using  AssignStmtPtr = std::shared_ptr<AssignStmt>;
-
-struct VarDeclAssignStmt : VarDeclStmt {
-    ExprPtr expr;
-
-    template<typename T>
-    VarDeclAssignStmt(bool mutable_, lexer::token::Token id, std::optional<lexer::token::Type> type, T&& expr)
-        : VarDeclStmt(mutable_, std::move(id), type), expr(std::forward<T>(expr)) {}
-};
-using  VarDeclAssignStmtPtr = std::shared_ptr<VarDeclAssignStmt>;
-
 struct Variable : Expr {
     std::string name; // 变量名
 
@@ -142,6 +140,43 @@ struct Number : Expr {
     Number(int value) : value(value) {}
 };
 using  NumberPtr = std::shared_ptr<Number>;
+
+// Return Statement
+struct RetStmt : Stmt {
+    std::optional<ExprPtr> ret_val; // return value (an expression)
+
+    template<typename T>
+    RetStmt(T&& ret_val) : ret_val(std::forward<T>(ret_val)) {}
+};
+using  RetStmtPtr = std::shared_ptr<RetStmt>;
+
+struct VarDeclStmt : Stmt, Decl {
+    VarDeclPtr                var;  // variable
+    std::optional<VarTypePtr> type; // variable type
+
+    template<typename T1, typename T2>
+    VarDeclStmt(T1&& var, T2&& type)
+        : var(std::forward<T1>(var)), type(std::forward<T2>(type)) {}
+};
+using  VarDeclStmtPtr = std::shared_ptr<VarDeclStmt>;
+
+struct AssignStmt : Stmt {
+    std::string var;  // variable
+    ExprPtr     expr; // expression
+
+    template<typename T>
+    AssignStmt(std::string var, T&& expr) : var(var), expr(std::forward<T>(expr)) {}
+};
+using  AssignStmtPtr = std::shared_ptr<AssignStmt>;
+
+struct VarDeclAssignStmt : VarDeclStmt {
+    ExprPtr expr;
+
+    template<typename T1, typename T2, typename T3>
+    VarDeclAssignStmt(T1&& var, T2&& type, T3&& expr)
+        : VarDeclStmt(std::forward<T1>(var), std::forward<T2>(type)), expr(std::forward<T3>(expr)) {}
+};
+using  VarDeclAssignStmtPtr = std::shared_ptr<VarDeclAssignStmt>;
 
 struct ArithmeticExpr : Expr {
     ExprPtr            lhs; // 左操作数
