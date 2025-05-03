@@ -27,6 +27,7 @@ const std::string tokenType2str(Type type) {
         {Type::BREAK,     "BREAK"},
         {Type::CONTINUE,  "CONTINUE"},
         {Type::INT,       "INT"},
+        {Type::Ref,       "&"},
         {Type::LPAREN,    "LPAREN"},
         {Type::RPAREN,    "RPAREN"},
         {Type::LBRACE,    "LBRACE"},
