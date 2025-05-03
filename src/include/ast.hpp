@@ -229,14 +229,14 @@ struct WhileStmt : Stmt {
 using  WhileStmtPtr = std::shared_ptr<WhileStmt>;
 
 struct ForStmt : Stmt {
-    std::string name;
-    ExprPtr     lexpr;
-    ExprPtr     rexpr;
-    BlockStmtPtr   block;
+    VarDeclPtr   var;
+    ExprPtr      lexpr;
+    ExprPtr      rexpr;
+    BlockStmtPtr block;
 
-    template<typename T1, typename T2, typename T3>
-    ForStmt(std::string name, T1&& expr1, T2&& expr2, T3&& block):
-        name(std::move(name)), lexpr(std::forward<T1>(expr1)),
+    template<typename T, typename T1, typename T2, typename T3>
+    ForStmt(T&& var, T1&& expr1, T2&& expr2, T3&& block):
+        var(std::forward<T>(var)), lexpr(std::forward<T1>(expr1)),
         rexpr(std::forward<T2>(expr2)), block(std::forward<T3>(block)){}
 };
 using  ForStmtPtr = std::shared_ptr<ForStmt>;
