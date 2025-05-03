@@ -24,26 +24,29 @@ private:
     bool checkAhead2(lexer::token::Type type1, lexer::token::Type type2);
     void expect(lexer::token::Type type, const std::string& error_msg);
 
-    ast::FuncDeclPtr       parseFuncDecl();
-    ast::FuncHeaderDeclPtr parseFuncHeaderDecl();
-    ast::BlockStmtPtr      parseBlockStmt();
-    ast::RetStmtPtr        parseRetStmt();
-    ast::ArgPtr            parseArg();
-    ast::VarDeclStmtPtr    parseVarDeclStmt();
-    ast::AssignStmtPtr     parseAssignStmt();
-    ast::ExprPtr           parseExpr();
-    ast::ExprPtr           parseCmpExpr();
-    ast::ExprPtr           parseAddExpr();
-    ast::ExprPtr           parseMulExpr();
-    ast::ExprPtr           parseFactorExpr();
-    ast::ExprPtr           parseElementExpr();
-    ast::CallExprPtr       parseCallExpr();
-    ast::IfStmtPtr         parseIfStmt();
-    ast::ElseClausePtr     parseElseClause();
-    ast::WhileStmtPtr      parseWhileStmt();
-    ast::ForStmtPtr        parseForStmt();
-    ast::LoopStmtPtr       parseLoopStmt();
-    ast::VarTypePtr        parseVarType();
+    ast::FuncDeclPtr          parseFuncDecl();
+    ast::FuncHeaderDeclPtr    parseFuncHeaderDecl();
+    ast::StmtPtr              parseStmt();
+    ast::BlockStmtPtr         parseBlockStmt();
+    ast::RetStmtPtr           parseRetStmt();
+    ast::ArgPtr               parseArg();
+    ast::VarDeclStmtPtr       parseVarDeclStmt();
+    ast::AssignStmtPtr        parseAssignStmt();
+    ast::ExprStmtPtr          parseExprStmt();
+    ast::ExprPtr              parseExpr();
+    ast::ExprPtr              parseCmpExpr();
+    ast::ExprPtr              parseAddExpr();
+    ast::ExprPtr              parseMulExpr();
+    ast::ExprPtr              parseFactorExpr();
+    ast::ExprPtr              parseElementExpr();
+    ast::CallExprPtr          parseCallExpr();
+    ast::IfStmtPtr            parseIfStmt();
+    ast::ElseClausePtr        parseElseClause();
+    ast::WhileStmtPtr         parseWhileStmt();
+    ast::ForStmtPtr           parseForStmt();
+    ast::LoopStmtPtr          parseLoopStmt();
+    ast::VarTypePtr           parseVarType();
+    ast::FuncExprBlockStmtPtr parseFuncExprBlockStmt();
 
 private:
     std::function<std::optional<lexer::token::Token>()> nextTokenFunc; // 获取下一个 token
