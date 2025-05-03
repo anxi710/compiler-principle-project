@@ -223,9 +223,13 @@ ast::RetStmtPtr Parser::parseRetStmt() {
 ast::ArgPtr Parser::parseArg() {
     using TokenType = lexer::token::Type;
 
-    expect(TokenType::MUT, "Expected 'mut'");
+    bool mutable_ = false;
+    if (check(TokenType::MUT)) {
+        mutable_ = true;
+        advance();
+    }
     expect(TokenType::ID, "Expected '<ID>'");
-    auto var = std::make_shared<ast::VarDecl>(true, current->getValue());
+    auto var = std::make_shared<ast::VarDecl>(mutable_, current->getValue());
 
     expect(TokenType::COLON, "Expected ':'");
     expect(TokenType::I32, "Expected 'i32'");
@@ -243,9 +247,14 @@ ast::VarDeclStmtPtr Parser::parseVarDeclStmt() {
     using TokenType = lexer::token::Type;
 
     expect(TokenType::LET, "Expected 'let'");
-    expect(TokenType::MUT, "Expected 'mut'");
+
+    bool mutable_ = false;
+    if (check(TokenType::MUT)) {
+        mutable_ = true;
+        advance();
+    }
     expect(TokenType::ID, "Expected '<ID>'");
-    auto identifier  = std::make_shared<ast::VarDecl>(true, current->getValue());
+    auto identifier  = std::make_shared<ast::VarDecl>(mutable_, current->getValue());
 
     ast::VarTypePtr type;
     bool has_type = false;
@@ -432,7 +441,7 @@ ast::CallExprPtr Parser::parseCallExpr() {
     }
 
     expect(TokenType::RPAREN, "Expected ')'");
-    return std::make_shared<ast::CallExpr>(name, argv);
+    return std::make_shared<ast::CallExpr>(name, std::move(argv));
 }
 
 /**
@@ -502,9 +511,14 @@ ast::ForStmtPtr Parser::parseForStmt() {
     using TokenType = lexer::token::Type;
 
     expect(TokenType::FOR,"Expected 'for'");
-    expect(TokenType::MUT, "Expected 'mut'");
+
+    bool mutable_ = false;
+    if (check(TokenType::MUT)) {
+        mutable_ = true;
+        advance();
+    }
     expect(TokenType::ID, "Expected '<ID>'");
-    lexer::token::Token identifier {current.value()};
+    ast::VarDeclPtr var = std::make_shared<ast::VarDecl>(mutable_, current->getValue());
 
     expect(TokenType::IN,"Expected 'in'");
 
@@ -514,7 +528,7 @@ ast::ForStmtPtr Parser::parseForStmt() {
     auto expr2 = parseCmpExpr();
     auto block = parseBlockStmt();
 
-    return std::make_shared<ast::ForStmt>(std::move(identifier.getValue()),
+    return std::make_shared<ast::ForStmt>(std::move(var),
         std::move(expr1), std::move(expr2), std::move(block));
 }
 
