@@ -173,44 +173,58 @@ ast::BlockStmtPtr Parser::parseBlockStmt() {
 
     std::vector<ast::StmtPtr> stmts {};
     while (!check(TokenType::RBRACE)) {
-        if (check(TokenType::LET)) {
-            stmts.push_back(parseVarDeclStmt());
-        } else if (check(TokenType::RETURN)) {
-            stmts.push_back(parseRetStmt());
-        } else if (check(TokenType::ID) && checkAhead(TokenType::ASSIGN)) {
-            stmts.push_back(parseAssignStmt());
-        } else if (check(TokenType::INT) || check(TokenType::ID) || check(TokenType::LPAREN)) {
-            stmts.push_back(parseExprStmt());
-        } else if (check(TokenType::IF)) {
-            stmts.push_back(parseIfStmt());
-        } else if (check(TokenType::WHILE)) {
-            stmts.push_back(parseWhileStmt());
-        } else if (check(TokenType::FOR)) {
-            stmts.push_back(parseForStmt());
-        } else if (check(TokenType::LOOP)) {
-            stmts.push_back(parseLoopStmt());
-        } else if (check(TokenType::OP_MUL)) {
-            if (checkAhead2(TokenType::ID, TokenType::ASSIGN)) {
-                stmts.push_back(parseAssignStmt());
-            } else if (checkAhead(TokenType::ID)) {
-                stmts.push_back(parseExprStmt());
-            }
-        } else if (check(TokenType::BREAK)) {
-            stmts.push_back(std::make_shared<ast::BreakStmt>());
-            advance();
-            expect(TokenType::SEMICOLON,"Expected ';' after Break");
-        } else if (check(TokenType::CONTINUE)) {
-            stmts.push_back(std::make_shared<ast::ContinueStmt>());
-            advance();
-            expect(TokenType::SEMICOLON,"Expected ';' after Continue");
-        } else if (check(TokenType::SEMICOLON)){
-            stmts.push_back(std::make_shared<ast::NullStmt>());
-            advance();
-        }
+        stmts.push_back(parseStmt());
     }
 
     expect(TokenType::RBRACE, "Expected '}' for block");
     return std::make_shared<ast::BlockStmt>(stmts);
+}
+
+/**
+ * @brief  解析语句
+ * @return ast::StmtPtr - AST Statement 结点指针
+ */
+[[nodiscard]]
+ast::StmtPtr Parser::parseStmt() {
+    using TokenType = lexer::token::Type;
+
+    ast::StmtPtr stmt {};
+    if (check(TokenType::LET)) {
+        stmt = parseVarDeclStmt();
+    } else if (check(TokenType::RETURN)) {
+        stmt = parseRetStmt();
+    } else if (check(TokenType::ID) && checkAhead(TokenType::ASSIGN)) {
+        stmt = parseAssignStmt();
+    } else if (check(TokenType::INT) || check(TokenType::ID) || check(TokenType::LPAREN)) {
+        stmt = parseExprStmt();
+    } else if (check(TokenType::IF)) {
+        stmt = parseIfStmt();
+    } else if (check(TokenType::WHILE)) {
+        stmt = parseWhileStmt();
+    } else if (check(TokenType::FOR)) {
+        stmt = parseForStmt();
+    } else if (check(TokenType::LOOP)) {
+        stmt = parseLoopStmt();
+    } else if (check(TokenType::OP_MUL)) {
+        if (checkAhead2(TokenType::ID, TokenType::ASSIGN)) {
+            stmt = parseAssignStmt();
+        } else if (checkAhead(TokenType::ID)) {
+            stmt = parseExprStmt();
+        }
+    } else if (check(TokenType::BREAK)) {
+        stmt = std::make_shared<ast::BreakStmt>();
+        advance();
+        expect(TokenType::SEMICOLON,"Expected ';' after Break");
+    } else if (check(TokenType::CONTINUE)) {
+        stmt = std::make_shared<ast::ContinueStmt>();
+        advance();
+        expect(TokenType::SEMICOLON,"Expected ';' after Continue");
+    } else if (check(TokenType::SEMICOLON)){
+        stmt = std::make_shared<ast::NullStmt>();
+        advance();
+    }
+
+    return stmt;
 }
 
 /**
@@ -644,6 +658,12 @@ ast::FuncExprBlockStmtPtr Parser::parseFuncExprBlockStmt() {
             stmts.push_back(parseAssignStmt());
         } else if (check(TokenType::INT) || check(TokenType::ID) || check(TokenType::LPAREN)) {
             expr = parseExpr();
+            if (check(TokenType::SEMICOLON)) {
+                advance();
+                stmts.push_back(std::make_shared<ast::ExprStmt>(expr));
+            } else {
+                break;
+            }
         } else if (check(TokenType::IF)) {
             stmts.push_back(parseIfStmt());
         } else if (check(TokenType::WHILE)) {
@@ -657,6 +677,12 @@ ast::FuncExprBlockStmtPtr Parser::parseFuncExprBlockStmt() {
                 stmts.push_back(parseAssignStmt());
             } else if (checkAhead(TokenType::ID)) {
                 expr = parseExpr();
+                if (check(TokenType::SEMICOLON)) {
+                    advance();
+                    stmts.push_back(std::make_shared<ast::ExprStmt>(expr));
+                } else {
+                    break;
+                }
             }
         } else if (check(TokenType::BREAK)) {
             stmts.push_back(std::make_shared<ast::BreakStmt>());
