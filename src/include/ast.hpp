@@ -12,14 +12,34 @@ namespace parser::ast {
 // 如果基类析构函数没有被声明为虚函数，则 C++ 只会调用基类的析构函数，
 // 而不会调用派生类的析构函数
 
+enum class NodeType {
+    Prog, Arg,
+
+    Decl, Stmt, Expr, VarType,
+
+    VarDecl, FuncDecl, FuncHeaderDecl,
+
+    BlockStmt, ExprStmt, RetStmt, VarDeclStmt, AssignStmt, VarDeclAssignStmt,
+    ElseClause, IfStmt, WhileStmt, ForStmt, LoopStmt, BreakStmt, ContinueStmt, NullStmt,
+
+    Variable, Number, Factor, ArithmeticExpr, CallExpr, FuncExprBlockStmt,
+
+    Integer, Array, Tuple
+};
+
 // AST 结点
 struct Node {
+    virtual constexpr NodeType type() const = 0;
     virtual ~Node() = default;
 };
 using NodePtr = std::shared_ptr<Node>;
 
 // Declaration
 struct Decl : Node {
+    constexpr NodeType type() const override {
+        return NodeType::Decl;
+    }
+
     virtual ~Decl() = default;
 };
 using  DeclPtr = std::shared_ptr<Decl>;
@@ -29,8 +49,13 @@ using  DeclPtr = std::shared_ptr<Decl>;
 struct Prog : Node {
     std::vector<DeclPtr> decls; // declarations
                                 // 隐含了 Decls -> Decl Decls | epsilon
+
     template<typename T>
     Prog(T&& decls) : decls(std::forward<T>(decls)) {}
+
+    constexpr NodeType type() const override {
+        return NodeType::Prog;
+    }
 };
 using  ProgPtr = std::shared_ptr<Prog>;
 
@@ -40,6 +65,10 @@ struct VarDecl : Decl {
 
     VarDecl() = default;
     VarDecl(bool mutable_, std::string name) : mutable_(mutable_), name(name) {}
+
+    constexpr NodeType type() const override {
+        return NodeType::VarDecl;
+    }
 };
 using  VarDeclPtr = std::shared_ptr<VarDecl>;
 
@@ -56,12 +85,20 @@ struct VarType : Node {
     VarType() : ref_type(RefType::normal) {}
     VarType(RefType ref_type) : ref_type(ref_type) {}
     virtual ~VarType() = default;
+
+    constexpr NodeType type() const override {
+        return NodeType::VarType;
+    }
 };
 using  VarTypePtr = std::shared_ptr<VarType>;
 
 struct Integer : VarType {
     Integer() : VarType() {}
     Integer(RefType ref_type) : VarType(ref_type) {}
+
+    constexpr NodeType type() const override {
+        return NodeType::Integer;
+    }
 };
 using  IntegerPtr = std::shared_ptr<Integer>;
 
@@ -70,6 +107,10 @@ struct Array : VarType {
 
     Array() : VarType(), cnt(0) {}
     Array(int cnt, RefType ref_type = RefType::normal) : VarType(ref_type), cnt(cnt) {}
+
+    constexpr NodeType type() const override {
+        return NodeType::Array;
+    }
 };
 using  ArrayPtr = std::shared_ptr<Array>;
 
@@ -78,22 +119,34 @@ struct Tuple : VarType {
 
     Tuple() : VarType(), cnt(0) {}
     Tuple(int cnt, RefType ref_type = RefType::normal) : VarType(ref_type), cnt(cnt) {}
+
+    constexpr NodeType type() const override {
+        return NodeType::Tuple;
+    }
 };
 using TuplePtr = std::shared_ptr<Tuple>;
 
 // Argument
 struct Arg : Node {
-    VarDeclPtr var;  // variable
-    VarTypePtr type; // variable type
+    VarDeclPtr variable;  // variable
+    VarTypePtr var_type; // variable type
 
     template<typename T1, typename T2>
-    Arg(T1&& var, T2&& type) : var(std::forward<T1>(var)), type(std::forward<T2>(type)) {}
+    Arg(T1&& var, T2&& type) : variable(std::forward<T1>(var)), var_type(std::forward<T2>(type)) {}
+
+    constexpr NodeType type() const override {
+        return NodeType::Arg;
+    }
 };
 using  ArgPtr = std::shared_ptr<Arg>;
 
 // Statement
 struct Stmt : Node {
     virtual ~Stmt() = default;
+
+    constexpr NodeType type() const override {
+        return NodeType::Stmt;
+    }
 };
 using  StmtPtr = std::shared_ptr<Stmt>;
 
@@ -103,6 +156,10 @@ struct BlockStmt : Stmt {
 
     template<typename T>
     BlockStmt(T&& stmts) : stmts(std::forward<T>(stmts)) {}
+
+    constexpr NodeType type() const override {
+        return NodeType::BlockStmt;
+    }
 };
 using  BlockStmtPtr = std::shared_ptr<BlockStmt>;
 
@@ -117,6 +174,10 @@ struct FuncHeaderDecl : Decl {
     FuncHeaderDecl(std::string name, T1&& argv, T2&& retval_type)
         : name(name), argv(std::forward<T1>(argv)),
           retval_type(std::forward<T2>(retval_type)) {}
+
+    constexpr NodeType type() const override {
+        return NodeType::FuncHeaderDecl;
+    }
 };
 using  FuncHeaderDeclPtr = std::shared_ptr<FuncHeaderDecl>;
 
@@ -129,12 +190,20 @@ struct FuncDecl : Decl {
     template<typename T1, typename T2>
     FuncDecl(T1&& header, T2&& body)
         : header(std::forward<T1>(header)), body(std::forward<T2>(body)) {}
+
+    constexpr NodeType type() const override {
+        return NodeType::FuncDecl;
+    }
 };
 using  FuncDeclPtr = std::shared_ptr<FuncDecl>;
 
 // Expression
-struct Expr {
+struct Expr : Node {
     virtual ~Expr() = default;
+
+    constexpr NodeType type() const override {
+        return NodeType::Expr;
+    }
 };
 using  ExprPtr = std::shared_ptr<Expr>;
 
@@ -143,6 +212,10 @@ struct ExprStmt : Stmt {
 
     template<typename T>
     ExprStmt(T&& expr) : expr(std::forward<T>(expr)) {}
+
+    constexpr NodeType type() const override {
+        return NodeType::ExprStmt;
+    }
 };
 using  ExprStmtPtr = std::shared_ptr<ExprStmt>;
 
@@ -152,6 +225,10 @@ struct Variable : Expr {
     Variable() = default;
     template<typename T>
     Variable(T&& name) : name(std::forward<T>(name)) {}
+
+    constexpr NodeType type() const override {
+        return NodeType::Variable;
+    }
 };
 using  VariablePtr = std::shared_ptr<Variable>;
 
@@ -160,6 +237,10 @@ struct Number : Expr {
 
     Number() = default;
     Number(int value) : value(value) {}
+
+    constexpr NodeType type() const override {
+        return NodeType::Number;
+    }
 };
 using  NumberPtr = std::shared_ptr<Number>;
 
@@ -169,6 +250,10 @@ struct Factor : Expr {
 
     template<typename T>
     Factor(RefType ref_type, T&& element) : ref_type(ref_type), element(std::forward<T>(element)) {}
+
+    constexpr NodeType type() const override {
+        return NodeType::Factor;
+    }
 };
 using  FactorPtr = std::shared_ptr<Factor>;
 
@@ -178,27 +263,39 @@ struct RetStmt : Stmt {
 
     template<typename T>
     RetStmt(T&& ret_val) : ret_val(std::forward<T>(ret_val)) {}
+
+    constexpr NodeType type() const override {
+        return NodeType::RetStmt;
+    }
 };
 using  RetStmtPtr = std::shared_ptr<RetStmt>;
 
 struct VarDeclStmt : Stmt, Decl {
-    VarDeclPtr                var;  // variable
-    std::optional<VarTypePtr> type; // variable type
+    VarDeclPtr                variable; // variable
+    std::optional<VarTypePtr> var_type; // variable type
 
     template<typename T1, typename T2>
     VarDeclStmt(T1&& var, T2&& type)
-        : var(std::forward<T1>(var)), type(std::forward<T2>(type)) {}
+        : variable(std::forward<T1>(var)), var_type(std::forward<T2>(type)) {}
+
+    constexpr NodeType type() const override {
+        return NodeType::VarDeclStmt;
+    }
 };
 using  VarDeclStmtPtr = std::shared_ptr<VarDeclStmt>;
 
 struct AssignStmt : Stmt {
-    std::string var;  // variable
-    RefType     type; // dereference or normal
-    ExprPtr     expr; // expression
+    std::string variable; // variable
+    RefType     var_type; // dereference or normal
+    ExprPtr     expr;     // expression
 
     template<typename T>
     AssignStmt(std::string var, RefType type, T&& expr)
-        : var(var), type(type), expr(std::forward<T>(expr)) {}
+        : variable(var), var_type(type), expr(std::forward<T>(expr)) {}
+
+    constexpr NodeType type() const override {
+        return NodeType::AssignStmt;
+    }
 };
 using  AssignStmtPtr = std::shared_ptr<AssignStmt>;
 
@@ -208,6 +305,10 @@ struct VarDeclAssignStmt : VarDeclStmt {
     template<typename T1, typename T2, typename T3>
     VarDeclAssignStmt(T1&& var, T2&& type, T3&& expr)
         : VarDeclStmt(std::forward<T1>(var), std::forward<T2>(type)), expr(std::forward<T3>(expr)) {}
+
+    constexpr NodeType type() const override {
+        return NodeType::VarDeclAssignStmt;
+    }
 };
 using  VarDeclAssignStmtPtr = std::shared_ptr<VarDeclAssignStmt>;
 
@@ -218,6 +319,10 @@ struct ArithmeticExpr : Expr {
 
     ArithmeticExpr(ExprPtr lhs, lexer::token::Type op, ExprPtr rhs)
         : lhs(std::move(lhs)), op(op), rhs(std::move(rhs)) {}
+
+    constexpr NodeType type() const override {
+        return NodeType::ArithmeticExpr;
+    }
 };
 using  ArithmeticExprPtr = std::shared_ptr<ArithmeticExpr>;
 
@@ -227,6 +332,10 @@ struct CallExpr : Expr {
 
     template<typename T>
     CallExpr(std::string name, T&& args) : callee(name), arguments(std::forward<T>(args)) {}
+
+    constexpr NodeType type() const override {
+        return NodeType::CallExpr;
+    }
 };
 using  CallExprPtr = std::shared_ptr<CallExpr>;
 
@@ -237,6 +346,10 @@ struct ElseClause : Stmt {
     template<typename T1, typename T2>
     ElseClause(T1&& expr, T2&& block)
         : expr(std::forward<T1>(expr)), block(std::forward<T2>(block)) {}
+
+    constexpr NodeType type() const override {
+        return NodeType::ElseClause;
+    }
 };
 using  ElseClausePtr = std::shared_ptr<ElseClause>;
 
@@ -248,6 +361,10 @@ struct IfStmt : Stmt {
     template<typename T1, typename T2, typename T3>
     IfStmt(T1&& expr, T2&& block, T3&& clauses) : expr(std::forward<T1>(expr)),
         block(std::forward<T2>(block)), elcls(std::forward<T3>(clauses)) {}
+
+    constexpr NodeType type() const override {
+        return NodeType::IfStmt;
+    }
 };
 using  IfStmtPtr = std::shared_ptr<IfStmt>;
 
@@ -258,6 +375,10 @@ struct WhileStmt : Stmt {
     template<typename T1, typename T2>
     WhileStmt(T1&& expr, T2&& block)
         : expr(std::forward<T1>(expr)), block(std::forward<T2>(block)) {}
+
+    constexpr NodeType type() const override {
+        return NodeType::WhileStmt;
+    }
 };
 using  WhileStmtPtr = std::shared_ptr<WhileStmt>;
 
@@ -271,6 +392,10 @@ struct ForStmt : Stmt {
     ForStmt(T&& var, T1&& expr1, T2&& expr2, T3&& block) :
         var(std::forward<T>(var)), lexpr(std::forward<T1>(expr1)),
         rexpr(std::forward<T2>(expr2)), block(std::forward<T3>(block)){}
+
+    constexpr NodeType type() const override {
+        return NodeType::ForStmt;
+    }
 };
 using  ForStmtPtr = std::shared_ptr<ForStmt>;
 
@@ -279,16 +404,38 @@ struct LoopStmt : Stmt {
 
     template<typename T>
     LoopStmt(T&& block) : block(std::forward<T>(block)){}
+
+    constexpr NodeType type() const override {
+        return NodeType::LoopStmt;
+    }
 };
 using  LoopStmtPtr = std::shared_ptr<LoopStmt>;
 
-struct BreakStmt : Stmt {};
+struct BreakStmt : Stmt {
+    ~BreakStmt() override = default;
+
+    constexpr NodeType type() const override {
+        return NodeType::BreakStmt;
+    }
+};
 using  BreakStmtPtr = std::shared_ptr<BreakStmt>;
 
-struct ContinueStmt : Stmt {};
+struct ContinueStmt : Stmt {
+    ~ContinueStmt() override = default;
+
+    constexpr NodeType type() const override {
+        return NodeType::ContinueStmt;
+    }
+};
 using  ContinueStmtPtr = std::shared_ptr<ContinueStmt>;
 
-struct NullStmt : Stmt {};
+struct NullStmt : Stmt {
+    ~NullStmt() override = default;
+
+    constexpr NodeType type() const override {
+        return NodeType::NullStmt;
+    }
+};
 using  NullStmtPtr = std::shared_ptr<NullStmt>;
 
 struct FuncExprBlockStmt : Expr, BlockStmt {
@@ -297,6 +444,10 @@ struct FuncExprBlockStmt : Expr, BlockStmt {
     template <typename T1, typename T2>
     FuncExprBlockStmt(T1&& stmts, T2&& expr)
         : BlockStmt(std::forward<T1>(stmts)), expr(std::forward<T2>(expr)) {}
+
+    constexpr NodeType type() const override {
+        return NodeType::FuncExprBlockStmt;
+    }
 };
 using  FuncExprBlockStmtPtr = std::shared_ptr<FuncExprBlockStmt>;
 
