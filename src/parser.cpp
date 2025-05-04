@@ -154,10 +154,9 @@ ast::FuncHeaderDeclPtr Parser::parseFuncHeaderDecl() {
     if (check(TokenType::ARROW)) {
         expect(TokenType::ARROW, "Expected '->'");
         auto type = parseVarType();
-        return std::make_shared<ast::FuncHeaderDecl>(name, std::move(argv), std::move(type));
+        return std::make_shared<ast::FuncHeaderDecl>(std::move(name), std::move(argv), std::move(type));
     }
-
-    return std::make_shared<ast::FuncHeaderDecl>(name, std::move(argv), std::nullopt);
+    return std::make_shared<ast::FuncHeaderDecl>(std::move(name), std::move(argv), std::nullopt);
 }
 
 /**
@@ -262,7 +261,7 @@ ast::RetStmtPtr Parser::parseRetStmt() {
 
     ast::ExprPtr ret = Parser::parseCmpExpr();
     expect(TokenType::SEMICOLON, "Expected ';'");
-    return std::make_shared<ast::RetStmt>(ret);
+    return std::make_shared<ast::RetStmt>(std::move(ret));
 }
 
 /**
@@ -325,7 +324,7 @@ ast::VarDeclStmtPtr Parser::parseVarDeclStmt() {
 
     if (flag_assign) {
         return std::make_shared<ast::VarDeclAssignStmt>(std::move(identifier),
-        (has_type ? std::optional<ast::VarTypePtr>{type} : std::nullopt), expr);
+        (has_type ? std::optional<ast::VarTypePtr>{type} : std::nullopt), std::move(expr));
     }
     return std::make_shared<ast::VarDeclStmt>(std::move(identifier),
         (has_type ? std::optional<ast::VarTypePtr>{type} : std::nullopt));
@@ -339,10 +338,10 @@ ast::VarDeclStmtPtr Parser::parseVarDeclStmt() {
 ast::AssignStmtPtr Parser::parseAssignStmt() {
     using TokenType = lexer::token::Type;
 
-    ast::RefType type {ast::RefType::normal};
+    ast::RefType type {ast::RefType::Normal};
     if (check(TokenType::OP_MUL)) {
         advance();
-        type = ast::RefType::deref;
+        type = ast::RefType::Deref;
     }
     expect(TokenType::ID, "Expected '<ID>'");
     std::string var = current.value().getValue();
@@ -352,7 +351,7 @@ ast::AssignStmtPtr Parser::parseAssignStmt() {
 
     expect(TokenType::SEMICOLON, "Expected ';'");
 
-    return std::make_shared<ast::AssignStmt>(var, type, expr);
+    return std::make_shared<ast::AssignStmt>(std::move(var), type, std::move(expr));
 }
 
 /**
@@ -444,17 +443,17 @@ ast::ExprPtr Parser::parseMulExpr() {
 ast::ExprPtr Parser::parseFactorExpr() {
     using TokenType = lexer::token::Type;
 
-    ast::RefType ref_type {ast::RefType::normal};
+    ast::RefType ref_type {ast::RefType::Normal};
     if (check(TokenType::OP_MUL)) {
         advance();
-        ref_type = ast::RefType::deref;
+        ref_type = ast::RefType::Deref;
     } else if (check(TokenType::Ref)) {
         advance();
         if (check(TokenType::MUT)) {
             advance();
-            ref_type = ast::RefType::mutableref;
+            ref_type = ast::RefType::Mutable;
         } else {
-            ref_type = ast::RefType::immutable;
+            ref_type = ast::RefType::Immutable;
         }
     }
 
@@ -487,7 +486,7 @@ ast::ExprPtr Parser::parseElementExpr() {
         } else {
             std::string name = current->getValue();
             advance();
-            return std::make_shared<ast::Variable>(name);
+            return std::make_shared<ast::Variable>(std::move(name));
         }
     } else {
         throw std::runtime_error("Unexpected token in expression: " + current->getValue());
@@ -516,7 +515,7 @@ ast::CallExprPtr Parser::parseCallExpr() {
     }
 
     expect(TokenType::RPAREN, "Expected ')'");
-    return std::make_shared<ast::CallExpr>(name, std::move(argv));
+    return std::make_shared<ast::CallExpr>(std::move(name), std::move(argv));
 }
 
 /**
@@ -633,14 +632,14 @@ ast::LoopStmtPtr Parser::parseLoopStmt() {
 ast::VarTypePtr Parser::parseVarType() {
     using TokenType = lexer::token::Type;
 
-    ast::RefType ref_type {ast::RefType::normal};
+    ast::RefType ref_type {ast::RefType::Normal};
     if (check(TokenType::Ref)) {
         advance();
         if (check(TokenType::MUT)) {
             advance();
-            ref_type = ast::RefType::mutableref;
+            ref_type = ast::RefType::Mutable;
         } else {
-            ref_type = ast::RefType::immutable;
+            ref_type = ast::RefType::Immutable;
         }
     }
 
@@ -718,7 +717,7 @@ ast::BreakStmtPtr Parser::parseBreakStmt() {
 
     if (!check(TokenType::SEMICOLON)) {
         auto expr = parseExpr();
-        return std::make_shared<ast::BreakStmt>(expr);
+        return std::make_shared<ast::BreakStmt>(std::move(expr));
     }
 
     return std::make_shared<ast::BreakStmt>();
