@@ -26,13 +26,12 @@ private:
 
     ast::FuncDeclPtr          parseFuncDecl();
     ast::FuncHeaderDeclPtr    parseFuncHeaderDecl();
-    ast::StmtPtr              parseStmt();
+    ast::NodePtr              parseStmtOrExpr();
     ast::BlockStmtPtr         parseBlockStmt();
     ast::RetStmtPtr           parseRetStmt();
     ast::ArgPtr               parseArg();
     ast::VarDeclStmtPtr       parseVarDeclStmt();
     ast::AssignStmtPtr        parseAssignStmt();
-    ast::ExprStmtPtr          parseExprStmt();
     ast::ExprPtr              parseExpr();
     ast::ExprPtr              parseCmpExpr();
     ast::ExprPtr              parseAddExpr();
@@ -47,6 +46,8 @@ private:
     ast::LoopStmtPtr          parseLoopStmt();
     ast::VarTypePtr           parseVarType();
     ast::FuncExprBlockStmtPtr parseFuncExprBlockStmt();
+    ast::IfExprPtr            parseIfExpr();
+    ast::BreakStmtPtr         parseBreakStmt();
 
 private:
     std::function<std::optional<lexer::token::Token>()> nextTokenFunc; // 获取下一个 token

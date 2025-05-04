@@ -23,6 +23,7 @@ enum class NodeType {
     ElseClause, IfStmt, WhileStmt, ForStmt, LoopStmt, BreakStmt, ContinueStmt, NullStmt,
 
     Variable, Number, Factor, ArithmeticExpr, CallExpr, FuncExprBlockStmt,
+    IfExpr,
 
     Integer, Array, Tuple
 };
@@ -399,7 +400,7 @@ struct ForStmt : Stmt {
 };
 using  ForStmtPtr = std::shared_ptr<ForStmt>;
 
-struct LoopStmt : Stmt {
+struct LoopStmt : Stmt, Expr {
     BlockStmtPtr    block;
 
     template<typename T>
@@ -412,6 +413,12 @@ struct LoopStmt : Stmt {
 using  LoopStmtPtr = std::shared_ptr<LoopStmt>;
 
 struct BreakStmt : Stmt {
+    std::optional<ExprPtr> expr;
+
+    BreakStmt() : expr(std::nullopt) {}
+    template<typename T>
+    BreakStmt(T&& expr) : expr(std::forward<T>(expr)) {}
+
     ~BreakStmt() override = default;
 
     constexpr NodeType type() const override {
@@ -450,6 +457,22 @@ struct FuncExprBlockStmt : Expr, BlockStmt {
     }
 };
 using  FuncExprBlockStmtPtr = std::shared_ptr<FuncExprBlockStmt>;
+
+struct IfExpr : Expr {
+    ExprPtr              condition;
+    FuncExprBlockStmtPtr if_branch;
+    FuncExprBlockStmtPtr else_branch;
+
+    template<typename T1, typename T2, typename T3>
+    IfExpr(T1&& condition, T2&& if_branch, T3&& else_branch)
+        : condition(std::forward<T1>(condition)), if_branch(std::forward<T2>(if_branch)),
+          else_branch(std::forward<T3>(else_branch)) {}
+
+    constexpr NodeType type() const override {
+        return NodeType::IfExpr;
+    }
+};
+using  IfExprPtr = std::shared_ptr<IfExpr>;
 
 void ast2Dot(std::ofstream& out, const ProgPtr p_prog);
 
