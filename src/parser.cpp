@@ -1,5 +1,6 @@
 #include <cassert>
 #include "include/parser.hpp"
+#include<iostream>
 
 namespace parser::base {
 
@@ -443,6 +444,21 @@ ast::ExprPtr Parser::parseMulExpr() {
 ast::ExprPtr Parser::parseFactorExpr() {
     using TokenType = lexer::token::Type;
 
+    // arrayElements
+    if (check(TokenType::LBRACK)){
+        advance();
+        std::vector<ast::ExprPtr> elements{};
+        while(!check(TokenType::RBRACK))
+        {
+            elements.push_back(parseExpr());
+            if (!check(TokenType::COMMA))
+                break;
+            advance();
+        }
+        advance();
+        return std::make_shared<ast::ArrayElements>(elements);
+    }
+    
     ast::RefType ref_type {ast::RefType::Normal};
     if (check(TokenType::OP_MUL)) {
         advance();
@@ -469,7 +485,6 @@ ast::ExprPtr Parser::parseFactorExpr() {
 [[nodiscard]]
 ast::ExprPtr Parser::parseElementExpr() {
     using TokenType = lexer::token::Type;
-
     if (check(TokenType::LPAREN)) {
         advance();
         ast::ExprPtr expr = Parser::parseCmpExpr();
@@ -641,6 +656,16 @@ ast::VarTypePtr Parser::parseVarType() {
         } else {
             ref_type = ast::RefType::Immutable;
         }
+    }
+
+    if (check(TokenType::LBRACK)){
+        advance();
+        ast::VarTypePtr elementType = parseVarType();
+        expect(TokenType::SEMICOLON,"Expected ';' for Array");
+        int cnt =std::stoi(current->getValue());
+        expect(TokenType::INT,"Expected <NUM> for Array");
+        expect(TokenType::RBRACK,"Expected ']' for Array");
+        return std::make_shared<ast::Array>(cnt,elementType,ref_type);
     }
 
     if (check(TokenType::I32)) {

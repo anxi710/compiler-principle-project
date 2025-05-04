@@ -24,7 +24,7 @@ enum class NodeType {
     LoopStmt, BreakStmt, ContinueStmt, NullStmt,
 
     Variable, Number, Factor, ArithmeticExpr, CallExpr,
-    FuncExprBlockStmt, IfExpr,
+    FuncExprBlockStmt, IfExpr, ArrayElements,
 
     Integer, Array, Tuple
 };
@@ -97,10 +97,10 @@ struct Integer : VarType {
 using  IntegerPtr = std::shared_ptr<Integer>;
 
 struct Array : VarType {
-    int cnt = 0; // 数组中元素个数
-
+    int         cnt = 0; // 数组中元素个数
+    VarTypePtr  elementType;
     Array() = default;
-    explicit Array(int cnt, RefType rt = RefType::Normal) : VarType(rt), cnt(cnt) {}
+    explicit Array(int cnt,VarTypePtr elementType, RefType rt = RefType::Normal) : VarType(rt), cnt(cnt),elementType(elementType) {}
 
     constexpr NodeType type() const override { return NodeType::Array; }
 };
@@ -231,6 +231,18 @@ struct Factor : Expr {
     constexpr NodeType type() const override { return NodeType::Factor; }
 };
 using  FactorPtr = std::shared_ptr<Factor>;
+
+struct ArrayElements : Expr{
+    std::vector<ExprPtr> elements;
+
+    ArrayElements() = default;
+
+    explicit ArrayElements(const std::vector<ExprPtr>& els):elements(els) {}
+    explicit ArrayElements(std::vector<ExprPtr>&& els):elements(std::move(els)) {}
+
+    constexpr NodeType type() const override { return NodeType::ArrayElements; }
+};
+using ArrayElementsPtr = std::shared_ptr<ArrayElements>;
 
 // Return Statement
 struct RetStmt : Stmt {
