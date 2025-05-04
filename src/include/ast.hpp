@@ -15,18 +15,20 @@ namespace parser::ast {
 enum class NodeType {
     Prog, Arg,
 
-    Decl, Stmt, Expr, VarType,
+    Decl, Stmt, Expr, VarType, VarDeclBody, AssignElement,
 
-    VarDecl, FuncDecl, FuncHeaderDecl,
+    FuncDecl, FuncHeaderDecl,
 
     BlockStmt, ExprStmt, RetStmt, VarDeclStmt, AssignStmt,
     VarDeclAssignStmt, ElseClause, IfStmt, WhileStmt, ForStmt,
     LoopStmt, BreakStmt, ContinueStmt, NullStmt,
 
-    Variable, Number, Factor, ArithmeticExpr, CallExpr,
-    FuncExprBlockStmt, IfExpr,
+    Number, Factor, ArithmeticExpr, CallExpr,
+    FuncExprBlockStmt, IfExpr, ArrayElements,
 
-    Integer, Array, Tuple
+    Integer, Array, Tuple,
+
+    Variable, Dereference, ArrayAccess, TupleAccess
 };
 
 // 所有 AST 结点的基类
@@ -55,23 +57,22 @@ struct Prog : Node {
 };
 using  ProgPtr = std::shared_ptr<Prog>;
 
-// Variable Declaration
-struct VarDecl : Decl {
+// 变量声明内部
+struct VarDeclBody : Node {
     bool        mut = true; // mutable or not
     std::string name;       // variable name
 
-    VarDecl() = default;
-    explicit VarDecl(bool mut, const std::string& n) : mut(mut), name(n) {}
-    explicit VarDecl(bool mut, std::string&& n) : mut(mut), name(n) {}
+    VarDeclBody() = default;
+    explicit VarDeclBody(bool mut, const std::string& n) : mut(mut), name(n) {}
+    explicit VarDeclBody(bool mut, std::string&& n) : mut(mut), name(n) {}
 
-    constexpr NodeType type() const override { return NodeType::VarDecl; }
+    constexpr NodeType type() const override { return NodeType::VarDeclBody; }
 };
-using  VarDeclPtr = std::shared_ptr<VarDecl>;
+using  VarDeclBodyPtr = std::shared_ptr<VarDeclBody>;
 
 // 类型引用修饰符
 enum class RefType {
     Normal,    // 普通变量
-    Deref,     // 解引用
     Immutable, // 不可变引用
     Mutable    // 可变引用
 };
@@ -97,10 +98,14 @@ struct Integer : VarType {
 using  IntegerPtr = std::shared_ptr<Integer>;
 
 struct Array : VarType {
-    int cnt = 0; // 数组中元素个数
+    int         cnt = 0;   // 数组中元素个数
+    VarTypePtr  elem_type; // 数组中元素的类型
 
     Array() = default;
-    explicit Array(int cnt, RefType rt = RefType::Normal) : VarType(rt), cnt(cnt) {}
+    explicit Array(int cnt, const VarTypePtr& et, RefType rt = RefType::Normal)
+        : VarType(rt), cnt(cnt), elem_type(et) {}
+    explicit Array(int cnt, VarTypePtr&& et, RefType rt = RefType::Normal)
+        : VarType(rt), cnt(cnt), elem_type(std::move(et)) {}
 
     constexpr NodeType type() const override { return NodeType::Array; }
 };
@@ -118,12 +123,12 @@ using TuplePtr = std::shared_ptr<Tuple>;
 
 // Argument
 struct Arg : Node {
-    VarDeclPtr variable;  // variable
-    VarTypePtr var_type; // variable type
+    VarDeclBodyPtr variable; // variable
+    VarTypePtr     var_type; // variable type
 
     Arg() = default;
-    explicit Arg(const VarDeclPtr& var, const VarTypePtr& vt) : variable(var), var_type(vt) {}
-    explicit Arg(VarDeclPtr&& var, VarTypePtr&& vt)
+    explicit Arg(const VarDeclBodyPtr& var, const VarTypePtr& vt) : variable(var), var_type(vt) {}
+    explicit Arg(VarDeclBodyPtr&& var, VarTypePtr&& vt)
         : variable(std::move(var)), var_type(std::move(vt)) {}
 
     constexpr NodeType type() const override { return NodeType::Arg; }
@@ -199,16 +204,74 @@ struct ExprStmt : Stmt {
 };
 using  ExprStmtPtr = std::shared_ptr<ExprStmt>;
 
-struct Variable : Expr {
+// Assign Element
+struct AssignElement : Expr {
+    enum class Kind {
+        Variable,    // 普通变量 x
+        Dereference, // 解引用 *x
+        ArrayAccess, // 数组访问 a[i]
+        TupleAccess  // 元组访问 t.0
+    };
+    Kind kind = Kind::Variable;
+
+    AssignElement() = default;
+    AssignElement(Kind k) : kind(k) {}
+    virtual ~AssignElement() = default;
+
+    constexpr NodeType type() const override{ return NodeType::AssignElement; }
+};
+using AssignElementPtr = std::shared_ptr<AssignElement>;
+
+struct Variable : AssignElement {
     std::string name; // 变量名
 
     Variable() = default;
-    explicit Variable(const std::string& n) : name(n) {}
-    explicit Variable(std::string&& n) : name(std::move(n)) {}
+    explicit Variable(const std::string& n) : AssignElement(Kind::Variable), name(n) {}
+    explicit Variable(std::string&& n) : AssignElement(Kind::Variable), name(std::move(n)) {}
 
     constexpr NodeType type() const override { return NodeType::Variable; }
 };
 using  VariablePtr = std::shared_ptr<Variable>;
+
+struct Dereference : AssignElement {
+    std::string target; // 被解引用的变量 x
+
+    Dereference() = default;
+    explicit Dereference(const std::string& t) : target(t) {}
+    explicit Dereference(std::string&& t)
+        : AssignElement(Kind::Dereference), target(std::move(t)) {}
+
+    constexpr NodeType type() const override { return NodeType::Dereference; }
+};
+using DereferencePtr = std::shared_ptr<Dereference>;
+
+struct ArrayAccess : AssignElement {
+    std::string array; // 数组名
+    ExprPtr     index; // 索引值
+
+    ArrayAccess() = default;
+    explicit ArrayAccess(const std::string& a, const ExprPtr& idx)
+        : AssignElement(Kind::ArrayAccess), array(a), index(idx) {}
+    explicit ArrayAccess(std::string&& a, ExprPtr&& idx) : AssignElement(Kind::ArrayAccess),
+        array(std::move(a)), index(std::move(idx)) {}
+
+    constexpr NodeType type() const override { return NodeType::ArrayAccess; }
+};
+using ArrayAccessPtr = std::shared_ptr<ArrayAccess>;
+
+struct TupleAccess : AssignElement {
+    std::string tuple; // 元组名
+    int         index; // 索引值
+
+    TupleAccess() = default;
+    explicit TupleAccess(const std::string& t, int idx)
+        : AssignElement(Kind::TupleAccess), tuple(t), index(idx) {}
+    explicit TupleAccess(std::string&& t, int idx)
+    : AssignElement(Kind::TupleAccess), tuple(std::move(t)), index(idx) {}
+
+    constexpr NodeType type() const override { return NodeType::TupleAccess; }
+};
+using TupleAccessPtr = std::shared_ptr<TupleAccess>;
 
 struct Number : Expr {
     int value; // 值
@@ -232,6 +295,18 @@ struct Factor : Expr {
 };
 using  FactorPtr = std::shared_ptr<Factor>;
 
+struct ArrayElements : Expr{
+    std::vector<ExprPtr> elements;
+
+    ArrayElements() = default;
+
+    explicit ArrayElements(const std::vector<ExprPtr>& els):elements(els) {}
+    explicit ArrayElements(std::vector<ExprPtr>&& els):elements(std::move(els)) {}
+
+    constexpr NodeType type() const override { return NodeType::ArrayElements; }
+};
+using ArrayElementsPtr = std::shared_ptr<ArrayElements>;
+
 // Return Statement
 struct RetStmt : Stmt {
     std::optional<ExprPtr> ret_val; // return value (an expression)
@@ -246,13 +321,13 @@ using  RetStmtPtr = std::shared_ptr<RetStmt>;
 
 // Variable Declaration Statement
 struct VarDeclStmt : Stmt, Decl {
-    VarDeclPtr                variable; // variable
+    VarDeclBodyPtr            variable; // variable
     std::optional<VarTypePtr> var_type; // variable type
 
     VarDeclStmt() = default;
-    explicit VarDeclStmt(const VarDeclPtr& var, const std::optional<VarTypePtr>& vt)
+    explicit VarDeclStmt(const VarDeclBodyPtr& var, const std::optional<VarTypePtr>& vt)
         : variable(var), var_type(vt) {}
-    explicit VarDeclStmt(VarDeclPtr&& var, std::optional<VarTypePtr>&& vt)
+    explicit VarDeclStmt(VarDeclBodyPtr&& var, std::optional<VarTypePtr>&& vt)
         : variable(std::move(var)), var_type(std::move(vt)) {}
 
     constexpr NodeType type() const override { return NodeType::VarDeclStmt; }
@@ -261,15 +336,14 @@ using  VarDeclStmtPtr = std::shared_ptr<VarDeclStmt>;
 
 // Assign Statement
 struct AssignStmt : Stmt {
-    std::string var_name; // variable name
-    RefType     var_type; // variable type (dereference or normal)
-    ExprPtr     expr;     // expression
+    AssignElementPtr lvalue; // four kind
+    ExprPtr          expr;   // expression
 
     AssignStmt() = default;
-    explicit AssignStmt(const std::string& vn, const RefType& vt, const ExprPtr& e)
-        : var_name(vn), var_type(vt), expr(e) {}
-    explicit AssignStmt(std::string&& vn, RefType vt, ExprPtr&& e)
-        : var_name(std::move(vn)), var_type(vt), expr(std::move(e)) {}
+    explicit AssignStmt(const AssignElementPtr& lv, const ExprPtr& e)
+        : lvalue(lv), expr(e) {}
+    explicit AssignStmt(AssignElementPtr&& lv, ExprPtr&& e)
+        : lvalue(std::move(lv)), expr(std::move(e)) {}
 
     constexpr NodeType type() const override { return NodeType::AssignStmt; }
 };
@@ -358,10 +432,10 @@ struct WhileStmt : Stmt {
 using  WhileStmtPtr = std::shared_ptr<WhileStmt>;
 
 struct ForStmt : Stmt {
-    VarDeclPtr   var;
-    ExprPtr      lexpr;
-    ExprPtr      rexpr;
-    BlockStmtPtr block;
+    VarDeclBodyPtr var;
+    ExprPtr        lexpr;
+    ExprPtr        rexpr;
+    BlockStmtPtr   block;
 
     template<typename T, typename T1, typename T2, typename T3>
     ForStmt(T&& var, T1&& expr1, T2&& expr2, T3&& block) :

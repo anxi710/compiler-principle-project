@@ -1,5 +1,6 @@
 #include <cassert>
 #include "include/parser.hpp"
+#include<iostream>
 
 namespace parser::base {
 
@@ -21,10 +22,6 @@ void Parser::advance() {
     if (lookahead.has_value()) {
         current = lookahead;
         lookahead.reset(); // 清除 lookahead 中的值
-        if (lookahead2.has_value()) {
-            lookahead = lookahead2;
-            lookahead2.reset();
-        }
     } else {
         current = nextTokenFunc();
     }
@@ -62,28 +59,6 @@ bool Parser::checkAhead(lexer::token::Type type) {
         lookahead = nextTokenFunc(); // 获取下一个 token
     }
     return lookahead.has_value() && lookahead->getType() == type;
-}
-
-/**
- * @brief  向前检查两个 token，判断对应类型是否为对应值
- * @param  type1 前方第一个 token 类型
- * @param  type2 前方第二个 token 类型
- * @return 是否通过检查
- */
-bool Parser::checkAhead2(lexer::token::Type type1, lexer::token::Type type2) {
-    if (!lookahead.has_value()) {
-        lookahead = nextTokenFunc();
-        if (!lookahead.has_value()) {
-            return false;
-        }
-    }
-    if (!lookahead2.has_value()) {
-        lookahead2 = nextTokenFunc();
-        if (!lookahead2.has_value()) {
-            return false;
-        }
-    }
-    return lookahead->getType() == type1 && lookahead2->getType() == type2;
 }
 
 /**
@@ -212,9 +187,20 @@ ast::NodePtr Parser::parseStmtOrExpr() {
         stmt = parseVarDeclStmt();
     } else if (check(TokenType::RETURN)) {
         stmt = parseRetStmt();
-    } else if (check(TokenType::ID) && checkAhead(TokenType::ASSIGN)) {
-        stmt = parseAssignStmt();
-    } else if (check(TokenType::INT) || check(TokenType::ID) || check(TokenType::LPAREN)) {
+    } else if (check(TokenType::ID) || check(TokenType::OP_MUL)) {
+        if (check(TokenType::ID) && checkAhead(TokenType::LPAREN)) {
+            return parseCallExpr();
+        }
+        /*
+         * x, *x, x[idx], x.idx 都即可以作为赋值语句的左值，又可以作为表达式的一个操作数
+         */
+        auto elem = parseAssignElement();
+        if (check(TokenType::ASSIGN)) {
+            stmt =  parseAssignStmt(std::move(elem));
+        } else {
+            return parseExpr(elem);
+        }
+    } else if (check(TokenType::INT) || check(TokenType::LPAREN)) {
         return parseExpr();
     } else if (check(TokenType::IF)) {
         stmt = parseIfStmt();
@@ -224,12 +210,6 @@ ast::NodePtr Parser::parseStmtOrExpr() {
         stmt = parseForStmt();
     } else if (check(TokenType::LOOP)) {
         stmt = parseLoopStmt();
-    } else if (check(TokenType::OP_MUL)) {
-        if (checkAhead2(TokenType::ID, TokenType::ASSIGN)) {
-            stmt = parseAssignStmt();
-        } else if (checkAhead(TokenType::ID)) {
-            return parseExpr();
-        }
     } else if (check(TokenType::BREAK)) {
         stmt = parseBreakStmt();
     } else if (check(TokenType::CONTINUE)) {
@@ -278,7 +258,7 @@ ast::ArgPtr Parser::parseArg() {
         advance();
     }
     expect(TokenType::ID, "Expected '<ID>'");
-    auto var = std::make_shared<ast::VarDecl>(mutable_, current->getValue());
+    auto var = std::make_shared<ast::VarDeclBody>(mutable_, current->getValue());
 
     expect(TokenType::COLON, "Expected ':'");
     auto type = parseVarType();
@@ -302,7 +282,7 @@ ast::VarDeclStmtPtr Parser::parseVarDeclStmt() {
         advance();
     }
     expect(TokenType::ID, "Expected '<ID>'");
-    auto identifier  = std::make_shared<ast::VarDecl>(mutable_, current->getValue());
+    auto identifier  = std::make_shared<ast::VarDeclBody>(mutable_, current->getValue());
 
     ast::VarTypePtr type;
     bool            has_type = false;
@@ -335,23 +315,45 @@ ast::VarDeclStmtPtr Parser::parseVarDeclStmt() {
  * @return ast::AssignStmtPtr - AST Assignment Statement 结点指针
  */
 [[nodiscard]]
-ast::AssignStmtPtr Parser::parseAssignStmt() {
+ast::AssignStmtPtr Parser::parseAssignStmt(ast::AssignElementPtr&& lvalue) {
     using TokenType = lexer::token::Type;
-
-    ast::RefType type {ast::RefType::Normal};
-    if (check(TokenType::OP_MUL)) {
-        advance();
-        type = ast::RefType::Deref;
-    }
-    expect(TokenType::ID, "Expected '<ID>'");
-    std::string var = current.value().getValue();
 
     expect(TokenType::ASSIGN, "Expected '='");
     ast::ExprPtr expr = Parser::parseCmpExpr();
 
     expect(TokenType::SEMICOLON, "Expected ';'");
 
-    return std::make_shared<ast::AssignStmt>(std::move(var), type, std::move(expr));
+    return std::make_shared<ast::AssignStmt>(std::move(lvalue),std::move(expr));
+}
+
+/**
+ * @brief 解析可赋值元素
+ * @return ast::AssignElementPtr - AST Assign Element 节点指针
+ */
+ast::AssignElementPtr Parser::parseAssignElement() {
+    using TokenType = lexer::token::Type;
+
+    if (check(TokenType::OP_MUL)) {
+        advance();
+        expect(TokenType::ID, "Expected '<ID>'");
+        std::string var = current.value().getValue();
+        return std::make_shared<ast::Dereference>(std::move(var));
+    }
+
+    expect(TokenType::ID, "Expected '<ID>'");
+    std::string var = current.value().getValue();
+    if(check(TokenType::LBRACK)) {
+        advance();
+        auto expr = parseExpr();
+        expect(TokenType::RBRACK,"Expected ']'");
+        return std::make_shared<ast::ArrayAccess>(std::move(var),std::move(expr));
+    }
+
+    if (check(TokenType::DOT)) {
+        //TODO 补充 Tuple 情况
+    }
+
+    return std::make_shared<ast::Variable>(std::move(var));
 }
 
 /**
@@ -359,7 +361,7 @@ ast::AssignStmtPtr Parser::parseAssignStmt() {
  * @return ast::ExprPtr - 顶层比较表达式
  */
 [[nodiscard]]
-ast::ExprPtr Parser::parseExpr() {
+ast::ExprPtr Parser::parseExpr(std::optional<ast::AssignElementPtr> elem) {
     using TokenType = lexer::token::Type;
 
     if (check(TokenType::LBRACE)) {
@@ -369,7 +371,7 @@ ast::ExprPtr Parser::parseExpr() {
     } else if (check(TokenType::LOOP)) {
         return parseLoopStmt();
     } else {
-        return Parser::parseCmpExpr();
+        return Parser::parseCmpExpr(elem);
     }
 }
 
@@ -378,10 +380,10 @@ ast::ExprPtr Parser::parseExpr() {
  * @return ast::ArithmeticExprPtr - AST Expression 结点指针（若无，则为下一层的加法表达式）
  */
 [[nodiscard]]
-ast::ExprPtr Parser::parseCmpExpr() {
+ast::ExprPtr Parser::parseCmpExpr(std::optional<ast::AssignElementPtr> elem) {
     using TokenType = lexer::token::Type;
 
-    ast::ExprPtr left = Parser::parseAddExpr();
+    ast::ExprPtr left = Parser::parseAddExpr(elem);
     while (check(TokenType::OP_LT) || check(TokenType::OP_LE) ||
            check(TokenType::OP_GT) || check(TokenType::OP_GE) ||
            check(TokenType::OP_EQ) || check(TokenType::OP_NEQ)) {
@@ -400,10 +402,10 @@ ast::ExprPtr Parser::parseCmpExpr() {
  * @return ast::ArithmeticExprPtr - AST Expression 结点指针（若无，则为下一层的乘法表达式）
  */
 [[nodiscard]]
-ast::ExprPtr Parser::parseAddExpr() {
+ast::ExprPtr Parser::parseAddExpr(std::optional<ast::AssignElementPtr> elem) {
     using TokenType = lexer::token::Type;
 
-    ast::ExprPtr left = Parser::parseMulExpr();
+    ast::ExprPtr left = Parser::parseMulExpr(elem);
     while (check(TokenType::OP_PLUS) || check(TokenType::OP_MINUS)) {
         TokenType op_token = current->getType();
         advance();
@@ -420,14 +422,14 @@ ast::ExprPtr Parser::parseAddExpr() {
  * @return ast::ArithmeticExprPtr - AST Expression 结点指针（若无，则为下一层的因子）
  */
 [[nodiscard]]
-ast::ExprPtr Parser::parseMulExpr() {
+ast::ExprPtr Parser::parseMulExpr(std::optional<ast::AssignElementPtr> elem) {
     using TokenType = lexer::token::Type;
 
-    ast::ExprPtr left = Parser::parseFactorExpr();
+    ast::ExprPtr left = parseFactor(elem);
     while (check(TokenType::OP_MUL) || check(TokenType::OP_DIV)) {
         TokenType op_token = current->getType();
         advance();
-        ast::ExprPtr right = Parser::parseFactorExpr();
+        ast::ExprPtr right = Parser::parseFactor();
         left = std::make_shared<ast::ArithmeticExpr>(std::move(left),
                                                      op_token, std::move(right));
     } // end while
@@ -440,14 +442,26 @@ ast::ExprPtr Parser::parseMulExpr() {
  * @return ast::FactorPtr - AST Factor 结点指针
  */
 [[nodiscard]]
-ast::ExprPtr Parser::parseFactorExpr() {
+ast::ExprPtr Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) {
     using TokenType = lexer::token::Type;
 
-    ast::RefType ref_type {ast::RefType::Normal};
-    if (check(TokenType::OP_MUL)) {
+    // arrayElements
+    if (check(TokenType::LBRACK)){
         advance();
-        ref_type = ast::RefType::Deref;
-    } else if (check(TokenType::Ref)) {
+        std::vector<ast::ExprPtr> elements{};
+        while(!check(TokenType::RBRACK))
+        {
+            elements.push_back(parseExpr());
+            if (!check(TokenType::COMMA))
+                break;
+            advance();
+        }
+        advance();
+        return std::make_shared<ast::ArrayElements>(elements);
+    }
+
+    ast::RefType ref_type {ast::RefType::Normal};
+    if (check(TokenType::Ref)) {
         advance();
         if (check(TokenType::MUT)) {
             advance();
@@ -457,7 +471,7 @@ ast::ExprPtr Parser::parseFactorExpr() {
         }
     }
 
-    auto element = parseElementExpr();
+    auto element = parseElementExpr(elem);
 
     return std::make_shared<ast::Factor>(ref_type, std::move(element));
 }
@@ -467,8 +481,12 @@ ast::ExprPtr Parser::parseFactorExpr() {
  * @return ast::Number or ast::Variable - AST Expression 结点指针
  */
 [[nodiscard]]
-ast::ExprPtr Parser::parseElementExpr() {
+ast::ExprPtr Parser::parseElementExpr(std::optional<ast::AssignElementPtr> elem) {
     using TokenType = lexer::token::Type;
+
+    if (elem.has_value()) {
+        return elem.value();
+    }
 
     if (check(TokenType::LPAREN)) {
         advance();
@@ -481,13 +499,18 @@ ast::ExprPtr Parser::parseElementExpr() {
         advance();
         return std::make_shared<ast::Number>(value);
     } else if (check(TokenType::ID)) {
-        if (checkAhead(TokenType::LPAREN)) {
+        if (checkAhead(TokenType::LBRACK) || checkAhead(TokenType::DOT)){
+            auto value = parseAssignElement();
+            return (std::move(value));
+        } else if (checkAhead(TokenType::LPAREN)) {
             return parseCallExpr();
         } else {
             std::string name = current->getValue();
             advance();
             return std::make_shared<ast::Variable>(std::move(name));
         }
+    } else if (check(TokenType::OP_MUL) && checkAhead(TokenType::ID)) {
+        return parseAssignElement();
     } else {
         throw std::runtime_error("Unexpected token in expression: " + current->getValue());
     }
@@ -528,20 +551,20 @@ ast::IfStmtPtr Parser::parseIfStmt() {
 
     expect(TokenType::IF, "Expected 'if'");
     auto expr   = parseCmpExpr();
-    auto block  = parseBlockStmt();
+    auto if_branch  = parseBlockStmt();
 
-    std::vector<ast::ElseClausePtr> elcls{};
+    std::vector<ast::ElseClausePtr> else_clauses{};
     while(check(TokenType::ELSE)) {
         advance();
         bool end = !check(TokenType::IF);
-        elcls.push_back(parseElseClause());
+        else_clauses.push_back(parseElseClause());
         if (end) {
             break;
         }
     }
 
     return std::make_shared<ast::IfStmt>(std::move(expr),
-        std::move(block), std::move(elcls));
+        std::move(if_branch), std::move(else_clauses));
 }
 
 
@@ -596,7 +619,7 @@ ast::ForStmtPtr Parser::parseForStmt() {
         advance();
     }
     expect(TokenType::ID, "Expected '<ID>'");
-    ast::VarDeclPtr var = std::make_shared<ast::VarDecl>(mutable_, current->getValue());
+    ast::VarDeclBodyPtr var = std::make_shared<ast::VarDeclBody>(mutable_, current->getValue());
 
     expect(TokenType::IN,"Expected 'in'");
 
@@ -641,6 +664,16 @@ ast::VarTypePtr Parser::parseVarType() {
         } else {
             ref_type = ast::RefType::Immutable;
         }
+    }
+
+    if (check(TokenType::LBRACK)){
+        advance();
+        ast::VarTypePtr elementType = parseVarType();
+        expect(TokenType::SEMICOLON,"Expected ';' for Array");
+        int cnt =std::stoi(current->getValue());
+        expect(TokenType::INT,"Expected <NUM> for Array");
+        expect(TokenType::RBRACK,"Expected ']' for Array");
+        return std::make_shared<ast::Array>(cnt,elementType,ref_type);
     }
 
     if (check(TokenType::I32)) {
