@@ -26,7 +26,7 @@ private:
 
     ast::FuncDeclPtr          parseFuncDecl();
     ast::FuncHeaderDeclPtr    parseFuncHeaderDecl();
-    ast::StmtPtr              parseStmt();
+    ast::NodePtr              parseStmtOrExpr();
     ast::BlockStmtPtr         parseBlockStmt();
     ast::RetStmtPtr           parseRetStmt();
     ast::ArgPtr               parseArg();
