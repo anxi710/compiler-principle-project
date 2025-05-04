@@ -19,7 +19,7 @@ public:
     ~ToyLexer() = default;
 
 public: // virtual function
-    std::optional<token::Token> nextToken();
+    std::optional<token::Token> nextToken() override;
 
 public:
     /**
