@@ -56,7 +56,7 @@
 **2.2 赋值语句（前置规则 0.3, 1.2, 3.1）**:
 
 - Stmt -> AssignStmt
-- AssignStmt -> Variable _=_ Expr _;_
+- AssignStmt -> AssignElement _=_ Expr _;_
 
 **2.3 变量声明赋值语句（前置规则 0.1, 0.2, 1.2, 3.1）**:
 
@@ -70,8 +70,10 @@
 - AddExpr -> Item
 - Item -> Factor
 - Factor -> Element
-- Element -> \<INT\> | Variable | _(_ Expr _)_
+- Element -> \<INT\> | AssignElement | _(_ Expr _)_
   - 现在的 \<NUM\> 只有整数
+
+- AssignElement ->Variable (补充)
 
 **3.2 表达式增加计算和比较（前置规则 3.1）**:
 
@@ -127,6 +129,8 @@
 
 `&mut` - 可变引用；`&` - 不可变引用；`*` - 解引用
 
+- AssignElement -> *Variable
+
 **7.1 函数表达式块（前置规则 1.2, 3.1）**:
 
 - Expr -> FuncExprBlockStmt
@@ -155,7 +159,7 @@
 
 **8.2 数组元素（前置规则 8.1）**
 
-- Variable -> Element _[_ Expr _]_
+- AssignElement -> Element _[_ Expr _]_
 - IterativeStructure -> Element
 
 **9.1 元组（前置规则 0.2, 3.1）**:
@@ -169,4 +173,4 @@
 
 **9.2 元组元素（前置规则 8.1）**:
 
-- Variable -> Factor _._ \<INT\>
+- AssignElement -> Factor _._ \<INT\>
