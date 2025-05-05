@@ -24,7 +24,7 @@ enum class NodeType {
     LoopStmt, BreakStmt, ContinueStmt, NullStmt,
 
     Variable, Number, Factor, ArithmeticExpr, CallExpr,
-    FuncExprBlockStmt, IfExpr, ArrayElements,
+    FuncExprBlockStmt, IfExpr, ArrayElements, LValue,
 
     Integer, Array, Tuple
 };
@@ -199,16 +199,59 @@ struct ExprStmt : Stmt {
 };
 using  ExprStmtPtr = std::shared_ptr<ExprStmt>;
 
-struct Variable : Expr {
+//a mixture of 4 kind of LValue
+struct LValue : Expr{
+    enum class Kind{
+        Variable,   //普通变量 x
+        Dereference,//解引用 *x
+        ArrayAccess,//数组访问 a[i]
+        TupleAccess //元组访问 t.0
+    };
+    Kind kind;
+    virtual ~LValue() = default;
+
+    constexpr NodeType type() const override{ return NodeType::LValue;}
+};
+using LValuePtr = std::shared_ptr<LValue>;
+
+struct Variable : LValue {
     std::string name; // 变量名
 
     Variable() = default;
-    explicit Variable(const std::string& n) : name(n) {}
-    explicit Variable(std::string&& n) : name(std::move(n)) {}
+    explicit Variable(const std::string& n) : name(n) {kind = Kind::Variable;}
+    explicit Variable(std::string&& n) : name(std::move(n)) {kind = Kind::Variable;}
 
     constexpr NodeType type() const override { return NodeType::Variable; }
 };
 using  VariablePtr = std::shared_ptr<Variable>;
+
+struct Dereference : LValue{
+    std::string target; //被解引用的变量x
+
+    explicit Dereference(std::string&& target):target(std::move(target)){kind = Kind::Dereference;}
+};
+using DereferencePtr = std::shared_ptr<Dereference>;
+
+struct ArrayAccess : LValue{
+    std::string array;
+    ExprPtr     index;
+    explicit ArrayAccess(std::string&& array, ExprPtr&& index)
+    : array(std::move(array)), index(std::move(index)) {
+        kind = Kind::ArrayAccess;
+    }
+};
+using ArrayAccessPtr = std::shared_ptr<ArrayAccess>;
+
+struct TupleAccess : LValue{
+    std::string tuple;
+    int         index;
+
+    explicit TupleAccess(std::string&& tuple, int index)
+    : tuple(std::move(tuple)), index(index) {
+        kind = Kind::TupleAccess;
+    }
+};
+using TupleAccessPtr = std::shared_ptr<TupleAccess>;
 
 struct Number : Expr {
     int value; // 值
@@ -273,15 +316,14 @@ using  VarDeclStmtPtr = std::shared_ptr<VarDeclStmt>;
 
 // Assign Statement
 struct AssignStmt : Stmt {
-    std::string var_name; // variable name
-    RefType     var_type; // variable type (dereference or normal)
-    ExprPtr     expr;     // expression
+    LValuePtr   lv;     // four kind
+    ExprPtr     expr;   // expression
 
     AssignStmt() = default;
-    explicit AssignStmt(const std::string& vn, const RefType& vt, const ExprPtr& e)
-        : var_name(vn), var_type(vt), expr(e) {}
-    explicit AssignStmt(std::string&& vn, RefType vt, ExprPtr&& e)
-        : var_name(std::move(vn)), var_type(vt), expr(std::move(e)) {}
+    explicit AssignStmt(const LValuePtr& lv, const ExprPtr& e)
+        : lv(lv), expr(e) {}
+    explicit AssignStmt(LValuePtr lv, ExprPtr&& e)
+        : lv(std::move(lv)), expr(std::move(e)) {}
 
     constexpr NodeType type() const override { return NodeType::AssignStmt; }
 };

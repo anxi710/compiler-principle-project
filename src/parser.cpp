@@ -241,7 +241,6 @@ ast::NodePtr Parser::parseStmtOrExpr() {
         stmt = std::make_shared<ast::NullStmt>();
         advance();
     }
-
     return stmt;
 }
 
@@ -339,20 +338,43 @@ ast::VarDeclStmtPtr Parser::parseVarDeclStmt() {
 ast::AssignStmtPtr Parser::parseAssignStmt() {
     using TokenType = lexer::token::Type;
 
-    ast::RefType type {ast::RefType::Normal};
-    if (check(TokenType::OP_MUL)) {
-        advance();
-        type = ast::RefType::Deref;
-    }
-    expect(TokenType::ID, "Expected '<ID>'");
-    std::string var = current.value().getValue();
+    auto lvalue = parseLValue();
 
     expect(TokenType::ASSIGN, "Expected '='");
     ast::ExprPtr expr = Parser::parseCmpExpr();
 
     expect(TokenType::SEMICOLON, "Expected ';'");
 
-    return std::make_shared<ast::AssignStmt>(std::move(var), type, std::move(expr));
+    return std::make_shared<ast::AssignStmt>(std::move(lvalue),std::move(expr));
+}
+
+/**
+ * @brief 解析可赋值元素 即左值
+ * @return ast::LValuePtr - AST LValue 节点指针
+ */
+ast::LValuePtr Parser::parseLValue(){
+    using TokenType = lexer::token::Type;
+
+    if (check(TokenType::OP_MUL)){
+        advance();
+        expect(TokenType::ID, "Expected '<ID>'");
+        std::string var = current.value().getValue();
+        return std::make_shared<ast::Dereference>(std::move(var));
+    }
+    expect(TokenType::ID, "Expected '<ID>'");
+    std::string var = current.value().getValue();
+    if(check(TokenType::LBRACK)){
+        advance();
+        auto expr = parseExpr();
+        expect(TokenType::RBRACK,"Expected ']'");
+        return std::make_shared<ast::ArrayAccess>(std::move(var),std::move(expr));
+    }
+    if (check(TokenType::DOT))
+    {   
+        //Tuple情况
+    }
+
+    return std::make_shared<ast::Variable>(std::move(var));
 }
 
 /**
@@ -496,7 +518,10 @@ ast::ExprPtr Parser::parseElementExpr() {
         advance();
         return std::make_shared<ast::Number>(value);
     } else if (check(TokenType::ID)) {
-        if (checkAhead(TokenType::LPAREN)) {
+        if (checkAhead(TokenType::LBRACK) || checkAhead(TokenType::DOT)){
+            auto value = parseLValue();
+            return (std::move(value));
+        } else if (checkAhead(TokenType::LPAREN)) {
             return parseCallExpr();
         } else {
             std::string name = current->getValue();

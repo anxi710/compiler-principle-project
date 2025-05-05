@@ -32,6 +32,7 @@ private:
     ast::ArgPtr               parseArg();
     ast::VarDeclStmtPtr       parseVarDeclStmt();
     ast::AssignStmtPtr        parseAssignStmt();
+    ast::LValuePtr            parseLValue();
     ast::ExprPtr              parseExpr();
     ast::ExprPtr              parseCmpExpr();
     ast::ExprPtr              parseAddExpr();
