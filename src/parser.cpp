@@ -464,9 +464,10 @@ ast::ExprPtr Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) {
 
     // tupleElements
     if (check(TokenType::LPAREN)) {
-        advance();
         std::vector<ast::ExprPtr> elements{};
-        if (!check(TokenType::RPAREN)) {//非空元组
+        if (!checkAhead(TokenType::RPAREN)) {//非空元组
+            advance();
+
             ast::ExprPtr firstExpr = parseExpr();
             if (check(TokenType::COMMA)) {
                 elements.push_back(firstExpr);
@@ -480,8 +481,9 @@ ast::ExprPtr Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) {
                     }
                 }
             } else {
-                // 错误处理，单个表达式没有逗号不是元组，而是普通括号表达式
-                // return parseElementExpr();
+                // 单个表达式没有逗号不是元组，而是普通括号表达式
+                expect(TokenType::RPAREN, "Expected ')'");
+                return firstExpr;
             }
         }
         expect(TokenType::RPAREN, "Expected ')' after tuple elements");
@@ -721,6 +723,9 @@ ast::VarTypePtr Parser::parseVarType() {
             } else { // 错误处理
                 // Rust 中 单个 (T) 不是元组，必须是 (T,) 才是元组类型
             }
+        } else {//错误处理
+            // Rust 中 单个 (i32) 不是元组，必须是 (i32,) 才是元组类型
+            throw std::runtime_error{"Incorrect tuple type, must be (i32,) "};
         }
         expect(TokenType::RPAREN, "Expected ')' to close Tuple Type");
         return std::make_shared<ast::Tuple>(std::move(elementTypes), ref_type);
