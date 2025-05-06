@@ -481,8 +481,7 @@ ast::ExprPtr Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) {
                     }
                 }
             } else {
-                // 错误处理，没有逗号不是元组，而是普通括号表达式
-                //(T,)是元组，(T)不是
+                // 错误处理，单个表达式没有逗号不是元组，而是普通括号表达式
                 //retrurn parseElementExpr();
             }
         }
