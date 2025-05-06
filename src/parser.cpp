@@ -8,7 +8,7 @@ namespace parser::base {
 
 Parser::Parser(std::function<std::optional<lexer::token::Token>()> nextTokenFunc)
     : nextTokenFunc(std::move(nextTokenFunc)) {
-    advance();
+    advance(); // 初始化，使 current 指向第一个 token
 }
 
 /* constructor */
@@ -28,8 +28,8 @@ void Parser::advance() {
 }
 
 /**
- * @brief  匹配掉一个 token，并向前扫描一个 token
- * @param  type 需要匹配的 token 类型
+ * @brief  匹配当前 token，并向前扫描一个 token
+ * @param  type 需匹配的 token 类型
  * @return 是否成功匹配
  */
 bool Parser::match(lexer::token::Type type) {
@@ -234,7 +234,7 @@ ast::RetStmtPtr Parser::parseRetStmt() {
 
     expect(TokenType::RETURN, "Expected 'return'");
 
-    if (check(TokenType::SEMICOLON)){
+    if (check(TokenType::SEMICOLON)) {
         expect(TokenType::SEMICOLON, "Expected ';'");
         return std::make_shared<ast::RetStmt>(std::nullopt);
     }
@@ -319,7 +319,7 @@ ast::AssignStmtPtr Parser::parseAssignStmt(ast::AssignElementPtr&& lvalue) {
     using TokenType = lexer::token::Type;
 
     expect(TokenType::ASSIGN, "Expected '='");
-    ast::ExprPtr expr = Parser::parseCmpExpr();
+    ast::ExprPtr expr = Parser::parseExpr();
 
     expect(TokenType::SEMICOLON, "Expected ';'");
 
@@ -379,7 +379,7 @@ ast::ExprPtr Parser::parseExpr(std::optional<ast::AssignElementPtr> elem) {
 }
 
 /**
- * @brief  解析比较表达式（最顶层，即为Expr）
+ * @brief  解析比较表达式（最顶层的表达式）
  * @return ast::ArithmeticExprPtr - AST Expression 结点指针（若无，则为下一层的加法表达式）
  */
 [[nodiscard]]
@@ -449,11 +449,10 @@ ast::ExprPtr Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) {
     using TokenType = lexer::token::Type;
 
     // arrayElements
-    if (check(TokenType::LBRACK)){
+    if (check(TokenType::LBRACK)) {
         advance();
         std::vector<ast::ExprPtr> elements{};
-        while(!check(TokenType::RBRACK))
-        {
+        while(!check(TokenType::RBRACK)) {
             elements.push_back(parseExpr());
             if (!check(TokenType::COMMA))
                 break;
@@ -482,13 +481,12 @@ ast::ExprPtr Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) {
                 }
             } else {
                 // 错误处理，单个表达式没有逗号不是元组，而是普通括号表达式
-                //retrurn parseElementExpr();
+                // return parseElementExpr();
             }
         }
         expect(TokenType::RPAREN, "Expected ')' after tuple elements");
         return std::make_shared<ast::TupleElements>(elements);
     }
-
 
     ast::RefType ref_type {ast::RefType::Normal};
     if (check(TokenType::Ref)) {
@@ -597,10 +595,9 @@ ast::IfStmtPtr Parser::parseIfStmt() {
         std::move(if_branch), std::move(else_clauses));
 }
 
-
 /**
  * @brief  解析 else/else if 语句
- * @return ast::ElseClausePtr - AST ELSE Statement 结点指针
+ * @return ast::ElseClausePtr - AST Else Statement 结点指针
  */
 [[nodiscard]]
 ast::ElseClausePtr Parser::parseElseClause() {
@@ -664,7 +661,7 @@ ast::ForStmtPtr Parser::parseForStmt() {
 }
 
 /**
- * @brief  解析Loop语句
+ * @brief  解析 loop 语句
  * @return ast::LoopStmtPtr - AST Loop Statement 结点指针
  */
 [[nodiscard]]
@@ -707,27 +704,27 @@ ast::VarTypePtr Parser::parseVarType() {
     }
 
     if (check(TokenType::LPAREN)) {
-    advance(); 
-    std::vector<ast::VarTypePtr> elementTypes;
-    if (!check(TokenType::RPAREN)) { // 非空元组
-        elementTypes.push_back(parseVarType());
-        if (check(TokenType::COMMA)) {
-            advance(); 
-            while (!check(TokenType::RPAREN)) {
-                elementTypes.push_back(parseVarType());
-                if (check(TokenType::COMMA)) {
-                    advance(); 
-                } else {
-                    break;
+        advance();
+        std::vector<ast::VarTypePtr> elementTypes;
+        if (!check(TokenType::RPAREN)) { // 非空元组
+            elementTypes.push_back(parseVarType());
+            if (check(TokenType::COMMA)) {
+                advance();
+                while (!check(TokenType::RPAREN)) {
+                    elementTypes.push_back(parseVarType());
+                    if (check(TokenType::COMMA)) {
+                        advance();
+                    } else {
+                        break;
+                    }
                 }
+            } else { // 错误处理
+                // Rust 中 单个 (T) 不是元组，必须是 (T,) 才是元组类型
             }
-        } else {//错误处理
-            // Rust 中 单个 (T) 不是元组，必须是 (T,) 才是元组类型
         }
+        expect(TokenType::RPAREN, "Expected ')' to close Tuple Type");
+        return std::make_shared<ast::Tuple>(std::move(elementTypes), ref_type);
     }
-    expect(TokenType::RPAREN, "Expected ')' to close Tuple Type");
-    return std::make_shared<ast::Tuple>(std::move(elementTypes), ref_type);
-}
 
     if (check(TokenType::I32)) {
         advance();
