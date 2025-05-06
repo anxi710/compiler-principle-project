@@ -24,7 +24,7 @@ enum class NodeType {
     LoopStmt, BreakStmt, ContinueStmt, NullStmt,
 
     Number, Factor, ArithmeticExpr, CallExpr,
-    FuncExprBlockStmt, IfExpr, ArrayElements,
+    FuncExprBlockStmt, IfExpr, ArrayElements, TupleElements,
 
     Integer, Array, Tuple,
 
@@ -111,11 +111,15 @@ struct Array : VarType {
 };
 using  ArrayPtr = std::shared_ptr<Array>;
 
-struct Tuple : VarType {
-    int cnt = 0; // 元组中元素个数
+struct Tuple : VarType
+{
+    int cnt = 0;                        // 元素个数
+    std::vector<VarTypePtr> elem_types; // 每个元素的类型
 
     Tuple() = default;
-    explicit Tuple(int cnt, RefType rt = RefType::Normal) : VarType(rt), cnt(cnt) {}
+
+    explicit Tuple(std::vector<VarTypePtr> elem_types, RefType rt = RefType::Normal)
+        : VarType(rt), cnt(static_cast<int>(elem_types.size())), elem_types(std::move(elem_types)) {}
 
     constexpr NodeType type() const override { return NodeType::Tuple; }
 };
@@ -307,6 +311,17 @@ struct ArrayElements : Expr{
 };
 using ArrayElementsPtr = std::shared_ptr<ArrayElements>;
 
+struct TupleElements : Expr{
+    std::vector<ExprPtr> elements;
+
+    TupleElements() = default;
+
+    explicit TupleElements(const std::vector<ExprPtr> &els) : elements(els) {}
+    explicit TupleElements(std::vector<ExprPtr> &&els) : elements(std::move(els)) {}
+
+    constexpr NodeType type() const override { return NodeType::TupleElements; }
+};
+using TupleElementsPtr = std::shared_ptr<TupleElements>;
 // Return Statement
 struct RetStmt : Stmt {
     std::optional<ExprPtr> ret_val; // return value (an expression)
