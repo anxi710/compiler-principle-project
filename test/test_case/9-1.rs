@@ -6,6 +6,5 @@ fn main(){
     let mut d: &mut (i32, i32, i32);
     b = (2>5,a.0);
     c = (1,);
-    d = ();
     let e: (i32,);
 }

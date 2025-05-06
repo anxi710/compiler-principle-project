@@ -39,7 +39,9 @@
 
 **1.4 函数输入（前置规则 0.1, 0.2, 1.1）**
 
-- Args -> Arg | Arg _,_ Args
+- Args -> Arg | Arg _,_ Arg        // 单个表达式没有逗号不是元组，而是普通括号表达式
+                expect(TokenType::RPAREN, "Expected ')'");
+                return firstExpr;s
   - 迭代形式：Args -> Arg (_,_ Arg)*
 - Arg -> VarDeclBody _:_ VarType
 
@@ -165,10 +167,10 @@
 **9.1 元组（前置规则 0.2, 3.1）**:
 
 - VarType -> _(_ TupleType _)_
-- TupleType -> $\epsilon$ | VarType _,_ VarTypeList
+- TupleType -> VarType _,_ VarTypeList
 - VarTypeList -> $\epsilon$ | VarType | VarType _,_ VarTypeList
 - Factor -> _(_ TupleAssign _)_
-- TupleAssign -> $\epsilon$ | Expr _,_ TupleElements
+- TupleAssign -> Expr _,_ TupleElements
 - TupleElements -> $\epsilon$ | Expr | Expr _,_ TupleElements
 
 **9.2 元组元素（前置规则 8.1）**:
