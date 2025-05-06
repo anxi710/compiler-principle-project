@@ -723,7 +723,8 @@ ast::VarTypePtr Parser::parseVarType() {
                 }
             }
         } else {//错误处理
-            // Rust 中 单个 (T) 不是元组，必须是 (T,) 才是元组类型
+            // Rust 中 单个 (i32) 不是元组，必须是 (i32,) 才是元组类型
+            throw std::runtime_error{"Incorrect tuple type, must be (i32,) "};
         }
     }
     expect(TokenType::RPAREN, "Expected ')' to close Tuple Type");
