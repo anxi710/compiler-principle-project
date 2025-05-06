@@ -319,7 +319,7 @@ ast::AssignStmtPtr Parser::parseAssignStmt(ast::AssignElementPtr&& lvalue) {
     using TokenType = lexer::token::Type;
 
     expect(TokenType::ASSIGN, "Expected '='");
-    ast::ExprPtr expr = Parser::parseCmpExpr();
+    ast::ExprPtr expr = Parser::parseExpr();
 
     expect(TokenType::SEMICOLON, "Expected ';'");
 
@@ -465,9 +465,10 @@ ast::ExprPtr Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) {
 
     // tupleElements
     if (check(TokenType::LPAREN)) {
-        advance();
         std::vector<ast::ExprPtr> elements{};
-        if (!check(TokenType::RPAREN)) {//非空元组
+        if (!checkAhead(TokenType::RPAREN)) {//非空元组
+            advance();
+            
             ast::ExprPtr firstExpr = parseExpr();
             if (check(TokenType::COMMA)) {
                 elements.push_back(firstExpr);
@@ -480,9 +481,9 @@ ast::ExprPtr Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) {
                         break;
                     }
                 }
-            } else {
-                // 错误处理，单个表达式没有逗号不是元组，而是普通括号表达式
-                //retrurn parseElementExpr();
+            } else {//非元组，(1)为表达式
+                expect(TokenType::RPAREN, "Expected ')'");
+                return firstExpr;
             }
         }
         expect(TokenType::RPAREN, "Expected ')' after tuple elements");
