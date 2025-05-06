@@ -4,7 +4,7 @@
 
 **0.1 变量声明内部**:
 
-- VarDecl -> _mut_ \<ID\>
+- VarDeclBody -> _mut_ \<ID\>
 
 **0.2 类型**:
 
@@ -12,6 +12,7 @@
 
 **0.3 可赋值元素**:
 
+- AssignElement -> Variable
 - Variable -> \<ID\>
 
 **1.1 基础规则**:
@@ -40,8 +41,7 @@
 
 - Args -> Arg | Arg _,_ Args
   - 迭代形式：Args -> Arg (_,_ Arg)*
-- Arg -> VarDecl _:_ VarType
-  - Arg -> _mut_ \<ID\> : _i32_
+- Arg -> VarDeclBody _:_ VarType
 
 **1.5 函数输出（前置规则 0.2, 1.1, 1.3, 3.1）**
 
@@ -51,7 +51,7 @@
 **2.1 变量声明语句（前置规则 0.1, 0.2, 1.2）**:
 
 - Stmt -> VarDeclStmt
-- VarDeclStmt -> _let_ VarDecl (_:_ VarType)? _;_
+- VarDeclStmt -> _let_ VarDeclBody (_:_ VarType)? _;_
 
 **2.2 赋值语句（前置规则 0.3, 1.2, 3.1）**:
 
@@ -61,7 +61,7 @@
 **2.3 变量声明赋值语句（前置规则 0.1, 0.2, 1.2, 3.1）**:
 
 - Stmt -> VarDeclAssignStmt
-- VarDeclAssignStmt -> _let_ VarDecl (_:_ VarType)? _=_ Expr _;_
+- VarDeclAssignStmt -> _let_ VarDeclBody (_:_ VarType)? _=_ Expr _;_
 
 **3.1 基本表达式（前置规则 0.3）**:
 
@@ -70,10 +70,8 @@
 - AddExpr -> Item
 - Item -> Factor
 - Factor -> Element
-- Element -> \<INT\> | AssignElement | _(_ Expr _)_
-  - 现在的 \<NUM\> 只有整数
-
-- AssignElement ->Variable (补充)
+- Element -> \<NUM\> | AssignElement | _(_ Expr _)_
+  - 现在的 \<NUM\> 只有整数 \<INT\>
 
 **3.2 表达式增加计算和比较（前置规则 3.1）**:
 
@@ -124,7 +122,7 @@
 
 **6.2 借用和引用（前置规则 3.1, 6.1）**:
 
-- Factor -> _\*_ Factor | _&_ _mut_ Factor | _&_ Factor
+- Factor -> _&_ _mut_ Factor | _&_ Factor
 - VarType -> _&_ mut VarType | _&_ VarType
 
 `&mut` - 可变引用；`&` - 不可变引用；`*` - 解引用
@@ -154,8 +152,9 @@
 **8.1 数组（前置规则 0.2, 3.1）**:
 
 - VarType -> _\[_ VarType _;_ \<INT\> _\]_
-- Factor -> _\[_ ArrayElements _\]_ | ArrayElement
+- Factor -> _\[_ ArrayElements _\]_
 - ArrayElements -> $\epsilon$ | Expr | Expr _,_ ArrayElements
+  - Factor 用于展开表达式
 
 **8.2 数组元素（前置规则 8.1）**
 
