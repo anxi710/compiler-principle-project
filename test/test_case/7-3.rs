@@ -4,4 +4,11 @@ fn main(mut a : i32) {
     } else{
         0
     };
+
+    let mut c;
+    c = if b == 1 {
+        0
+    } else {
+        1
+    };
 }
