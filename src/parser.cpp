@@ -350,11 +350,9 @@ ast::AssignElementPtr Parser::parseAssignElement() {
     }
 
     if (check(TokenType::DOT)) {
-        //TODO 补充 Tuple 情况
         advance();
         int value = std::stoi(current->getValue());
         expect(TokenType::INT, "Expected <NUM> for Tuple");
-        //advance();
         return std::make_shared<ast::TupleAccess>(std::move(var), std::move(value));
     }
 
@@ -464,14 +462,15 @@ ast::ExprPtr Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) {
         advance();
         return std::make_shared<ast::ArrayElements>(elements);
     }
+
     // tupleElements
     if (check(TokenType::LPAREN)) {
         advance();
         std::vector<ast::ExprPtr> elements{};
-        if (!check(TokenType::RPAREN)) {
-            ast::ExprPtr first = parseExpr();
+        if (!check(TokenType::RPAREN)) {//非空元组
+            ast::ExprPtr firstExpr = parseExpr();
             if (check(TokenType::COMMA)) {
-                elements.push_back(first);
+                elements.push_back(firstExpr);
                 advance();
                 while (!check(TokenType::RPAREN)) {
                     elements.push_back(parseExpr());
@@ -482,11 +481,11 @@ ast::ExprPtr Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) {
                     }
                 }
             } else {
-                // 没有逗号 => 不是元组，而是普通括号表达式
-                //error(current, "Expected ',' after first element to form a tuple");
+                // 错误处理，没有逗号不是元组，而是普通括号表达式
+                //(T,)是元组，(T)不是
+                //retrurn parseElementExpr();
             }
         }
-
         expect(TokenType::RPAREN, "Expected ')' after tuple elements");
         return std::make_shared<ast::TupleElements>(elements);
     }
@@ -707,30 +706,26 @@ ast::VarTypePtr Parser::parseVarType() {
         expect(TokenType::RBRACK,"Expected ']' for Array");
         return std::make_shared<ast::Array>(cnt,elementType,ref_type);
     }
+
     if (check(TokenType::LPAREN)) {
     advance(); 
-
     std::vector<ast::VarTypePtr> elementTypes;
-
     if (!check(TokenType::RPAREN)) { // 非空元组
         elementTypes.push_back(parseVarType());
         if (check(TokenType::COMMA)) {
             advance(); 
             while (!check(TokenType::RPAREN)) {
                 elementTypes.push_back(parseVarType());
-
                 if (check(TokenType::COMMA)) {
                     advance(); 
                 } else {
                     break;
                 }
             }
-        } else {
-            // Rust 中 (T) 不是元组，必须是 (T,) 才是元组类型
-            //error(current, "Expected ',' to form a tuple type (e.g., '(T,)', not '(T)')");
+        } else {//错误处理
+            // Rust 中 单个 (T) 不是元组，必须是 (T,) 才是元组类型
         }
     }
-
     expect(TokenType::RPAREN, "Expected ')' to close Tuple Type");
     return std::make_shared<ast::Tuple>(std::move(elementTypes), ref_type);
 }

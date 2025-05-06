@@ -111,8 +111,7 @@ struct Array : VarType {
 };
 using  ArrayPtr = std::shared_ptr<Array>;
 
-struct Tuple : VarType
-{
+struct Tuple : VarType{
     int cnt = 0;                        // 元素个数
     std::vector<VarTypePtr> elem_types; // 每个元素的类型
 
