@@ -464,29 +464,27 @@ ast::ExprPtr Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) {
 
     // tupleElements
     if (check(TokenType::LPAREN)) {
-        std::vector<ast::ExprPtr> elements{};
-        if (!checkAhead(TokenType::RPAREN)) {//非空元组
-            advance();
-            
-            ast::ExprPtr firstExpr = parseExpr();
-            if (check(TokenType::COMMA)) {
-                elements.push_back(firstExpr);
-                advance();
-                while (!check(TokenType::RPAREN)) {
-                    elements.push_back(parseExpr());
-                    if (check(TokenType::COMMA)) {
-                        advance();
-                    } else {
-                        break;
-                    }
-                }
-            } else {//非元组，(1)为表达式
-                expect(TokenType::RPAREN, "Expected ')'");
-                return firstExpr;
+        advance();
+        std::vector<ast::ExprPtr> elems{};
+
+        while (!check(TokenType::RPAREN)) {
+            elems.push_back(parseExpr());
+            if (!check(TokenType::COMMA)) {
+                break;
             }
+            advance();
         }
-        expect(TokenType::RPAREN, "Expected ')' after tuple elements");
-        return std::make_shared<ast::TupleElements>(elements);
+
+        expect(TokenType::RPAREN, "Expected ')'");
+        if (auto cnt = elems.size();
+            0 == cnt) {
+            throw std::runtime_error{"Unsupport the unit type."};
+        } else if (1 == cnt) {
+            // 单个表达式没有逗号不是元组，而是普通括号表达式
+            return std::make_shared<ast::ParenthesisExpr>(std::move(elems[0]));
+        } else {
+            return std::make_shared<ast::TupleElements>(elems);
+        }
     }
 
     ast::RefType ref_type {ast::RefType::Normal};
@@ -521,7 +519,7 @@ ast::ExprPtr Parser::parseElementExpr(std::optional<ast::AssignElementPtr> elem)
         advance();
         ast::ExprPtr expr = Parser::parseCmpExpr();
         expect(TokenType::RPAREN, "Expected ')'");
-        return expr;
+        return std::make_shared<ast::ParenthesisExpr>(std::move(expr));
     }
     if (check(TokenType::INT)) {
         int value = std::stoi(current->getValue());
@@ -696,38 +694,35 @@ ast::VarTypePtr Parser::parseVarType() {
 
     if (check(TokenType::LBRACK)){
         advance();
-        ast::VarTypePtr elementType = parseVarType();
+        ast::VarTypePtr elem_type = parseVarType();
         expect(TokenType::SEMICOLON,"Expected ';' for Array");
         int cnt =std::stoi(current->getValue());
         expect(TokenType::INT,"Expected <NUM> for Array");
         expect(TokenType::RBRACK,"Expected ']' for Array");
-        return std::make_shared<ast::Array>(cnt,elementType,ref_type);
+        return std::make_shared<ast::Array>(cnt,elem_type,ref_type);
     }
 
     if (check(TokenType::LPAREN)) {
         advance();
-        std::vector<ast::VarTypePtr> elementTypes;
-        if (!check(TokenType::RPAREN)) { // 非空元组
-            elementTypes.push_back(parseVarType());
-            if (check(TokenType::COMMA)) {
-                advance();
-                while (!check(TokenType::RPAREN)) {
-                    elementTypes.push_back(parseVarType());
-                    if (check(TokenType::COMMA)) {
-                        advance();
-                    } else {
-                        break;
-                    }
-                }
-            } else { // 错误处理
-                // Rust 中 单个 (T) 不是元组，必须是 (T,) 才是元组类型
+
+        std::vector<ast::VarTypePtr> elem_types;
+        while (!check(TokenType::RPAREN)) {
+            elem_types.push_back(parseVarType());
+            if (!check(TokenType::COMMA)) {
+                break;
             }
-        } else {//错误处理
-            // Rust 中 单个 (i32) 不是元组，必须是 (i32,) 才是元组类型
-            throw std::runtime_error{"Incorrect tuple type, must be (i32,) "};
+            advance();
         }
-        expect(TokenType::RPAREN, "Expected ')' to close Tuple Type");
-        return std::make_shared<ast::Tuple>(std::move(elementTypes), ref_type);
+
+        expect(TokenType::RPAREN, "Expected ')'");
+        if (auto cnt = elem_types.size();
+            0 == cnt) {
+            throw std::runtime_error{"Incorrect variable type."};
+        } else if (1 == cnt) {
+            return elem_types[0];
+        } else {
+            return std::make_shared<ast::Tuple>(std::move(elem_types), ref_type);
+        }
     }
 
     if (check(TokenType::I32)) {
