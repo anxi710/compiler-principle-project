@@ -23,7 +23,7 @@ enum class NodeType {
     VarDeclAssignStmt, ElseClause, IfStmt, WhileStmt, ForStmt,
     LoopStmt, BreakStmt, ContinueStmt, NullStmt,
 
-    Number, Factor, ArithmeticExpr, CallExpr,
+    Number, Factor, ArithmeticExpr, CallExpr, ParenthesisExpr,
     FuncExprBlockStmt, IfExpr, ArrayElements, TupleElements,
 
     Integer, Array, Tuple,
@@ -116,9 +116,10 @@ struct Tuple : VarType{
     std::vector<VarTypePtr> elem_types; // 每个元素的类型
 
     Tuple() = default;
-
-    explicit Tuple(std::vector<VarTypePtr> elem_types, RefType rt = RefType::Normal)
-        : VarType(rt), cnt(static_cast<int>(elem_types.size())), elem_types(std::move(elem_types)) {}
+    explicit Tuple(const std::vector<VarTypePtr>& et, const RefType& rt = RefType::Normal)
+        : VarType(rt), cnt(static_cast<int>(et.size())), elem_types(et) {}
+    explicit Tuple(std::vector<VarTypePtr>&& et, const RefType& rt = RefType::Normal)
+        : VarType(rt), cnt(static_cast<int>(et.size())), elem_types(std::move(et)) {}
 
     constexpr NodeType type() const override { return NodeType::Tuple; }
 };
@@ -206,6 +207,18 @@ struct ExprStmt : Stmt {
     constexpr NodeType type() const override { return NodeType::ExprStmt; }
 };
 using  ExprStmtPtr = std::shared_ptr<ExprStmt>;
+
+// 括号表达式
+struct ParenthesisExpr : Expr {
+    ExprPtr expr; // ( expr ) - 括号中的表达式
+
+    ParenthesisExpr() = delete;
+    explicit ParenthesisExpr(const ExprPtr& e) : expr(e) {}
+    explicit ParenthesisExpr(ExprPtr&& e) : expr(std::move(e)) {}
+
+    constexpr NodeType type() const override { return NodeType::ParenthesisExpr; }
+};
+using  ParenthesisExprPtr = std::shared_ptr<ParenthesisExpr>;
 
 // Assign Element
 struct AssignElement : Expr {
@@ -298,7 +311,7 @@ struct Factor : Expr {
 };
 using  FactorPtr = std::shared_ptr<Factor>;
 
-struct ArrayElements : Expr{
+struct ArrayElements : Expr {
     std::vector<ExprPtr> elements;
 
     ArrayElements() = default;
@@ -310,13 +323,13 @@ struct ArrayElements : Expr{
 };
 using ArrayElementsPtr = std::shared_ptr<ArrayElements>;
 
-struct TupleElements : Expr{
+struct TupleElements : Expr {
     std::vector<ExprPtr> elements;
 
     TupleElements() = default;
 
-    explicit TupleElements(const std::vector<ExprPtr> &els) : elements(els) {}
-    explicit TupleElements(std::vector<ExprPtr> &&els) : elements(std::move(els)) {}
+    explicit TupleElements(const std::vector<ExprPtr>& els) : elements(els) {}
+    explicit TupleElements(std::vector<ExprPtr>&& els) : elements(std::move(els)) {}
 
     constexpr NodeType type() const override { return NodeType::TupleElements; }
 };
