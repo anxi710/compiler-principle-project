@@ -70,7 +70,8 @@
 - AddExpr -> Item
 - Item -> Factor
 - Factor -> Element
-- Element -> \<NUM\> | AssignElement | _(_ Expr _)_
+- Element -> \<NUM\> | AssignElement | ParenthesisExpr
+- ParenthesisExpr -> _(_ Expr _)_
   - 现在的 \<NUM\> 只有整数 \<INT\>
 
 **3.2 表达式增加计算和比较（前置规则 3.1）**:
