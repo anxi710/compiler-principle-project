@@ -534,6 +534,6 @@ struct IfExpr : Expr {
 };
 using  IfExprPtr = std::shared_ptr<IfExpr>;
 
-void ast2Dot(std::ofstream& out, const ProgPtr p_prog);
+void ast2Dot(std::ofstream& out, const ProgPtr& prog);
 
 } // namespace parser::ast
