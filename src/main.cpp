@@ -215,8 +215,14 @@ void printAST(std::ofstream& out) {
     };
     pars = std::make_unique<parser::base::Parser>(nextTokenFunc);
 
-    auto ast = pars->parseProgram();
-    std::cout << "Parsing success" << std::endl;
+    try {
+        auto ast_prog_node = pars->parseProgram();
+        std::cout << "Parsing success" << std::endl;
+
+        parser::ast::ast2Dot(out, ast_prog_node);
+    } catch (const std::runtime_error& e) {
+        std::cerr << "Parsing error: " << e.what() << std::endl;
+    }
 }
 
 /**

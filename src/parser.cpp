@@ -273,8 +273,9 @@ ast::ArgPtr Parser::parseArg() {
         mutable_ = true;
         advance();
     }
+    std::string name = current.getValue();
     expect(TokenType::ID, "Expected '<ID>'");
-    auto var = std::make_shared<ast::VarDeclBody>(mutable_, current.getValue());
+    auto var = std::make_shared<ast::VarDeclBody>(mutable_, name);
 
     expect(TokenType::COLON, "Expected ':'");
     auto type = parseVarType();
@@ -565,7 +566,7 @@ ast::ExprPtr Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) {
     }
 
     ast::RefType ref_type {ast::RefType::Normal};
-    if (check(TokenType::Ref)) {
+    if (check(TokenType::REF)) {
         advance();
         if (check(TokenType::MUT)) {
             advance();
@@ -760,7 +761,7 @@ ast::VarTypePtr Parser::parseVarType() {
     using TokenType = lexer::token::Type;
 
     ast::RefType ref_type {ast::RefType::Normal};
-    if (check(TokenType::Ref)) {
+    if (check(TokenType::REF)) {
         advance();
         if (check(TokenType::MUT)) {
             advance();
