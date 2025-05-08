@@ -121,8 +121,10 @@ void printAST(std::ofstream& out) {
     pars = std::make_unique<parser::base::Parser>(nextTokenFunc);
 
     try {
-        auto ast = pars->parseProgram();
+        auto ast_prog_node = pars->parseProgram();
         std::cout << "Parsing success" << std::endl;
+
+        parser::ast::ast2Dot(out, ast_prog_node);
         //TODO 添加 dot 格式打印 AST 功能
     } catch (const std::runtime_error& e) {
         std::cerr << "Parsing error: " << e.what() << std::endl;
