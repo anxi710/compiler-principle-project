@@ -635,8 +635,6 @@ ast::CallExprPtr Parser::parseCallExpr() {
     std::string name = current.getValue(); // function name
     expect(TokenType::ID, "Expected function name");
 
-    if (name == "(")
-        throw std::runtime_error("Unexpected name : " + name);
     expect(TokenType::LPAREN, "Expected '('");
 
     std::vector<ast::ExprPtr> argv{};

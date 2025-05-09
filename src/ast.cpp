@@ -264,6 +264,16 @@ static auto funcHeaderDecl2Dot(const FuncHeaderDeclPtr& fhd) {
     }
     oss_nd << nodeDecls2Str(n_rparen);
     oss_ed << edge2Str(n_fhd, n_rparen);
+    if (fhd->retval_type.has_value()){
+        DotNodeDecl n_arrow = tokenType2NodeDecl(TokenType::ARROW);
+        oss_nd << nodeDecls2Str(n_arrow);
+        oss_ed << edge2Str(n_fhd, n_arrow);
+        auto [n_vt, nd_vt, ed_vt] = varType2Dot(fhd->retval_type.value());
+        oss_nd << nd_vt;
+        oss_ed << edge2Str(n_fhd, n_vt) << ed_vt;
+    }
+
+
 
     return std::make_tuple(n_fhd, oss_nd.str(), oss_ed.str());
 }
@@ -544,6 +554,9 @@ static auto varDeclAssignStmt2Dot(const VarDeclAssignStmtPtr& vdas) {
     oss_ed << var_ed << edge2Str(n_vdas, n_var);
 
     if (vdas->var_type.has_value()) {
+        DotNodeDecl n_colon = tokenType2NodeDecl(TokenType::COLON);
+        oss_nd << nodeDecls2Str(n_colon);
+        oss_ed << edge2Str(n_vdas, n_colon);
         auto [n_type, type_nd, type_ed] = varType2Dot(vdas->var_type.value());
         oss_nd << type_nd;
         oss_ed << type_ed << edge2Str(n_vdas, n_type);
