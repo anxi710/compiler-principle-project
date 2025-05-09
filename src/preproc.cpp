@@ -37,6 +37,9 @@ std::string removeAnnotations(std::string text) {
                 depth--;
                 i += 2;
             } else {
+                if (text[i] == '\n') {
+                    result += text[i]; // 保留换行
+                }
                 i++;
             }
         } else {
@@ -46,5 +49,6 @@ std::string removeAnnotations(std::string text) {
 
     return result;
 }
+
 
 } // namespace preproc

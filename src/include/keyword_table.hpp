@@ -3,7 +3,7 @@
 #include <string>
 #include <cassert>
 #include <unordered_map>
-#include "token.hpp"
+#include "token_type.hpp"
 
 namespace lexer::keyword {
 
@@ -19,34 +19,34 @@ public:
 public:
     /**
      * @brief  判断给定的输入值是否是一个关键字
-     * @param  value token value]
-     * @return true/false
+     * @param  v token value
+     * @return true / false
      */
-    inline bool iskeyword(std::string value) const {
-        return (keywords.find(value) != keywords.end());
+    inline bool iskeyword(std::string v) const {
+        return (keywords.find(v) != keywords.end());
     }
 
     /**
-     * @brief  根据输入值获取对应 token
-     * @param  value token value
-     * @return keyword token
+     * @brief  根据输入值获取对应 token type
+     * @param  v token value
+     * @return keyword token type
      */
-    inline token::Token getKeyword(std::string value) const {
-        assert(keywords.find(value) != keywords.end());
-        return keywords.find(value)->second;
+    inline token::Type getKeyword(std::string v) const {
+        assert(keywords.find(v) != keywords.end());
+        return keywords.find(v)->second;
     }
 
     /**
-     * @brief 向关键词表中添加一个关键词
-     * @param name  keyword name
-     * @param token keyword token
+     * @brief 向关键词表中添加一个关键词类型
+     * @param n keyword name
+     * @param t keyword token type
      */
-    inline void addKeyword(std::string name, token::Token token) {
-        this->keywords.emplace(name, token);
+    inline void addKeyword(std::string n, token::Type t) {
+        this->keywords.emplace(n, t);
     }
 
 private:
-    std::unordered_map<std::string, token::Token> keywords; // keyword hash map
+    std::unordered_map<std::string, token::Type> keywords; // keyword hash map
 };
 
 } // namespace lexer::keyword

@@ -22,9 +22,19 @@ std::unique_ptr<parser::base::Parser> pars {}; // 语法分析器
 void initialize(std::ifstream& in) {
     std::ostringstream oss;
     oss << in.rdbuf();
-    std::string text {oss.str()};
+    std::istringstream iss {preproc::removeAnnotations(oss.str())};
 
-    lex  = std::make_unique<lexer::impl::ToyLexer>(preproc::removeAnnotations(text));
+    std::vector<std::string> text {};
+    std::string              line {};
+    while(std::getline(iss, line)) {
+        text.push_back(std::move(line));
+    }
+
+    if (!iss.eof()) {
+        throw std::runtime_error{"File access error!"};
+    }
+
+    lex  = std::make_unique<lexer::impl::ToyLexer>(std::move(text));
 }
 
 /**
@@ -100,14 +110,15 @@ auto argumentParsing(int argc, char* argv[]) {
 void printToken(std::ofstream& out) {
     while(true) {
         if (auto token = lex->nextToken()) {
-            if (token.value() == lexer::token::Token::END) {
+            if (token->getType() == lexer::token::Type::END) {
                 break;
             }
             out << token.value().toString() << std::endl;
         } else { // 未正确识别 token
-            exit(1);
+            throw std::runtime_error{"nextToken() return std::nullopt"};
         }
     }
+    out.flush();
 }
 
 /**
@@ -164,7 +175,7 @@ int main(int argc, char* argv[]) {
         printToken(out_token);
     }
     if (flag_default | flag_parse) {
-        lex->reset(0);
+        lex->reset(lexer::base::Position(0, 0));
         printAST(out_parse);
     }
 
