@@ -7,10 +7,7 @@ namespace parser::ast {
 
 static int cnt = 0;
 
-
-
-struct DotNodeDecl
-{
+struct DotNodeDecl {
     std::string name  {};
     std::string label {};
 
@@ -22,13 +19,11 @@ struct DotNodeDecl
 
     ~DotNodeDecl() = default;
 
-    bool initialized() {
+    inline bool initialized() const {
         return name.length() > 0 && label.length() > 0;
     }
     inline std::string toString() const { return name + label; }
 };
-
-static std::tuple<DotNodeDecl, std::string, std::string> expr2Dot(const ExprPtr &expr);
 
 static DotNodeDecl str2NodeDecl(const std::string& s) {
     std::ostringstream oss;
@@ -113,19 +108,19 @@ static auto varDeclBody2Dot(const VarDeclBodyPtr& vdb) {
     DotNodeDecl n_id      = str2NodeDecl("ID");
     DotNodeDecl n_id_name = str2NodeDecl(vdb->name);
 
-    std::string node_decl {};
-    std::string edge_decl {};
+    std::ostringstream oss_nd;
+    std::ostringstream oss_ed;
     if (true == vdb->mut) {
         DotNodeDecl n_mut = str2NodeDecl("mut");
-        node_decl  = nodeDecls2Str(n_vdb, n_mut, n_id, n_id_name);
-        edge_decl += edge2Str(n_vdb, n_mut);
+        oss_nd << nodeDecls2Str(n_vdb, n_mut, n_id, n_id_name);
+        oss_ed << edge2Str(n_vdb, n_mut);
     } else {
-        node_decl = nodeDecls2Str(n_vdb, n_id, n_id_name);
+        oss_nd << nodeDecls2Str(n_vdb, n_id, n_id_name);
     }
 
-    edge_decl += edges2Str({{n_vdb, n_id}, {n_id, n_id_name}});
+    oss_ed << edges2Str({{n_vdb, n_id}, {n_id, n_id_name}});
 
-    return std::make_tuple(n_vdb, node_decl, edge_decl);
+    return std::make_tuple(n_vdb, oss_nd.str(), oss_ed.str());
 }
 
 static auto integer2Dot(const IntegerPtr& integer) {
@@ -186,6 +181,9 @@ static auto varType2Dot(const VarTypePtr& vt) {
     std::string nd {};
     std::string ed {};
     switch (vt->type()) {
+    default:
+        throw std::runtime_error{"varType2Dot(): Incorrect NodeType"};
+        break;
     case NodeType::Integer:
         std::tie(rt, nd, ed) = integer2Dot(std::dynamic_pointer_cast<Integer>(vt));
         break;
@@ -195,14 +193,14 @@ static auto varType2Dot(const VarTypePtr& vt) {
     case NodeType::Tuple:
         // std::tie(rt, nd, ed) = tuple2Dot(std::dynamic_pointer_cast<Tuple>(vt));
         break;
-    default:
-        break;
     }
 
-    std::string node_decl = nodeDecls2Str(n_vt) + nd;
-    std::string edge_decl = edge2Str(n_vt, rt) + ed;
+    std::ostringstream oss_nd;
+    std::ostringstream oss_ed;
+    oss_nd << nodeDecls2Str(n_vt) << nd;
+    oss_ed << edge2Str(n_vt, rt) << ed;
 
-    return std::make_tuple(n_vt, node_decl, edge_decl);
+    return std::make_tuple(n_vt, oss_nd.str(), oss_ed.str());
 }
 
 static auto arg2Dot(const ArgPtr& arg) {
@@ -232,7 +230,7 @@ static auto assignElement2Dot(const AssignElementPtr& ae) {
         oss_ed << edge2Str(n_assign_elem, n_var);
         break;
     }
-    default: 
+    default:
         break;
     }
 
@@ -272,16 +270,19 @@ static auto funcHeaderDecl2Dot(const FuncHeaderDeclPtr& fhd) {
 
 static auto numberExpr2Dot(const std::shared_ptr<ast::Number>& n) {
     DotNodeDecl n_num = str2NodeDecl("Number");
-    DotNodeDecl n_val = str2NodeDecl(std::to_string(n->value)); 
+    DotNodeDecl n_val = str2NodeDecl(std::to_string(n->value));
+
     std::ostringstream oss_nd, oss_ed;
     oss_nd << nodeDecls2Str(n_num, n_val);
     oss_ed << edge2Str(n_num, n_val);
 
     return std::make_tuple(n_num, oss_nd.str(), oss_ed.str());
 }
+
 static auto variableExpr2Dot(const std::shared_ptr<ast::Variable>& v) {
     DotNodeDecl v_id = str2NodeDecl("ID");
-    DotNodeDecl v_name = str2NodeDecl(v->name); 
+    DotNodeDecl v_name = str2NodeDecl(v->name);
+
     std::ostringstream oss_nd, oss_ed;
     oss_nd << nodeDecls2Str(v_id, v_name);
     oss_ed << edge2Str(v_id, v_name);
@@ -289,7 +290,7 @@ static auto variableExpr2Dot(const std::shared_ptr<ast::Variable>& v) {
     return std::make_tuple(v_id, oss_nd.str(), oss_ed.str());
 }
 
-
+static std::tuple<DotNodeDecl, std::string, std::string> expr2Dot(const ExprPtr &expr);
 
 static auto factorExpr2Dot(const FactorPtr& f) {
     using TokenType = lexer::token::Type;
@@ -298,7 +299,7 @@ static auto factorExpr2Dot(const FactorPtr& f) {
     std::ostringstream oss_nd, oss_ed;
     oss_nd << nodeDecls2Str(n_factor);
 
-
+    //DEBUG 打印错误
     if (f->ref_type != RefType::Normal) {
         std::string ref_str;
         switch (f->ref_type) {
@@ -324,9 +325,10 @@ static auto factorExpr2Dot(const FactorPtr& f) {
 
     return std::make_tuple(n_factor, oss_nd.str(), oss_ed.str());
 }
+
 static auto arithmeticExpr2Dot(const std::shared_ptr<ast::ArithmeticExpr>& ae) {
     DotNodeDecl n_arith = str2NodeDecl("ArithmeticExpr");
-    
+
 
     auto [n_lhs, lhs_nd, lhs_ed] = expr2Dot(ae->lhs);
     DotNodeDecl n_op = tokenType2NodeDecl(ae->op);
@@ -334,61 +336,60 @@ static auto arithmeticExpr2Dot(const std::shared_ptr<ast::ArithmeticExpr>& ae) {
 
     std::ostringstream oss_nd, oss_ed;
     oss_nd << lhs_nd << nodeDecls2Str(n_arith, n_op) << rhs_nd;
-    oss_ed << lhs_ed << edges2Str(
-                  std::make_pair(n_arith, n_lhs),
-                  std::make_pair(n_arith, n_op),
-                  std::make_pair(n_arith, n_rhs))
-           << rhs_ed;
+    oss_ed << lhs_ed
+        << edges2Str({{n_arith, n_lhs}, {n_arith, n_op}, {n_arith, n_rhs}})
+        << rhs_ed;
 
     return std::make_tuple(n_arith, oss_nd.str(), oss_ed.str());
 }
+
 static auto callExpr2Dot(const std::shared_ptr<ast::CallExpr>& ce) {
     using TokenType = lexer::token::Type;
-    DotNodeDecl n_call = str2NodeDecl("CallExpr");
-    DotNodeDecl n_id = str2NodeDecl("ID");
-    DotNodeDecl n_fn = str2NodeDecl(ce->callee); 
+    DotNodeDecl n_call   = str2NodeDecl("CallExpr");
+    DotNodeDecl n_id     = str2NodeDecl("ID");
+    DotNodeDecl n_fn     = str2NodeDecl(ce->callee);
 
-    std::ostringstream oss_nd, oss_ed;
     DotNodeDecl n_lparen = tokenType2NodeDecl(TokenType::LPAREN);
     DotNodeDecl n_rparen = tokenType2NodeDecl(TokenType::RPAREN);
 
-    
+    std::ostringstream oss_nd, oss_ed;
     oss_nd << nodeDecls2Str(n_call, n_id, n_fn, n_lparen);
-    oss_ed << edge2Str(n_call, n_id)
-           << edge2Str(n_id, n_fn)
-           << edge2Str(n_call, n_lparen);
-    if (!ce->argv.empty()){
+    oss_ed << edges2Str({{n_call, n_id},{n_id, n_fn}, {n_call, n_lparen}});
+
+    if (!ce->argv.empty()) {
         DotNodeDecl n_arglist = str2NodeDecl("ArgList");
         oss_nd << nodeDecls2Str(n_arglist, n_rparen);
-        oss_ed << edge2Str(n_call, n_arglist)
-               << edge2Str(n_call, n_rparen);
+        oss_ed << edges2Str({{n_call, n_arglist}, {n_call, n_rparen}});
 
         for (const auto& arg : ce->argv) {
             auto [n_arg, arg_nd, arg_ed] = expr2Dot(arg);
             oss_nd << arg_nd;
             oss_ed << arg_ed << edge2Str(n_arglist, n_arg);
         }
-    }else{
+    } else {
         oss_nd << nodeDecls2Str(n_rparen);
         oss_ed << edge2Str(n_call, n_rparen);
     }
 
     return std::make_tuple(n_call, oss_nd.str(), oss_ed.str());
 }
+
 static auto parenthesisExpr2Dot(const std::shared_ptr<ast::ParenthesisExpr>& pe) {
     using TokenType = lexer::token::Type;
     DotNodeDecl n_paren = str2NodeDecl("ParenthesisExpr");
+
     DotNodeDecl n_lparen = tokenType2NodeDecl(TokenType::LPAREN);
-    auto [n_inner, inner_nd, inner_ed] = expr2Dot(pe->expr);
     DotNodeDecl n_rparen = tokenType2NodeDecl(TokenType::RPAREN);
+
     std::ostringstream oss_nd, oss_ed;
+
+    auto [n_inner, inner_nd, inner_ed] = expr2Dot(pe->expr);
     oss_nd << nodeDecls2Str(n_lparen, n_paren) << inner_nd << nodeDecls2Str(n_paren, n_rparen);
-    oss_ed
-        << edge2Str(n_paren, n_lparen) << edge2Str(n_paren, n_inner) << edge2Str(n_paren, n_rparen)
-        << inner_ed;
+    oss_ed << edges2Str({{n_paren, n_lparen}, {n_paren, n_inner}, {n_paren, n_rparen}}) << inner_ed;
 
     return std::make_tuple(n_paren, oss_nd.str(), oss_ed.str());
 }
+
 static auto element2Dot(const ExprPtr& e){
     using enum ast::NodeType;
 
@@ -559,8 +560,7 @@ static auto varDeclAssignStmt2Dot(const VarDeclAssignStmtPtr& vdas) {
     return std::make_tuple(n_vdas, oss_nd.str(), oss_ed.str());
 }
 
-static std::tuple<DotNodeDecl, std::string, std::string> stmt2Dot(const StmtPtr &stmt)
-{
+static std::tuple<DotNodeDecl, std::string, std::string> stmt2Dot(const StmtPtr &stmt) {
     using enum ast::NodeType;
     using TokenType = lexer::token::Type;
 
@@ -568,8 +568,7 @@ static std::tuple<DotNodeDecl, std::string, std::string> stmt2Dot(const StmtPtr 
     std::string nd{};
     std::string ed{};
 
-    switch (stmt->type())
-    {
+    switch (stmt->type()) {
     case ExprStmt:
         std::tie(rt, nd, ed) = exprStmt2Dot(std::dynamic_pointer_cast<ast::ExprStmt>(stmt));
         break;
@@ -600,8 +599,7 @@ static std::tuple<DotNodeDecl, std::string, std::string> stmt2Dot(const StmtPtr 
     return std::make_tuple(rt, oss_nd.str(), oss_ed.str());
 }
 
-static std::tuple<DotNodeDecl, std::string, std::string> blockStmt2Dot(const BlockStmtPtr &bs){
-
+static std::tuple<DotNodeDecl, std::string, std::string> blockStmt2Dot(const BlockStmtPtr &bs) {
     using TokenType = lexer::token::Type;
 
     DotNodeDecl n_bs = str2NodeDecl("BlockStmt");
@@ -615,14 +613,12 @@ static std::tuple<DotNodeDecl, std::string, std::string> blockStmt2Dot(const Blo
     oss_nd << nodeDecls2Str(n_lbrace);
     oss_ed << edge2Str(n_bs, n_lbrace);
 
-    for (const auto &stmt : bs->stmts)
-    {
+    for (const auto &stmt : bs->stmts) {
         auto [n_stmt, stmt_nd, stmt_ed] = stmt2Dot(stmt);
         oss_nd << stmt_nd;
         oss_ed << stmt_ed << edge2Str(n_bs, n_stmt);
     }
 
-    
     oss_nd << nodeDecls2Str(n_rbrace);
     oss_ed << edge2Str(n_bs, n_rbrace);
 
@@ -638,10 +634,8 @@ static auto funcDecl2Dot(const FuncDeclPtr& fd) {
     std::ostringstream oss_nd;
     std::ostringstream oss_ed;
 
-    oss_nd << nodeDecls2Str(n_fd) << fhd_nd;
-    oss_ed << edge2Str(n_fd, n_fhd) << fhd_ed; //TODO 补充 BlockStmt
-    oss_nd << bs_nd;
-    oss_ed << bs_ed << edge2Str(n_fd, n_bs);
+    oss_nd << nodeDecls2Str(n_fd) << fhd_nd << bs_nd;
+    oss_ed << edges2Str({{n_fd, n_fhd}, {n_fd, n_bs}}) << fhd_ed << bs_ed;
 
     return std::make_tuple(n_fd, oss_nd.str(), oss_ed.str());
 }
