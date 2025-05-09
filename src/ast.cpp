@@ -94,13 +94,12 @@ inline static std::string edge2Str(const DotNodeDecl& a, const DotNodeDecl& b) {
     return oss.str();
 }
 
-template<typename... T>
-static std::string edges2Str(const T&... e) {
-    static_assert((std::is_same_v<T, std::pair<DotNodeDecl, DotNodeDecl>> && ...),
-        "All argument must be pair<const DotNodeDecl&, const DotNodeDecl&>");
-
+static std::string edges2Str(std::initializer_list<std::pair<DotNodeDecl, DotNodeDecl>> edges) {
     std::ostringstream oss;
-    ((oss << "    " << e.first.name << " -> " << e.second.name << std::endl), ...);
+
+    for(auto edge : edges) {
+        oss << "    " << edge.first.name << " -> " << edge.second.name << std::endl;
+    }
     return oss.str();
 }
 
@@ -119,7 +118,7 @@ static auto varDeclBody2Dot(const VarDeclBodyPtr& vdb) {
         node_decl = nodeDecls2Str(n_vdb, n_id, n_id_name);
     }
 
-    edge_decl += edges2Str(std::make_pair(n_vdb, n_id), std::make_pair(n_id, n_id_name));
+    edge_decl += edges2Str({{n_vdb, n_id}, {n_id, n_id_name}});
 
     return std::make_tuple(n_vdb, node_decl, edge_decl);
 }
@@ -226,12 +225,7 @@ static auto funcHeaderDecl2Dot(const FuncHeaderDeclPtr& fhd) {
     std::ostringstream oss_nd;
     std::ostringstream oss_ed;
     oss_nd << nodeDecls2Str(n_fhd, n_fn, n_id, n_id_name, n_lparen);
-    oss_ed << edges2Str(
-        std::make_pair(n_fhd, n_fn),
-        std::make_pair(n_fhd, n_id),
-        std::make_pair(n_id, n_id_name),
-        std::make_pair(n_fhd, n_lparen)
-    );
+    oss_ed << edges2Str({{n_fhd, n_fn}, {n_fhd, n_id}, {n_id, n_id_name}, {n_fhd, n_lparen}});
 
     for (auto it = fhd->argv.begin(); it != fhd->argv.end(); ++it) {
         auto [rt, nd, ed] = arg2Dot(*it);
