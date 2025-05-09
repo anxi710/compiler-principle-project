@@ -198,6 +198,7 @@ ast::NodePtr Parser::parseStmtOrExpr() {
         if (check(TokenType::ASSIGN)) {
             stmt =  parseAssignStmt(std::move(elem));
         } else {
+            
             return parseExpr(elem);
         }
     } else if (check(TokenType::INT) || check(TokenType::LPAREN)) {
@@ -282,9 +283,8 @@ ast::VarDeclStmtPtr Parser::parseVarDeclStmt() {
         mutable_ = true;
         advance();
     }
+    auto identifier = std::make_shared<ast::VarDeclBody>(mutable_, current->getValue());
     expect(TokenType::ID, "Expected '<ID>'");
-    auto identifier  = std::make_shared<ast::VarDeclBody>(mutable_, current->getValue());
-
     ast::VarTypePtr type;
     bool            has_type = false;
     if (check(TokenType::COLON)) {
@@ -336,13 +336,14 @@ ast::AssignElementPtr Parser::parseAssignElement() {
 
     if (check(TokenType::OP_MUL)) {
         advance();
-        expect(TokenType::ID, "Expected '<ID>'");
         std::string var = current.value().getValue();
+        expect(TokenType::ID, "Expected '<ID>'");
+        
         return std::make_shared<ast::Dereference>(std::move(var));
     }
-
-    expect(TokenType::ID, "Expected '<ID>'");
     std::string var = current.value().getValue();
+    expect(TokenType::ID, "Expected '<ID>'");
+    
     if(check(TokenType::LBRACK)) {
         advance();
         auto expr = parseExpr();
@@ -386,7 +387,7 @@ ast::ExprPtr Parser::parseExpr(std::optional<ast::AssignElementPtr> elem) {
 [[nodiscard]]
 ast::ExprPtr Parser::parseCmpExpr(std::optional<ast::AssignElementPtr> elem) {
     using TokenType = lexer::token::Type;
-
+    
     ast::ExprPtr left = Parser::parseAddExpr(elem);
     while (check(TokenType::OP_LT) || check(TokenType::OP_LE) ||
            check(TokenType::OP_GT) || check(TokenType::OP_GE) ||
@@ -408,7 +409,7 @@ ast::ExprPtr Parser::parseCmpExpr(std::optional<ast::AssignElementPtr> elem) {
 [[nodiscard]]
 ast::ExprPtr Parser::parseAddExpr(std::optional<ast::AssignElementPtr> elem) {
     using TokenType = lexer::token::Type;
-
+    
     ast::ExprPtr left = Parser::parseMulExpr(elem);
     while (check(TokenType::OP_PLUS) || check(TokenType::OP_MINUS)) {
         TokenType op_token = current->getType();
@@ -428,7 +429,7 @@ ast::ExprPtr Parser::parseAddExpr(std::optional<ast::AssignElementPtr> elem) {
 [[nodiscard]]
 ast::ExprPtr Parser::parseMulExpr(std::optional<ast::AssignElementPtr> elem) {
     using TokenType = lexer::token::Type;
-
+    
     ast::ExprPtr left = parseFactor(elem);
     while (check(TokenType::OP_MUL) || check(TokenType::OP_DIV)) {
         TokenType op_token = current->getType();
@@ -448,7 +449,7 @@ ast::ExprPtr Parser::parseMulExpr(std::optional<ast::AssignElementPtr> elem) {
 [[nodiscard]]
 ast::ExprPtr Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) {
     using TokenType = lexer::token::Type;
-
+    
     // arrayElements
     if (check(TokenType::LBRACK)) {
         advance();
@@ -512,6 +513,8 @@ ast::ExprPtr Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) {
 ast::ExprPtr Parser::parseElementExpr(std::optional<ast::AssignElementPtr> elem) {
     using TokenType = lexer::token::Type;
 
+    
+
     if (elem.has_value()) {
         return elem.value();
     }
@@ -551,9 +554,11 @@ ast::ExprPtr Parser::parseElementExpr(std::optional<ast::AssignElementPtr> elem)
 [[nodiscard]]
 ast::CallExprPtr Parser::parseCallExpr() {
     using TokenType = lexer::token::Type;
-
-    expect(TokenType::ID, "Expected function name");
     std::string name = current->getValue(); // function name
+    expect(TokenType::ID, "Expected function name");
+    
+    if (name == "(")
+        throw std::runtime_error("Unexpected name : " + name);
     expect(TokenType::LPAREN, "Expected '('");
 
     std::vector<ast::ExprPtr> argv{};
