@@ -1,8 +1,12 @@
 #pragma once
 
-#include <string>
+#include <cstddef>
 
 namespace lexer::base {
+
+// 为了消解头文件相互引用带来的问题，
+// 需要单独提出 Position 结构，
+// 而不是将其放在 lexer.hpp 或 token.hpp 中
 
 struct Position {
     std::size_t row = 0;

@@ -20,39 +20,52 @@ std::optional<token::Token> ToyLexer::nextToken() {
     };
 
     // 检测当前是否已经到达结尾
-    if (this->pos >= this->text.length()) {
-        return Token::END;
+    if (this->pos.row >= this->text.size()) {
+        return Token{token::Type::END, "#", this->pos};
     }
 
-    // 忽略所有空字符
-    while (std::isspace(this->text[this->pos])) {
-        ++this->pos;
-    }
+    auto shiftPos = [&](std::size_t delta){
+        this->pos.col += delta;
+        if (this->pos.col >= this->text[this->pos.row].length()) {
+            ++this->pos.row;
+            this->pos.col = 0;
+        }
+    };
 
+    // 忽略所有空白字符
+    while (this->pos.row < this->text.size()) {
+        if (this->text[this->pos.row].length() == 0) {
+            ++this->pos.row;
+            this->pos.col = 0;
+        } else if (std::isspace(this->text[this->pos.row][this->pos.col])) {
+            shiftPos(1);
+        } else {
+            break;
+        }
+    }
     // 再次判断是否到结尾
-    if (this->pos >= this->text.length()) {
-        return Token::END;
+    if (this->pos.row >= this->text.size()) {
+        return Token{token::Type::END, "#", this->pos};
     }
 
     // 使用正则表达式检测 INT、ID 两类词法单元
-    std::string view {this->text.substr(this->pos)};
+    std::string view {this->text[this->pos.row].substr(this->pos.col)};
     for (const auto& [type, expression] : patterns) {
         std::smatch match;
         if (std::regex_search(view, match, expression)) {
-            this->pos += match.length(0);
+            auto p = this->pos;
+            shiftPos(match.length(0));
             if (type == token::Type::ID && this->keyword_table.iskeyword(match.str(0))) {
-                return this->keyword_table.getKeyword(match.str(0));
+                auto keyword_type = this->keyword_table.getKeyword(match.str(0));
+                return Token{keyword_type, match.str(0), p};
             }
-            return Token{type, match.str(0)};
+            return Token{type, match.str(0), p};
         }
     }
 
     Token token       {};        // 识别到的词法单元
     char  first_char  {view[0]}; // 当前看到的第一个字符
-    char  second_char {};        // 当前看到的第二个字符 - 用于 lookahead
-    if(this->text.length() - this->pos > 1) {
-        second_char = view[1];
-    }
+    char  second_char {view.length() > 1 ? view[1] : '\0'}; // 当前看到的第二个字符 - 用于 lookahead
 
     // 检测算符和标点符号
     switch (first_char) {
@@ -149,8 +162,9 @@ std::optional<token::Token> ToyLexer::nextToken() {
         break;
     }
 
+    token.setPos(this->pos);
     if (!token.getValue().empty()) {
-        this->pos += token.getValue().length();
+        shiftPos(token.getValue().length());
         return token;
     }
 
@@ -161,20 +175,20 @@ std::optional<token::Token> ToyLexer::nextToken() {
  * @brief 初始化关键词表
  */
 void ToyLexer::initKeywordTable(void) {
-    using token::Token;
-    keyword_table.addKeyword("if",       Token::IF);
-    keyword_table.addKeyword("fn",       Token::FN);
-    keyword_table.addKeyword("in",       Token::IN);
-    keyword_table.addKeyword("i32",      Token::I32);
-    keyword_table.addKeyword("let",      Token::LET);
-    keyword_table.addKeyword("mut",      Token::MUT);
-    keyword_table.addKeyword("for",      Token::FOR);
-    keyword_table.addKeyword("loop",     Token::LOOP);
-    keyword_table.addKeyword("else",     Token::ELSE);
-    keyword_table.addKeyword("break",    Token::BREAK);
-    keyword_table.addKeyword("while",    Token::WHILE);
-    keyword_table.addKeyword("return",   Token::RETURN);
-    keyword_table.addKeyword("continue", Token::CONTINUE);
+    using TokenType = token::Type;
+    keyword_table.addKeyword("if",       TokenType::IF);
+    keyword_table.addKeyword("fn",       TokenType::FN);
+    keyword_table.addKeyword("in",       TokenType::IN);
+    keyword_table.addKeyword("i32",      TokenType::I32);
+    keyword_table.addKeyword("let",      TokenType::LET);
+    keyword_table.addKeyword("mut",      TokenType::MUT);
+    keyword_table.addKeyword("for",      TokenType::FOR);
+    keyword_table.addKeyword("loop",     TokenType::LOOP);
+    keyword_table.addKeyword("else",     TokenType::ELSE);
+    keyword_table.addKeyword("break",    TokenType::BREAK);
+    keyword_table.addKeyword("while",    TokenType::WHILE);
+    keyword_table.addKeyword("return",   TokenType::RETURN);
+    keyword_table.addKeyword("continue", TokenType::CONTINUE);
 }
 
 } // namespace lexer::impl

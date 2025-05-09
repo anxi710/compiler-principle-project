@@ -7,12 +7,10 @@ namespace lexer::impl {
 
 class ToyLexer : public base::Lexer {
 public:
-    ToyLexer() : Lexer("") {
-        initKeywordTable();
-    }
+    ToyLexer() = delete;
 
     template<typename T>
-    ToyLexer(T&& text) : Lexer(std::forward<T>(text)) {
+    explicit ToyLexer(T&& t) : Lexer(std::forward<T>(t)) { // Perfect forwarding
         initKeywordTable();
     }
 
@@ -20,15 +18,6 @@ public:
 
 public: // virtual function
     std::optional<token::Token> nextToken() override;
-
-public:
-    /**
-     * @brief 重新设置待分析的文本
-     * @param text 文本字符串
-     */
-    inline void resetText(std::string&& text) {
-        this->text = std::move(text);
-    }
 
 private:
     void initKeywordTable();
