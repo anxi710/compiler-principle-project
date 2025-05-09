@@ -1,6 +1,12 @@
-fn main() {
-    let mut a : i32;
-    a = 1 \ 2;
-
-    b = 1 \ 3;
+fn f1(mut a : i32,mut b : i32){
+    return ;
+}
+fn main(mut a : i32, b : &i32, c : &mut i32){
+    let mut d;
+    let mut e : i32;
+    let mut f : i32 = 0;
+    e=(1-2)*6+4<2;
+    f1(a,(6+f+e*d>c));
+    a;
+    return 1;
 }
