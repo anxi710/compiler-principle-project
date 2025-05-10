@@ -2,6 +2,7 @@
 #include <sstream>
 #include <unordered_map>
 #include "include/ast.hpp"
+#include "include/token_type.hpp"
 
 namespace parser::ast {
 
@@ -35,9 +36,9 @@ static DotNodeDecl str2NodeDecl(const std::string& s) {
     return DotNodeDecl{name, label};
 }
 
-static DotNodeDecl tokenType2NodeDecl(const lexer::token::Type& t) {
+static DotNodeDecl tokenType2NodeDecl(lexer::token::Type t) {
     using TokenType = lexer::token::Type;
-    static const std::unordered_map<TokenType, std::string> maps {
+    static const std::unordered_map<TokenType, std::string> map {
         {TokenType::REF,       "&"},
         {TokenType::LPAREN,    "("},
         {TokenType::RPAREN,    ")"},
@@ -48,23 +49,13 @@ static DotNodeDecl tokenType2NodeDecl(const lexer::token::Type& t) {
         {TokenType::SEMICOLON, ";"},
         {TokenType::COLON,     ":"},
         {TokenType::COMMA,     ","},
-        {TokenType::OP_PLUS,   "+"},
         {TokenType::ASSIGN,    "="},
-        {TokenType::OP_MINUS,  "-"},
-        {TokenType::OP_MUL,    "*"},
-        {TokenType::OP_DIV,    "/"},
-        {TokenType::OP_GT,     ">"},
-        {TokenType::OP_LT,     "<"},
         {TokenType::DOT,       "."},
-        {TokenType::OP_EQ,     "=="},
-        {TokenType::OP_NEQ,    "!="},
-        {TokenType::OP_GE,     ">="},
-        {TokenType::OP_LE,     "<="},
         {TokenType::DOTS,      ".."},
         {TokenType::ARROW,     "->"}
     };
 
-    if (maps.find(t) == maps.end()) {
+    if (map.find(t) == map.end()) {
         throw std::runtime_error{"tokenType2NodeDecl(): Unknown Token Type."};
     }
 
@@ -72,9 +63,63 @@ static DotNodeDecl tokenType2NodeDecl(const lexer::token::Type& t) {
     oss << lexer::token::tokenType2str(t) << cnt++;
     std::string name {oss.str()};
 
-    std::string label = "[label = \"" + maps.find(t)->second + "\"]";
+    std::string label = "[label = \"" + map.find(t)->second + "\"]";
 
     return DotNodeDecl{name, label};
+}
+
+/**
+ * @brief  将 comparison operator 转换为 token type
+ * @param  op comparison operator
+ * @return token type
+ */
+static lexer::token::Type comparOper2TokenType(ast::ComparOperator op) {
+    using TokenType = lexer::token::Type;
+    using CmpOper   = ast::ComparOperator;
+    static std::unordered_map<CmpOper, TokenType> map {
+        {CmpOper::Equal,  TokenType::OP_EQ},
+        {CmpOper::Nequal, TokenType::OP_NEQ},
+        {CmpOper::Gequal, TokenType::OP_GE},
+        {CmpOper::Great,  TokenType::OP_GT},
+        {CmpOper::Less,   TokenType::OP_LT}
+    };
+
+    if (auto res = map.find(op);
+        res == map.end()) {
+        throw std::runtime_error{"Incorrect token type."};
+    } else {
+        return res->second;
+    }
+}
+
+/**
+ * @brief  将 arithmetic operator 转换为 token type
+ * @param  op arithmetic operator
+ * @return token type
+ */
+static lexer::token::Type arithOper2TokenType(ast::ArithOperator op) {
+    using TokenType = lexer::token::Type;
+    static std::unordered_map<ast::ArithOperator, TokenType> map {
+        {ast::ArithOperator::Add, TokenType::OP_PLUS},
+        {ast::ArithOperator::Sub, TokenType::OP_MINUS},
+        {ast::ArithOperator::Mul, TokenType::OP_MUL},
+        {ast::ArithOperator::Div, TokenType::OP_DIV}
+    };
+
+    if (auto res = map.find(op);
+        res == map.end()) {
+        throw std::runtime_error{"Incorrect token type."};
+    } else {
+        return res->second;
+    }
+}
+
+static DotNodeDecl comparOperator2NodeDecl(ast::ComparOperator op) {
+    return tokenType2NodeDecl(comparOper2TokenType(op));
+}
+
+static DotNodeDecl arithOperator2NodeDecl(ast::ArithOperator op) {
+    return tokenType2NodeDecl(arithOper2TokenType(op));
 }
 
 template<typename... T> // 变长参数模板
@@ -336,12 +381,15 @@ static auto factorExpr2Dot(const FactorPtr& f) {
     return std::make_tuple(n_factor, oss_nd.str(), oss_ed.str());
 }
 
-static auto arithmeticExpr2Dot(const std::shared_ptr<ast::ArithmeticExpr>& ae) {
+static auto comparExpr2Dot(const std::shared_ptr<ast::ArithExpr>& ce) {
+    
+}
+
+static auto arithExpr2Dot(const std::shared_ptr<ast::ArithExpr>& ae) {
     DotNodeDecl n_arith = str2NodeDecl("ArithmeticExpr");
 
-
     auto [n_lhs, lhs_nd, lhs_ed] = expr2Dot(ae->lhs);
-    DotNodeDecl n_op = tokenType2NodeDecl(ae->op);
+    DotNodeDecl n_op = arithOperator2NodeDecl(ae->op);
     auto [n_rhs, rhs_nd, rhs_ed] = expr2Dot(ae->rhs);
 
     std::ostringstream oss_nd, oss_ed;
@@ -439,6 +487,7 @@ static auto element2Dot(const ExprPtr& e){
 
     return std::make_tuple(n_element, oss_nd.str(), oss_ed.str());
 }
+
 static std::tuple<DotNodeDecl, std::string, std::string> expr2Dot(const ExprPtr& expr) {
     using enum ast::NodeType;
 
@@ -456,8 +505,8 @@ static std::tuple<DotNodeDecl, std::string, std::string> expr2Dot(const ExprPtr&
     case Factor:
         std::tie(rt, nd, ed) = factorExpr2Dot(std::dynamic_pointer_cast<ast::Factor>(expr));
         break;
-    case ArithmeticExpr:
-        std::tie(rt, nd, ed) = arithmeticExpr2Dot(std::dynamic_pointer_cast<ast::ArithmeticExpr>(expr));
+    case ComparExpr:
+        std::tie(rt, nd, ed) = comparExpr2Dot(std::dynamic_pointer_cast<ast::ArithExpr>(expr));
         break;
     default:
         rt = str2NodeDecl("UnknownExpr");
