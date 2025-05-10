@@ -2,8 +2,11 @@
 
 #include <string>
 #include <cassert>
+#include <sstream>
+#include <expected>
 #include <unordered_map>
 #include "token_type.hpp"
+#include "error_reporter.hpp"
 
 namespace lexer::keyword {
 
@@ -31,8 +34,15 @@ public:
      * @param  v token value
      * @return keyword token type
      */
-    inline token::Type getKeyword(std::string v) const {
-        assert(keywords.find(v) != keywords.end());
+    token::Type getKeyword(std::string v) const {
+        std::ostringstream oss;
+        if (keywords.find(v) == keywords.end()) {
+            oss << "调用参数（" << v << "）并非关键字";
+            reporter->report(
+                error::InternalErrorType::UnknownKeyword,
+                oss.str()
+            );
+        }
         return keywords.find(v)->second;
     }
 
@@ -45,7 +55,16 @@ public:
         this->keywords.emplace(n, t);
     }
 
+    /**
+     * @brief 设置错误报告器
+     * @param reporter 全局错误报告器
+     */
+    inline void setErrReporter(std::shared_ptr<error::ErrorReporter> reporter) {
+        this->reporter = std::move(reporter);
+    }
+
 private:
+    std::shared_ptr<error::ErrorReporter>        reporter; // error reporter
     std::unordered_map<std::string, token::Type> keywords; // keyword hash map
 };
 

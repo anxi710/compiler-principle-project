@@ -17,7 +17,7 @@ public:
     ~ToyLexer() = default;
 
 public: // virtual function
-    std::optional<token::Token> nextToken() override;
+    auto nextToken() -> std::expected<token::Token, error::LexError> override;
 
 private:
     void initKeywordTable();

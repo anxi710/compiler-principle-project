@@ -1,16 +1,25 @@
 #pragma once
 
+#include <memory>
 #include <optional>
+#include <expected>
 #include <functional>
 #include "ast.hpp"
 #include "token.hpp"
+
+namespace error {
+
+class LexError;
+class ErrorReporter;
+
+} // namespace error
 
 namespace parser::base {
 
 class Parser {
 public:
     Parser() = delete;
-    explicit Parser(std::function<std::optional<lexer::token::Token>()> nextTokenFunc);
+    explicit Parser(std::function<std::expected<lexer::token::Token, error::LexError>()> nextTokenFunc);
     ~Parser() = default;
 
 public:
@@ -50,9 +59,12 @@ private:
     ast::BreakStmtPtr         parseBreakStmt();
 
 private:
-    std::function<std::optional<lexer::token::Token>()> nextTokenFunc; // 获取下一个 token
-    std::optional<lexer::token::Token>                  current;       // 当前看到的 token
-    std::optional<lexer::token::Token>                  lookahead;     // 往后看一个 token
+    std::shared_ptr<error::ErrorReporter> reporter; // error reporter
+
+    std::function<std::expected<lexer::token::Token, error::LexError>()> nextTokenFunc; // 获取下一个 token
+
+    lexer::token::Token                current;   // 当前看到的 token
+    std::optional<lexer::token::Token> lookahead; // 往后看一个 token
 };
 
 } // namespace parser::base

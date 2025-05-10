@@ -1,5 +1,6 @@
-fn main(){
-    let a = (1);
-    let b = (1,);
-    let c = ((1));
+fn main() {
+    let mut a : i32;
+    a = 1 \ 2;
+
+    b = 1 \ 3;
 }
