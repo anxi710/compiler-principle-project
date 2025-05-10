@@ -622,17 +622,14 @@ static auto ifStmt2Dot(const IfStmtPtr& istmt) {
 
     for (const auto& clause : istmt->else_clauses) {
         if (clause->expr.has_value()) {
-            // 构建 "else if" 节点
             DotNodeDecl n_else_if = str2NodeDecl("else_if");
             oss_nd << nodeDecls2Str(n_else_if);
-            oss_ed << edge2Str(n_if_stmt, n_else_if);  // 连接到 if_stmt
+            oss_ed << edge2Str(n_if_stmt, n_else_if);  
     
-            // 表达式作为子节点
             auto [n_expr, e_nd, e_ed] = expr2Dot(clause->expr.value());
             oss_nd << e_nd;
             oss_ed << e_ed << edge2Str(n_if_stmt, n_expr);
 
-            // 块作为子节点
             auto [n_blk, blk_nd, blk_ed] = blockStmt2Dot(clause->block);
             oss_nd << blk_nd;
             oss_ed << blk_ed << edge2Str(n_if_stmt, n_blk);
