@@ -1,7 +1,7 @@
 <head>
-  <meta charset="UTF-8">
-  <title>AI Content</title>
-  <link rel="stylesheet" href="styles.css"> <!-- 修正后的引入外部CSS文件方式 -->
+    <meta charset="UTF-8">
+    <title>编译原理大作业 1 设计文档</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 # Compiler Principle Project 1
@@ -10,11 +10,13 @@
 
 ### 1.1 项目介绍
 
-本项目使用 C++ 实现一个类 Rust 语言的词法和语法分析器.
+本项目使用 `C++` 实现一个类 `Rust` 语言的词法和语法分析器。
 
-基本功能是对输入的类Rust程序实现词法和语法分析,并输出若干文件体现分析结果,采用 `<type: , value: >` 形式展示词法分析后的 Token 序列,采用 AST 树的形式展示语法分析结果.
-![alt text](grammar_graph.png)
-本次**实现功能**已经**超出**基本要求,从1.1 - 9.2 所有要求都已经实现;对于后续拓展功能的某些**羁绊**，因涉及到符号表内容暂未处理.
+基本功能是对输入的类 `Rust` 程序实现词法和语法分析，并输出若干文件体现分析结果，采用 \<type: , value: \>@pos 格式展示词法分析后的 Token 序列，采用 AST 树的形式展示语法分析结果。
+
+<img src="grammar_graph.png" width=500/>
+
+本次 **实现功能** 已经 **超出** 基本要求，1.1 - 9.2 所有要求都已经实现；对于后续拓展功能的某些 **羁绊**，因涉及到符号表内容暂未处理。
 
 ### 1.2 代码风格约定
 
@@ -92,7 +94,6 @@
   - 递归下降LL(2)分析
   - 包含文法规则实现和错误处理
   - 构建抽象语法树节点
-
 - 语法树展示模块**AST**:
   - 定义语法树节点结构
   - 支持语法树遍历和操作
@@ -282,142 +283,142 @@ void ToyLexer::initKeywordTable(void) {
 
 #### 3.2.3有限自动机实现
 
-step 1: 采用std::regex库使用正则表达式匹配INT和ID类.  
+step 1: 采用std::regex库使用正则表达式匹配INT和ID类.
 
 ```cpp
-    static const std::vector<std::pair<token::Type, std::regex>> patterns {
-        {token::Type::ID,  std::regex{R"(^[a-zA-Z_]\w*)"}},
-        {token::Type::INT, std::regex{R"(^\d+)"}}
-    };
+static const std::vector<std::pair<token::Type, std::regex>> patterns {
+    {token::Type::ID,  std::regex{R"(^[a-zA-Z_]\w*)"}},
+    {token::Type::INT, std::regex{R"(^\d+)"}}
+};
 ```
 
 step 2: 若匹配到ID,检查是否为关键词.
 
 ```cpp
-    std::string view {this->text.substr(this->pos)};
-    for (const auto& [type, expression] : patterns) {
-        std::smatch match;
-        if (std::regex_search(view, match, expression)) {
-            this->pos += match.length(0);
-            if (type == token::Type::ID && this->keyword_table.iskeyword(match.str(0))) {
-                return this->keyword_table.getKeyword(match.str(0));
-            }
-            return Token{type, match.str(0)};
+std::string view {this->text.substr(this->pos)};
+for (const auto& [type, expression] : patterns) {
+    std::smatch match;
+    if (std::regex_search(view, match, expression)) {
+        this->pos += match.length(0);
+        if (type == token::Type::ID && this->keyword_table.iskeyword(match.str(0))) {
+            return this->keyword_table.getKeyword(match.str(0));
         }
+        return Token{type, match.str(0)};
     }
+}
 ```
 
 step 3: 依次匹配剩余符号,包括单字符和双字符组合,优先匹配双字符.
 
 ```cpp
-    Token token       {};        // 识别到的词法单元
-    char  first_char  {view[0]}; // 当前看到的第一个字符
-    char  second_char {};        // 当前看到的第二个字符 - 用于 lookahead
-    if(this->text.length() - this->pos > 1) {
-        second_char = view[1];
-    }
+Token token       {};        // 识别到的词法单元
+char  first_char  {view[0]}; // 当前看到的第一个字符
+char  second_char {};        // 当前看到的第二个字符 - 用于 lookahead
+if(this->text.length() - this->pos > 1) {
+    second_char = view[1];
+}
 
-    // 检测算符和标点符号
-    switch (first_char) {
-    default:
-        break;
-    case '(':
-        token = Token{token::Type::LPAREN, std::string{"("}};
-        break;
-    case ')':
-        token = Token{token::Type::RPAREN, std::string{")"}};
-        break;
-    case '{':
-        token = Token{token::Type::LBRACE, std::string{"{"}};
-        break;
-    case '}':
-        token = Token{token::Type::RBRACE, std::string{"}"}};
-        break;
-    case '[':
-        token = Token{token::Type::LBRACK, std::string{"["}};
-        break;
-    case ']':
-        token = Token{token::Type::RBRACK, std::string{"]"}};
-        break;
-    case ';':
-        token = Token{token::Type::SEMICOLON, std::string{";"}};
-        break;
-    case ':':
-        token = Token{token::Type::COLON, std::string{":"}};
-        break;
-    case ',':
-        token = Token{token::Type::COMMA, std::string{","}};
-        break;
-    case '+':
-        token = Token{token::Type::OP_PLUS, std::string{"+"}};
-        break;
-    case '=':
-        if (second_char == '='){
-            token = Token{token::Type::OP_EQ, std::string{"=="}};
-        } else {
-            token = Token{token::Type::ASSIGN, std::string{"="}};
-        }
-        break;
-    case '-':
-        if (second_char == '>'){
-            token = Token{token::Type::ARROW, std::string{"->"}};
-        } else {
-            token = Token{token::Type::OP_MINUS, std::string{"-"}};
-        }
-        break;
-    case '*':
-        if (second_char == '/'){
-            token = Token{token::Type::RMUL_COM, std::string{"*/"}};
-        } else {
-            token = Token{token::Type::OP_MUL, std::string{"*"}};
-        }
-        break;
-    case '/':
-        if (second_char == '/'){
-            token = Token{token::Type::SIN_COM, std::string{"//"}};
-        } else if (second_char == '*'){
-            token = Token{token::Type::LMUL_COM, std::string{"/*"}};
-        } else {
-            token = Token{token::Type::OP_DIV, std::string{"/"}};
-        }
-        break;
-    case '>':
-        if (second_char == '=') {
-            token = Token{token::Type::OP_GE, std::string{">="}};
-        } else {
-            token = Token{token::Type::OP_GT, std::string{">"}};
-        }
-        break;
-    case '<':
-        if (second_char == '='){
-            token = Token{token::Type::OP_LE, std::string{"<="}};
-        } else {
-            token = Token{token::Type::OP_LT, std::string{"<"}};
-        }
-        break;
-    case '.':
-        if(second_char == '.'){
-            token = Token{token::Type::DOTS, std::string{".."}};
-        } else{
-            token = Token{token::Type::DOT, std::string{"."}};
-        }
-        break;
-    case '!':
-        if(second_char == '='){
-            token = Token{token::Type::OP_NEQ, std::string{"!="}};
-        }
-        break;
-    case '&':
-        token = Token{token::Type::Ref, std::string{"&"}};
-        break;
+// 检测算符和标点符号
+switch (first_char) {
+default:
+    break;
+case '(':
+    token = Token{token::Type::LPAREN, std::string{"("}};
+    break;
+case ')':
+    token = Token{token::Type::RPAREN, std::string{")"}};
+    break;
+case '{':
+    token = Token{token::Type::LBRACE, std::string{"{"}};
+    break;
+case '}':
+    token = Token{token::Type::RBRACE, std::string{"}"}};
+    break;
+case '[':
+    token = Token{token::Type::LBRACK, std::string{"["}};
+    break;
+case ']':
+    token = Token{token::Type::RBRACK, std::string{"]"}};
+    break;
+case ';':
+    token = Token{token::Type::SEMICOLON, std::string{";"}};
+    break;
+case ':':
+    token = Token{token::Type::COLON, std::string{":"}};
+    break;
+case ',':
+    token = Token{token::Type::COMMA, std::string{","}};
+    break;
+case '+':
+    token = Token{token::Type::OP_PLUS, std::string{"+"}};
+    break;
+case '=':
+    if (second_char == '='){
+        token = Token{token::Type::OP_EQ, std::string{"=="}};
+    } else {
+        token = Token{token::Type::ASSIGN, std::string{"="}};
     }
-
-    if (!token.getValue().empty()) {
-        this->pos += token.getValue().length();
-        return token;
+    break;
+case '-':
+    if (second_char == '>'){
+        token = Token{token::Type::ARROW, std::string{"->"}};
+    } else {
+        token = Token{token::Type::OP_MINUS, std::string{"-"}};
     }
+    break;
+case '*':
+    if (second_char == '/'){
+        token = Token{token::Type::RMUL_COM, std::string{"*/"}};
+    } else {
+        token = Token{token::Type::OP_MUL, std::string{"*"}};
+    }
+    break;
+case '/':
+    if (second_char == '/'){
+        token = Token{token::Type::SIN_COM, std::string{"//"}};
+    } else if (second_char == '*'){
+        token = Token{token::Type::LMUL_COM, std::string{"/*"}};
+    } else {
+        token = Token{token::Type::OP_DIV, std::string{"/"}};
+    }
+    break;
+case '>':
+    if (second_char == '=') {
+        token = Token{token::Type::OP_GE, std::string{">="}};
+    } else {
+        token = Token{token::Type::OP_GT, std::string{">"}};
+    }
+    break;
+case '<':
+    if (second_char == '='){
+        token = Token{token::Type::OP_LE, std::string{"<="}};
+    } else {
+        token = Token{token::Type::OP_LT, std::string{"<"}};
+    }
+    break;
+case '.':
+    if(second_char == '.'){
+        token = Token{token::Type::DOTS, std::string{".."}};
+    } else{
+        token = Token{token::Type::DOT, std::string{"."}};
+    }
+    break;
+case '!':
+    if(second_char == '='){
+        token = Token{token::Type::OP_NEQ, std::string{"!="}};
+    }
+    break;
+case '&':
+    token = Token{token::Type::Ref, std::string{"&"}};
+    break;
+}
 
-    return std::nullopt; // 识别到未知 token
+if (!token.getValue().empty()) {
+    this->pos += token.getValue().length();
+    return token;
+}
+
+return std::nullopt; // 识别到未知 token
 ```
 
 #### 3.2.4 位置信息跟踪
@@ -446,47 +447,47 @@ Expr        → FuncExprBlockStmt | IfExpr | LoopStmt | CmpExpr
 实际实现的产生式如下：
 
 ```shell
-- Prog -> (FuncDecl)*
-- FuncDecl -> FuncHeaderDecl BlockStmt
-- BlockStmt -> FuncExprBlockStmt
-- FuncHeaderDecl -> "fn" "\<ID\>" "(" (arg ("," arg)*)? ")" ("->" VarType)?
-- arg -> VarDeclBody ":" VarType
-- VarDeclBody -> ("mut")? "\<ID\>"
-- VarType -> (["&" | "&" "mut"])? [Integer | Array | Tuple]
-- Integer -> "i32"
-- Array -> "[" VarType ";" "\<INT\>" "]"
-- Tuple -> "(" (VarType ",")+ (VarType)? ")"
-- BlockStmt -> "{" (Stmt)* "}"
-- FuncExprBlockStmt -> "{" (Stmt)* Expr "}"
-- Stmt -> VarDeclStmt | RetStmt | CallExpr | AssignStmt | ExprStmt | IfStmt | WhileStmt | ForStmt | LoopStmt | BreakStmt | ContinueStmt | NullStmt
-- VarDeclStmt -> "let" ("mut")? "\<ID\>" (":" VarType)? ("=" Expr)? ";"
-- RetStmt -> "return" (CmpExpr)? ";"
-- CallExpr -> "\<ID\>" "(" (arg ("," arg)*)? ")"
-- AssignStmt -> AssignElement "=" Expr ";"
-- AssignElement -> Deference | ArrayAccess | TupleAccess | Variable
-- Deference -> "*" "\<ID\>"
-- ArrayAccess -> "\<ID\>" "[" Expr "]"
-- TupleAccess -> "\<ID\>" "." "\<INT\>"
-- Variable -> "\<ID\>"
-- ExprStmt -> Expr ";"
-- IfStmt -> "if" CmpExpr BlockStmt (ElseClause)*
-- ElseClause -> "else" ("if" Expr)? BlockStmt
-- WhileStmt -> "while" CmpExpr BlockStmt
-- ForStmt -> "for" VarDeclBody "in" CmpExpr ".." CmpExpr BlockStmt
-- LoopStmt -> "loop" BlockStmt
-- BreakStmt -> "break" (Expr)? ";"
-- ContinueStmt -> "continue" ";"
-- NullStmt -> ";"
-- Expr -> FuncExprBlockStmt | IfExpr | loopExpr | CmpExpr
-- CmpExpr -> AddExpr ([\< | \<= | \> | \>= | == | !=] AddExpr)*
-- AddExpr -> MulExpr ([+ | -] MulExpr)*
-- MulExpr -> Factor ([\* | /] Factor)*
-- Factor -> ArrayElements | TupleElements | (["&" | "&" "mut"])? Element | ParenthesisExpr
-- ArrayElements -> "[" Expr ("," Expr)* "]"
-- TupleElements -> "(" (Expr ",")+ (Expr)? ")"
-- Element -> ParenthesisExpr | "\<INT\>" | AssignElement | CallExpr | Variable
-- ParenthesisExpr -> "(" CmpExpr ")"
-- IfExpr -> "if" Expr FuncExprBlockStmt "else" FuncExprBlockStmt
+Prog -> (FuncDecl)*
+FuncDecl -> FuncHeaderDecl BlockStmt
+BlockStmt -> FuncExprBlockStmt
+FuncHeaderDecl -> "fn" "\<ID\>" "(" (arg ("," arg)*)? ")" ("->" VarType)?
+arg -> VarDeclBody ":" VarType
+VarDeclBody -> ("mut")? "\<ID\>"
+VarType -> (["&" | "&" "mut"])? [Integer | Array | Tuple]
+Integer -> "i32"
+Array -> "[" VarType ";" "\<INT\>" "]"
+Tuple -> "(" (VarType ",")+ (VarType)? ")"
+BlockStmt -> "{" (Stmt)* "}"
+FuncExprBlockStmt -> "{" (Stmt)* Expr "}"
+Stmt -> VarDeclStmt | RetStmt | CallExpr | AssignStmt | ExprStmt | IfStmt | WhileStmt | ForStmt | LoopStmt | BreakStmt | ContinueStmt | NullStmt
+VarDeclStmt -> "let" ("mut")? "\<ID\>" (":" VarType)? ("=" Expr)? ";"
+RetStmt -> "return" (CmpExpr)? ";"
+CallExpr -> "\<ID\>" "(" (arg ("," arg)*)? ")"
+AssignStmt -> AssignElement "=" Expr ";"
+AssignElement -> Deference | ArrayAccess | TupleAccess | Variable
+Deference -> "*" "\<ID\>"
+ArrayAccess -> "\<ID\>" "[" Expr "]"
+TupleAccess -> "\<ID\>" "." "\<INT\>"
+Variable -> "\<ID\>"
+ExprStmt -> Expr ";"
+IfStmt -> "if" CmpExpr BlockStmt (ElseClause)*
+ElseClause -> "else" ("if" Expr)? BlockStmt
+WhileStmt -> "while" CmpExpr BlockStmt
+ForStmt -> "for" VarDeclBody "in" CmpExpr ".." CmpExpr BlockStmt
+LoopStmt -> "loop" BlockStmt
+BreakStmt -> "break" (Expr)? ";"
+ContinueStmt -> "continue" ";"
+NullStmt -> ";"
+Expr -> FuncExprBlockStmt | IfExpr | loopExpr | CmpExpr
+CmpExpr -> AddExpr ([\< | \<= | \> | \>= | == | !=] AddExpr)*
+AddExpr -> MulExpr ([+ | -] MulExpr)*
+MulExpr -> Factor ([\* | /] Factor)*
+Factor -> ArrayElements | TupleElements | (["&" | "&" "mut"])? Element | ParenthesisExpr
+ArrayElements -> "[" Expr ("," Expr)* "]"
+TupleElements -> "(" (Expr ",")+ (Expr)? ")"
+Element -> ParenthesisExpr | "\<INT\>" | AssignElement | CallExpr | Variable
+ParenthesisExpr -> "(" CmpExpr ")"
+IfExpr -> "if" Expr FuncExprBlockStmt "else" FuncExprBlockStmt
 ```
 
 #### 4.1.2 消除左递归
@@ -494,36 +495,36 @@ Expr        → FuncExprBlockStmt | IfExpr | LoopStmt | CmpExpr
 产生式左递归主要出现在Expr相关内容：
 
 ```shell
-**3.2 表达式增加计算和比较（前置规则 3.1）**:
+3.2 表达式增加计算和比较（前置规则 3.1）:
 
-- Expr -> Expr [\< | \<= | \> | \>= | == | !=] AddExpr
-- AddExpr -> AddExpr [+ | -] Item
-- Item -> Item [\* | /] Factor
+Expr -> Expr [\< | \<= | \> | \>= | == | !=] AddExpr
+AddExpr -> AddExpr [+ | -] Item
+Item -> Item [\* | /] Factor
 ```
 
 我们采用分层处理优先级方法实现Expr并消除左递归：
 
 ```shell
-- Expr -> FuncExprBlockStmt | IfExpr | loopExpr | CmpExpr
-- CmpExpr -> AddExpr ([\< | \<= | \> | \>= | == | !=] AddExpr)*
-- AddExpr -> MulExpr ([+ | -] MulExpr)*
-- MulExpr -> Factor ([\* | /] Factor)*
-- Factor -> ArrayElements | TupleElements | (["&" | "&" "mut"])? Element | ParenthesisExpr
+Expr -> FuncExprBlockStmt | IfExpr | loopExpr | CmpExpr
+CmpExpr -> AddExpr ([\< | \<= | \> | \>= | == | !=] AddExpr)*
+AddExpr -> MulExpr ([+ | -] MulExpr)*
+MulExpr -> Factor ([\* | /] Factor)*
+Factor -> ArrayElements | TupleElements | (["&" | "&" "mut"])? Element | ParenthesisExpr
 ```
 
 #### 4.1.3 通过vector实现右递归减少递归层数
 
-以`Args → (Arg ("," Arg)*)?`为例,采用vector来代替右递归.
+以 `Args → (Arg ("," Arg)*)?` 为例,采用vector来代替右递归.
 
 ```cpp
-    std::vector<ast::ArgPtr> argv {};
-    while(!check(TokenType::RPAREN)) {
-        argv.push_back(parseArg());
-        if (!check(TokenType::COMMA)) {
-            break;
-        }
-        advance();
+std::vector<ast::ArgPtr> argv {};
+while(!check(TokenType::RPAREN)) {
+    argv.push_back(parseArg());
+    if (!check(TokenType::COMMA)) {
+        break;
     }
+    advance();
+}
 ```
 
 ### 4.2 语法分析器Parser实现
@@ -552,8 +553,7 @@ private:
 - lookahead 表示预读token
 - nextTokenFunc 接收lexer::nextToken()
 
-主要方法有:
-advance,match,check,checkAhead,expect,这些方法为词法分析提供必要功能,详见下面注释与代码:
+主要方法有：`advance`, `match`, `check`, `checkAhead`, `expect`，这些方法为词法分析提供必要功能，详见下面注释与代码：
 
 ```cpp
 /**
@@ -621,37 +621,35 @@ void Parser::expect(lexer::token::Type type, const std::string& error_msg) {
 对于每个非终结符,都有对应的解析函数.
 
 ```cpp
-public:
-    ast::ProgPtr parseProgram();
-private:
-    ast::FuncDeclPtr          parseFuncDecl();
-    ast::FuncHeaderDeclPtr    parseFuncHeaderDecl();
-    ast::NodePtr              parseStmtOrExpr();
-    ast::BlockStmtPtr         parseBlockStmt();
-    ast::RetStmtPtr           parseRetStmt();
-    ast::ArgPtr               parseArg();
-    ast::VarDeclStmtPtr       parseVarDeclStmt();
-    ast::AssignStmtPtr        parseAssignStmt(ast::AssignElementPtr&& lvalue);
-    ast::AssignElementPtr     parseAssignElement();
-    ast::ExprPtr              parseExpr(std::optional<ast::AssignElementPtr> elem = std::nullopt);
-    ast::ExprPtr              parseCmpExpr(std::optional<ast::AssignElementPtr> elem = std::nullopt);
-    ast::ExprPtr              parseAddExpr(std::optional<ast::AssignElementPtr> elem = std::nullopt);
-    ast::ExprPtr              parseMulExpr(std::optional<ast::AssignElementPtr> elem = std::nullopt);
-    ast::ExprPtr              parseFactor(std::optional<ast::AssignElementPtr> elem = std::nullopt);
-    ast::ExprPtr              parseElementExpr(std::optional<ast::AssignElementPtr> elem = std::nullopt);
-    ast::CallExprPtr          parseCallExpr();
-    ast::IfStmtPtr            parseIfStmt();
-    ast::ElseClausePtr        parseElseClause();
-    ast::WhileStmtPtr         parseWhileStmt();
-    ast::ForStmtPtr           parseForStmt();
-    ast::LoopStmtPtr          parseLoopStmt();
-    ast::VarTypePtr           parseVarType();
-    ast::FuncExprBlockStmtPtr parseFuncExprBlockStmt();
-    ast::IfExprPtr            parseIfExpr();
-    ast::BreakStmtPtr         parseBreakStmt();
+ast::ProgPtr              parseProgram();
+ast::FuncDeclPtr          parseFuncDecl();
+ast::FuncHeaderDeclPtr    parseFuncHeaderDecl();
+ast::NodePtr              parseStmtOrExpr();
+ast::BlockStmtPtr         parseBlockStmt();
+ast::RetStmtPtr           parseRetStmt();
+ast::ArgPtr               parseArg();
+ast::VarDeclStmtPtr       parseVarDeclStmt();
+ast::AssignStmtPtr        parseAssignStmt(ast::AssignElementPtr&&);
+ast::AssignElementPtr     parseAssignElement();
+ast::ExprPtr              parseExpr(std::optional<ast::AssignElementPtr>);
+ast::ExprPtr              parseCmpExpr(std::optional<ast::AssignElementPtr>);
+ast::ExprPtr              parseAddExpr(std::optional<ast::AssignElementPtr>);
+ast::ExprPtr              parseMulExpr(std::optional<ast::AssignElementPtr>);
+ast::ExprPtr              parseFactor(std::optional<ast::AssignElementPtr>);
+ast::ExprPtr              parseElementExpr(std::optional<ast::AssignElementPtr>);
+ast::CallExprPtr          parseCallExpr();
+ast::IfStmtPtr            parseIfStmt();
+ast::ElseClausePtr        parseElseClause();
+ast::WhileStmtPtr         parseWhileStmt();
+ast::ForStmtPtr           parseForStmt();
+ast::LoopStmtPtr          parseLoopStmt();
+ast::VarTypePtr           parseVarType();
+ast::FuncExprBlockStmtPtr parseFuncExprBlockStmt();
+ast::IfExprPtr            parseIfExpr();
+ast::BreakStmtPtr         parseBreakStmt();
 ```
 
-每个函数的返回值都是AST结点,每个非终结符都有各自的解析函数,顶层是`parseProgram()`外部调用,由此逐层向下递归分析整个程序.
+每个函数的返回值都是 AST 结点，每个非终结符都有各自的解析函数，顶层是 `parseProgram()` 外部调用，由此逐层向下递归分析整个程序。
 
 ##### 解析函数示例
 
@@ -664,7 +662,6 @@ private:
  */
 [[nodiscard]]
 ast::FuncHeaderDeclPtr Parser::parseFuncHeaderDecl() {
-    // FuncHeaderDecl -> fn <ID> ( <args> )
     using TokenType = lexer::token::Type;
 
     expect(TokenType::FN, "Expected 'fn'");
@@ -720,7 +717,8 @@ ast::NodePtr Parser::parseStmtOrExpr() {
             return parseCallExpr();
         }
         /*
-         * x, *x, x[idx], x.idx 都即可以作为赋值语句的左值，又可以作为表达式的一个操作数
+         * x, *x, x[idx], x.idx 都即可以作为赋值语句的左值，
+         * 又可以作为表达式的一个操作数
          */
         auto elem = parseAssignElement();
         if (check(TokenType::ASSIGN)) {

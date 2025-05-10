@@ -6,8 +6,6 @@ namespace lexer::token {
 
 // token 类型
 enum class Type {
-    DEFAULT, // 默认值，无意义
-
     // Group 0
     END, // end of file
 

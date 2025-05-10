@@ -3,6 +3,10 @@
  * multiline comment
  */
 fn main() {
-    ;
+    /* */
+    /*
+    /* */
+    */
+    ; // /* */
 }
 

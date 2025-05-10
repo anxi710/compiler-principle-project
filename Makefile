@@ -1,5 +1,5 @@
 # Flags
-CXXFLAGS := -Wall -Wno-register -std=c++2a
+CXXFLAGS := -Wall -Wno-register -std=c++23
 
 # Debug flags
 DEBUG ?= 1
@@ -10,7 +10,7 @@ CXXFLAGS += -g -O0
 endif
 
 # Compilers
-CXX := clang++
+CXX := g++
 
 # Directories
 TARGET_EXEC := toy_compiler
