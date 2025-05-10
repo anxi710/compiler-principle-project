@@ -333,6 +333,7 @@ struct TupleElements : Expr {
     constexpr NodeType type() const override { return NodeType::TupleElements; }
 };
 using TupleElementsPtr = std::shared_ptr<TupleElements>;
+
 // Return Statement
 struct RetStmt : Stmt {
     std::optional<ExprPtr> ret_val; // return value (an expression)
@@ -567,6 +568,6 @@ struct IfExpr : Expr {
 };
 using  IfExprPtr = std::shared_ptr<IfExpr>;
 
-void ast2Dot(std::ofstream& out, const ProgPtr p_prog);
+void ast2Dot(std::ofstream& out, const ProgPtr& prog);
 
 } // namespace parser::ast

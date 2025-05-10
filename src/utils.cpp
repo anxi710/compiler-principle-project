@@ -24,7 +24,7 @@ void printVersion() {
      * 使用语义版本控制 (SemVer) 原则设置版本号
      * major.minor.patch
      */
-    std::cout << "Toy compiler: version 0.1.0" << std::endl;
+    std::cout << "Toy compiler: version 0.2.2" << std::endl;
     std::cout << "This is a toy compiler developed by xh, csx and qsw." << std::endl;
     std::cout << "Have fun with it!" << std::endl;
 }

@@ -111,8 +111,8 @@ ast::FuncHeaderDeclPtr Parser::parseFuncHeaderDecl() {
 
     expect(TokenType::FN, "Expected 'fn'");
 
+    std::string name = current->getValue(); // function name - 注意需要先获取再 match <ID>
     expect(TokenType::ID, "Expected function name");
-    std::string name = current->getValue(); // function name
 
     expect(TokenType::LPAREN, "Expected '('");
 
@@ -198,6 +198,7 @@ ast::NodePtr Parser::parseStmtOrExpr() {
         if (check(TokenType::ASSIGN)) {
             stmt =  parseAssignStmt(std::move(elem));
         } else {
+
             return parseExpr(elem);
         }
     } else if (check(TokenType::INT) || check(TokenType::LPAREN)) {
@@ -257,8 +258,9 @@ ast::ArgPtr Parser::parseArg() {
         mutable_ = true;
         advance();
     }
+    std::string name = current->getValue();
     expect(TokenType::ID, "Expected '<ID>'");
-    auto var = std::make_shared<ast::VarDeclBody>(mutable_, current->getValue());
+    auto var = std::make_shared<ast::VarDeclBody>(mutable_, name);
 
     expect(TokenType::COLON, "Expected ':'");
     auto type = parseVarType();
@@ -281,8 +283,8 @@ ast::VarDeclStmtPtr Parser::parseVarDeclStmt() {
         mut = true;
         advance();
     }
+    auto identifier = std::make_shared<ast::VarDeclBody>(mut, current->getValue());
     expect(TokenType::ID, "Expected '<ID>'");
-    auto identifier  = std::make_shared<ast::VarDeclBody>(mut, current->getValue());
 
     ast::VarTypePtr type;
     bool            has_type = false;
@@ -335,13 +337,14 @@ ast::AssignElementPtr Parser::parseAssignElement() {
 
     if (check(TokenType::OP_MUL)) {
         advance();
-        expect(TokenType::ID, "Expected '<ID>'");
         std::string var = current.value().getValue();
+        expect(TokenType::ID, "Expected '<ID>'");
+
         return std::make_shared<ast::Dereference>(std::move(var));
     }
-
-    expect(TokenType::ID, "Expected '<ID>'");
     std::string var = current.value().getValue();
+    expect(TokenType::ID, "Expected '<ID>'");
+
     if(check(TokenType::LBRACK)) {
         advance();
         auto expr = parseExpr();
@@ -549,7 +552,7 @@ ast::ExprPtr Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) {
     }
 
     ast::RefType ref_type {ast::RefType::Normal};
-    if (check(TokenType::Ref)) {
+    if (check(TokenType::REF)) {
         advance();
         if (check(TokenType::MUT)) {
             advance();
@@ -612,9 +615,9 @@ ast::ExprPtr Parser::parseElement(std::optional<ast::AssignElementPtr> elem) {
 [[nodiscard]]
 ast::CallExprPtr Parser::parseCallExpr() {
     using TokenType = lexer::token::Type;
-
-    expect(TokenType::ID, "Expected function name");
     std::string name = current->getValue(); // function name
+    expect(TokenType::ID, "Expected function name");
+
     expect(TokenType::LPAREN, "Expected '('");
 
     std::vector<ast::ExprPtr> argv{};
@@ -744,7 +747,7 @@ ast::VarTypePtr Parser::parseVarType() {
     using TokenType = lexer::token::Type;
 
     ast::RefType ref_type {ast::RefType::Normal};
-    if (check(TokenType::Ref)) {
+    if (check(TokenType::REF)) {
         advance();
         if (check(TokenType::MUT)) {
             advance();

@@ -145,7 +145,7 @@ std::optional<token::Token> ToyLexer::nextToken() {
         }
         break;
     case '&':
-        token = Token{token::Type::Ref, std::string{"&"}};
+        token = Token{token::Type::REF, std::string{"&"}};
         break;
     }
 

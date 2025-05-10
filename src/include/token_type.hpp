@@ -24,7 +24,7 @@ enum class Type {
     LOOP,
     BREAK, CONTINUE,
 
-    Ref,        //  &
+    REF,        //  &
     LPAREN,     //  (
     RPAREN,     //  )
     LBRACE,     //  {
