@@ -1,10 +1,3 @@
-<<<<<<< HEAD
-fn main() {
-    let mut a : i32;
-    a = 1 \ 2;
-
-    b = 1 \ 3;
-=======
 fn f1(mut a : i32,mut b : i32){
     if a>0{
         a+1;
@@ -28,5 +21,4 @@ fn main(mut a : i32, b : &i32, c : &mut i32) -> i32 {
     f1(a,(6+f+e*d>c));
     a;
     return 1;
->>>>>>> main
 }
