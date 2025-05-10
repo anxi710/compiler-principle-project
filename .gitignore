@@ -7,6 +7,8 @@
 !README.md
 !/note/*
 !/docs/*
+!/report/*
+report/*.pdf
 !**/*.cpp
 !**/*.hpp
 !.githooks/*
@@ -14,7 +16,5 @@
 !.vscode/tasks.json
 !**/Makefile
 !test/test_case/*.rs
-!/report/*
 
 src_regex/*
-
