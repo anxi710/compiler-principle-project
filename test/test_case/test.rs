@@ -1,4 +1,16 @@
 fn f1(mut a : i32,mut b : i32){
+    if a>0{
+        a+1;
+    }
+    else if a<0{
+        a*2;
+    }
+    else{
+        a-1;
+    }
+    while b>0{
+        b=b-1;
+    }
     return ;
 }
 fn main(mut a : i32, b : &i32, c : &mut i32) -> i32 {
