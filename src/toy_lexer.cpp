@@ -2,17 +2,18 @@
 #include <cctype>
 #include <vector>
 #include <cstdlib>
-#include <iostream>
+#include <string_view>
 #include "include/token.hpp"
 #include "include/toy_lexer.hpp"
+#include "include/error_reporter.hpp"
 
 namespace lexer::impl {
 
 /**
  * @brief  获取下一个词法单元
- * @return token
+ * @return token / LexErrorPtr
  */
-std::optional<token::Token> ToyLexer::nextToken() {
+auto ToyLexer::nextToken() -> std::expected<token::Token, error::LexError> {
     using token::Token;
     static const std::vector<std::pair<token::Type, std::regex>> patterns {
         {token::Type::ID,  std::regex{R"(^[a-zA-Z_]\w*)"}},
@@ -168,7 +169,22 @@ std::optional<token::Token> ToyLexer::nextToken() {
         return token;
     }
 
-    return std::nullopt; // 识别到未知 token
+    base::Position p = this->pos;
+    std::size_t idx = 0;
+    for (; idx < view.length(); ++idx) {
+        if (std::isspace(view[idx])) {
+            break;
+        }
+    }
+    shiftPos(idx);
+
+    return std::unexpected(error::LexError{
+        error::LexErrorType::UnknownToken,
+        "识别到未知的 token: " + view.substr(0, idx),
+        p.row,
+        p.col,
+        view.substr(0, idx)
+    });
 }
 
 /**
@@ -176,19 +192,21 @@ std::optional<token::Token> ToyLexer::nextToken() {
  */
 void ToyLexer::initKeywordTable(void) {
     using TokenType = token::Type;
-    keyword_table.addKeyword("if",       TokenType::IF);
-    keyword_table.addKeyword("fn",       TokenType::FN);
-    keyword_table.addKeyword("in",       TokenType::IN);
-    keyword_table.addKeyword("i32",      TokenType::I32);
-    keyword_table.addKeyword("let",      TokenType::LET);
-    keyword_table.addKeyword("mut",      TokenType::MUT);
-    keyword_table.addKeyword("for",      TokenType::FOR);
-    keyword_table.addKeyword("loop",     TokenType::LOOP);
-    keyword_table.addKeyword("else",     TokenType::ELSE);
-    keyword_table.addKeyword("break",    TokenType::BREAK);
-    keyword_table.addKeyword("while",    TokenType::WHILE);
-    keyword_table.addKeyword("return",   TokenType::RETURN);
-    keyword_table.addKeyword("continue", TokenType::CONTINUE);
+    this->keyword_table.addKeyword("if",       TokenType::IF);
+    this->keyword_table.addKeyword("fn",       TokenType::FN);
+    this->keyword_table.addKeyword("in",       TokenType::IN);
+    this->keyword_table.addKeyword("i32",      TokenType::I32);
+    this->keyword_table.addKeyword("let",      TokenType::LET);
+    this->keyword_table.addKeyword("mut",      TokenType::MUT);
+    this->keyword_table.addKeyword("for",      TokenType::FOR);
+    this->keyword_table.addKeyword("loop",     TokenType::LOOP);
+    this->keyword_table.addKeyword("else",     TokenType::ELSE);
+    this->keyword_table.addKeyword("break",    TokenType::BREAK);
+    this->keyword_table.addKeyword("while",    TokenType::WHILE);
+    this->keyword_table.addKeyword("return",   TokenType::RETURN);
+    this->keyword_table.addKeyword("continue", TokenType::CONTINUE);
+
+    this->keyword_table.setErrReporter(this->reporter);
 }
 
 } // namespace lexer::impl

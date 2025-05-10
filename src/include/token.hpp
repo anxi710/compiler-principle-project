@@ -47,6 +47,14 @@ public:
     }
 
     /**
+     * @brief  获取 token 的位置
+     * @return Position
+     */
+    inline const base::Position getPos() const {
+        return this->pos;
+    }
+
+    /**
      * @brief 设置 token 所在的文本位置
      * @param p struct Position {row, col}
      */

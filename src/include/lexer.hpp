@@ -2,10 +2,18 @@
 
 #include <string>
 #include <vector>
-#include <optional>
+#include <memory>
 #include <sstream>
+#include <expected>
 #include "token.hpp"
 #include "lexer_position.hpp"
+
+namespace error {
+
+class LexError;
+class ErrorReporter;
+
+} // namespace error
 
 namespace lexer::base {
 
@@ -18,7 +26,7 @@ public:
     virtual ~Lexer() = default;
 
 public:
-    virtual std::optional<token::Token> nextToken() = 0;
+    virtual auto nextToken() -> std::expected<token::Token, error::LexError> = 0;
 
 public:
     /**
@@ -30,10 +38,20 @@ public:
         this->peek = this->text[p.row][p.col];
     }
 
+    /**
+     * @brief 设置错误报告器
+     * @param reporter 全局错误报告器
+     */
+    inline void setErrReporter(std::shared_ptr<error::ErrorReporter> reporter) {
+        this->reporter = std::move(reporter);
+    }
+
 protected:
-    std::vector<std::string> text; // text to be scanned
-    Position                 pos;  // the next position to be scanned
-    char                     peek; // the next character to be scanned
+    std::shared_ptr<error::ErrorReporter> reporter; // error reporter
+
+    std::vector<std::string>       text; // text to be scanned
+    Position                       pos;  // the next position to be scanned
+    char                           peek; // the next character to be scanned
 };
 
 } // namespace lexer::base

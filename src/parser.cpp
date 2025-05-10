@@ -1,12 +1,12 @@
 #include <cassert>
 #include "include/parser.hpp"
-#include<iostream>
+#include "include/error_reporter.hpp"
 
 namespace parser::base {
 
 /* constructor */
 
-Parser::Parser(std::function<std::optional<lexer::token::Token>()> nextTokenFunc)
+Parser::Parser(std::function<std::expected<lexer::token::Token, error::LexError>()> nextTokenFunc)
     : nextTokenFunc(std::move(nextTokenFunc)) {
     advance(); // 初始化，使 current 指向第一个 token
 }
@@ -20,10 +20,15 @@ Parser::Parser(std::function<std::optional<lexer::token::Token>()> nextTokenFunc
  */
 void Parser::advance() {
     if (lookahead.has_value()) {
-        current = lookahead;
+        current = lookahead.value();
         lookahead.reset(); // 清除 lookahead 中的值
     } else {
-        current = nextTokenFunc();
+        if (auto token = nextTokenFunc();
+            token.has_value()) {
+            current = token.value();
+        } else { // 如果识别到未知 token，则发生了词法分析错误，且需要立即终止
+            reporter->report(token.error(), true);
+        }
     }
 }
 
@@ -46,7 +51,7 @@ bool Parser::match(lexer::token::Type type) {
  * @return 是否通过检查
  */
 bool Parser::check(lexer::token::Type type) const {
-    return current.has_value() && current.value().getType() == type;
+    return current.getType() == type;
 }
 
 /**
@@ -56,19 +61,30 @@ bool Parser::check(lexer::token::Type type) const {
  */
 bool Parser::checkAhead(lexer::token::Type type) {
     if (!lookahead.has_value()) {
-        lookahead = nextTokenFunc(); // 获取下一个 token
+        if (auto token = nextTokenFunc();
+            token.has_value()) {
+            lookahead = token.value(); // 获取下一个 token
+        } else { // 如果识别到未知 token，则发生了词法分析错误，且需要立即终止
+            reporter->report(token.error(), true);
+        }
     }
     return lookahead.has_value() && lookahead->getType() == type;
 }
 
 /**
  * @brief 匹配期望的 token，如果未匹配成功则抛出 runtime error
- * @param type      期望的 token 类型
- * @param error_msg 错误信息
+ * @param type 期望的 token 类型
+ * @param msg  错误信息
  */
-void Parser::expect(lexer::token::Type type, const std::string& error_msg) {
+void Parser::expect(lexer::token::Type type, const std::string& msg) {
     if (!match(type)) {
-        throw std::runtime_error{error_msg};
+        reporter->report(
+            error::ParseErrorType::UnexpectToken,
+            msg,
+            current.getPos().row,
+            current.getPos().col,
+            current.getValue()
+        );
     }
 }
 
@@ -108,12 +124,12 @@ ast::FuncHeaderDeclPtr Parser::parseFuncHeaderDecl() {
     // FuncHeaderDecl -> fn <ID> ( <args> )
     using TokenType = lexer::token::Type;
 
-    expect(TokenType::FN, "Expected 'fn'");
+    expect(TokenType::FN, "此处期望有一个 'fn'");
 
-    expect(TokenType::ID, "Expected function name");
-    std::string name = current->getValue(); // function name
+    std::string name = current.getValue(); // function name
+    expect(TokenType::ID, "此处期望有一个 '<ID>' 作为函数名");
 
-    expect(TokenType::LPAREN, "Expected '('");
+    expect(TokenType::LPAREN, "此处期望有一个 '('");
 
     std::vector<ast::ArgPtr> argv {};
     while(!check(TokenType::RPAREN)) {
@@ -258,7 +274,7 @@ ast::ArgPtr Parser::parseArg() {
         advance();
     }
     expect(TokenType::ID, "Expected '<ID>'");
-    auto var = std::make_shared<ast::VarDeclBody>(mutable_, current->getValue());
+    auto var = std::make_shared<ast::VarDeclBody>(mutable_, current.getValue());
 
     expect(TokenType::COLON, "Expected ':'");
     auto type = parseVarType();
@@ -282,7 +298,7 @@ ast::VarDeclStmtPtr Parser::parseVarDeclStmt() {
         advance();
     }
     expect(TokenType::ID, "Expected '<ID>'");
-    auto identifier  = std::make_shared<ast::VarDeclBody>(mutable_, current->getValue());
+    auto identifier  = std::make_shared<ast::VarDeclBody>(mutable_, current.getValue());
 
     ast::VarTypePtr type;
     bool            has_type = false;
@@ -336,12 +352,12 @@ ast::AssignElementPtr Parser::parseAssignElement() {
     if (check(TokenType::OP_MUL)) {
         advance();
         expect(TokenType::ID, "Expected '<ID>'");
-        std::string var = current.value().getValue();
+        std::string var = current.getValue();
         return std::make_shared<ast::Dereference>(std::move(var));
     }
 
     expect(TokenType::ID, "Expected '<ID>'");
-    std::string var = current.value().getValue();
+    std::string var = current.getValue();
     if(check(TokenType::LBRACK)) {
         advance();
         auto expr = parseExpr();
@@ -351,7 +367,7 @@ ast::AssignElementPtr Parser::parseAssignElement() {
 
     if (check(TokenType::DOT)) {
         advance();
-        int value = std::stoi(current->getValue());
+        int value = std::stoi(current.getValue());
         expect(TokenType::INT, "Expected <NUM> for Tuple");
         return std::make_shared<ast::TupleAccess>(std::move(var), std::move(value));
     }
@@ -390,7 +406,7 @@ ast::ExprPtr Parser::parseCmpExpr(std::optional<ast::AssignElementPtr> elem) {
     while (check(TokenType::OP_LT) || check(TokenType::OP_LE) ||
            check(TokenType::OP_GT) || check(TokenType::OP_GE) ||
            check(TokenType::OP_EQ) || check(TokenType::OP_NEQ)) {
-        TokenType op_token = current->getType();
+        TokenType op_token = current.getType();
         advance();
         ast::ExprPtr right = Parser::parseAddExpr();
         left = std::make_shared<ast::ArithmeticExpr>(std::move(left),
@@ -410,7 +426,7 @@ ast::ExprPtr Parser::parseAddExpr(std::optional<ast::AssignElementPtr> elem) {
 
     ast::ExprPtr left = Parser::parseMulExpr(elem);
     while (check(TokenType::OP_PLUS) || check(TokenType::OP_MINUS)) {
-        TokenType op_token = current->getType();
+        TokenType op_token = current.getType();
         advance();
         ast::ExprPtr right = Parser::parseMulExpr();
         left = std::make_shared<ast::ArithmeticExpr>(std::move(left),
@@ -430,7 +446,7 @@ ast::ExprPtr Parser::parseMulExpr(std::optional<ast::AssignElementPtr> elem) {
 
     ast::ExprPtr left = parseFactor(elem);
     while (check(TokenType::OP_MUL) || check(TokenType::OP_DIV)) {
-        TokenType op_token = current->getType();
+        TokenType op_token = current.getType();
         advance();
         ast::ExprPtr right = Parser::parseFactor();
         left = std::make_shared<ast::ArithmeticExpr>(std::move(left),
@@ -522,7 +538,7 @@ ast::ExprPtr Parser::parseElementExpr(std::optional<ast::AssignElementPtr> elem)
         return std::make_shared<ast::ParenthesisExpr>(std::move(expr));
     }
     if (check(TokenType::INT)) {
-        int value = std::stoi(current->getValue());
+        int value = std::stoi(current.getValue());
         advance();
         return std::make_shared<ast::Number>(value);
     } else if (check(TokenType::ID)) {
@@ -532,14 +548,14 @@ ast::ExprPtr Parser::parseElementExpr(std::optional<ast::AssignElementPtr> elem)
         } else if (checkAhead(TokenType::LPAREN)) {
             return parseCallExpr();
         } else {
-            std::string name = current->getValue();
+            std::string name = current.getValue();
             advance();
             return std::make_shared<ast::Variable>(std::move(name));
         }
     } else if (check(TokenType::OP_MUL) && checkAhead(TokenType::ID)) {
         return parseAssignElement();
     } else {
-        throw std::runtime_error("Unexpected token in expression: " + current->getValue());
+        throw std::runtime_error("Unexpected token in expression: " + current.getValue());
     }
 }
 
@@ -552,7 +568,7 @@ ast::CallExprPtr Parser::parseCallExpr() {
     using TokenType = lexer::token::Type;
 
     expect(TokenType::ID, "Expected function name");
-    std::string name = current->getValue(); // function name
+    std::string name = current.getValue(); // function name
     expect(TokenType::LPAREN, "Expected '('");
 
     std::vector<ast::ExprPtr> argv{};
@@ -645,7 +661,7 @@ ast::ForStmtPtr Parser::parseForStmt() {
         advance();
     }
     expect(TokenType::ID, "Expected '<ID>'");
-    ast::VarDeclBodyPtr var = std::make_shared<ast::VarDeclBody>(mutable_, current->getValue());
+    ast::VarDeclBodyPtr var = std::make_shared<ast::VarDeclBody>(mutable_, current.getValue());
 
     expect(TokenType::IN,"Expected 'in'");
 
@@ -696,7 +712,7 @@ ast::VarTypePtr Parser::parseVarType() {
         advance();
         ast::VarTypePtr elem_type = parseVarType();
         expect(TokenType::SEMICOLON,"Expected ';' for Array");
-        int cnt =std::stoi(current->getValue());
+        int cnt =std::stoi(current.getValue());
         expect(TokenType::INT,"Expected <NUM> for Array");
         expect(TokenType::RBRACK,"Expected ']' for Array");
         return std::make_shared<ast::Array>(cnt,elem_type,ref_type);
