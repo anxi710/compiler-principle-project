@@ -159,7 +159,7 @@ auto ToyLexer::nextToken() -> std::expected<token::Token, error::LexError> {
         }
         break;
     case '&':
-        token = Token{token::Type::Ref, std::string{"&"}};
+        token = Token{token::Type::REF, std::string{"&"}};
         break;
     }
 

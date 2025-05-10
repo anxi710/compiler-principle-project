@@ -7,6 +7,8 @@
 !README.md
 !/note/*
 !/docs/*
+!/report/*
+report/*.pdf
 !**/*.cpp
 !**/*.hpp
 !.githooks/*
@@ -16,4 +18,3 @@
 !test/test_case/*.rs
 
 src_regex/*
-

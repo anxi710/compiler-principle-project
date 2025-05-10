@@ -94,8 +94,9 @@ void Parser::expect(lexer::token::Type type, const std::string& msg) {
  */
 [[nodiscard]]
 ast::ProgPtr Parser::parseProgram() {
-    std::vector<ast::DeclPtr> decls; // declarations; Prog -> Decls & Decls -> Decl Decls | epsilon
+    std::vector<ast::DeclPtr> decls; // declarations;
 
+    // Prog -> (FuncDecl)*
     while (check(lexer::token::Type::FN)) {
         decls.push_back(parseFuncDecl());
     }
@@ -121,7 +122,7 @@ ast::FuncDeclPtr Parser::parseFuncDecl() {
  */
 [[nodiscard]]
 ast::FuncHeaderDeclPtr Parser::parseFuncHeaderDecl() {
-    // FuncHeaderDecl -> fn <ID> ( <args> )
+    // FuncHeaderDecl -> fn <ID> ( (arg)* ) (-> VarType)?
     using TokenType = lexer::token::Type;
 
     expect(TokenType::FN, "此处期望有一个 'fn'");
@@ -156,8 +157,7 @@ ast::FuncHeaderDeclPtr Parser::parseFuncHeaderDecl() {
  */
 [[nodiscard]]
 ast::BlockStmtPtr Parser::parseBlockStmt() {
-    // BlockStmt -> { Stmts }
-    // Stmts -> Stmt Stmts | epsilon
+    // BlockStmt -> { (Stmt)* }; FuncExprBlockStmt -> { (Stmt)* Expr }
     using TokenType = lexer::token::Type;
     expect(TokenType::LBRACE, "Expected '{' for block");
 
@@ -214,6 +214,7 @@ ast::NodePtr Parser::parseStmtOrExpr() {
         if (check(TokenType::ASSIGN)) {
             stmt =  parseAssignStmt(std::move(elem));
         } else {
+
             return parseExpr(elem);
         }
     } else if (check(TokenType::INT) || check(TokenType::LPAREN)) {
@@ -268,13 +269,14 @@ ast::RetStmtPtr Parser::parseRetStmt() {
 ast::ArgPtr Parser::parseArg() {
     using TokenType = lexer::token::Type;
 
-    bool mutable_ = false;
+    bool mut = false;
     if (check(TokenType::MUT)) {
-        mutable_ = true;
+        mut = true;
         advance();
     }
+    std::string name = current.getValue();
     expect(TokenType::ID, "Expected '<ID>'");
-    auto var = std::make_shared<ast::VarDeclBody>(mutable_, current.getValue());
+    auto var = std::make_shared<ast::VarDeclBody>(mut, name);
 
     expect(TokenType::COLON, "Expected ':'");
     auto type = parseVarType();
@@ -292,13 +294,13 @@ ast::VarDeclStmtPtr Parser::parseVarDeclStmt() {
 
     expect(TokenType::LET, "Expected 'let'");
 
-    bool mutable_ = false;
+    bool mut = false;
     if (check(TokenType::MUT)) {
-        mutable_ = true;
+        mut = true;
         advance();
     }
+    auto identifier = std::make_shared<ast::VarDeclBody>(mut, current.getValue());
     expect(TokenType::ID, "Expected '<ID>'");
-    auto identifier  = std::make_shared<ast::VarDeclBody>(mutable_, current.getValue());
 
     ast::VarTypePtr type;
     bool            has_type = false;
@@ -351,13 +353,13 @@ ast::AssignElementPtr Parser::parseAssignElement() {
 
     if (check(TokenType::OP_MUL)) {
         advance();
-        expect(TokenType::ID, "Expected '<ID>'");
         std::string var = current.getValue();
+        expect(TokenType::ID, "Expected '<ID>'");
         return std::make_shared<ast::Dereference>(std::move(var));
     }
 
-    expect(TokenType::ID, "Expected '<ID>'");
     std::string var = current.getValue();
+    expect(TokenType::ID, "Expected '<ID>'");
     if(check(TokenType::LBRACK)) {
         advance();
         auto expr = parseExpr();
@@ -395,6 +397,52 @@ ast::ExprPtr Parser::parseExpr(std::optional<ast::AssignElementPtr> elem) {
 }
 
 /**
+ * @brief  将 token type 转换为 comparison operator
+ * @param  t token type
+ * @return comparison operator
+ */
+static ast::ComparOperator tokenType2ComparOper(lexer::token::Type t) {
+    using TokenType = lexer::token::Type;
+    using CmpOper   = ast::ComparOperator;
+    static std::unordered_map<TokenType, CmpOper> map {
+        {TokenType::OP_EQ,  CmpOper::Equal},
+        {TokenType::OP_NEQ, CmpOper::Nequal},
+        {TokenType::OP_GE,  CmpOper::Gequal},
+        {TokenType::OP_GT,  CmpOper::Great},
+        {TokenType::OP_LT,  CmpOper::Less}
+    };
+
+    if (auto res = map.find(t);
+        res == map.end()) {
+        throw std::runtime_error{"Incorrect token type."};
+    } else {
+        return res->second;
+    }
+}
+
+/**
+ * @brief  将 token type 转换为 arithmetic operator
+ * @param  t token type
+ * @return arithmetic operator
+ */
+static ast::ArithOperator tokenType2ArithOper(lexer::token::Type t) {
+    using TokenType = lexer::token::Type;
+    static std::unordered_map<TokenType, ast::ArithOperator> map {
+        {TokenType::OP_PLUS,  ast::ArithOperator::Add},
+        {TokenType::OP_MINUS, ast::ArithOperator::Sub},
+        {TokenType::OP_MUL,   ast::ArithOperator::Mul},
+        {TokenType::OP_DIV,   ast::ArithOperator::Div}
+    };
+
+    if (auto res = map.find(t);
+        res == map.end()) {
+        throw std::runtime_error{"Incorrect token type."};
+    } else {
+        return res->second;
+    }
+}
+
+/**
  * @brief  解析比较表达式（最顶层的表达式）
  * @return ast::ArithmeticExprPtr - AST Expression 结点指针（若无，则为下一层的加法表达式）
  */
@@ -406,11 +454,16 @@ ast::ExprPtr Parser::parseCmpExpr(std::optional<ast::AssignElementPtr> elem) {
     while (check(TokenType::OP_LT) || check(TokenType::OP_LE) ||
            check(TokenType::OP_GT) || check(TokenType::OP_GE) ||
            check(TokenType::OP_EQ) || check(TokenType::OP_NEQ)) {
-        TokenType op_token = current.getType();
+        TokenType op = current.getType();
         advance();
+
         ast::ExprPtr right = Parser::parseAddExpr();
-        left = std::make_shared<ast::ArithmeticExpr>(std::move(left),
-                                                     op_token, std::move(right));
+
+        left = std::make_shared<ast::ComparExpr>(
+            std::move(left),
+            tokenType2ComparOper(op),
+            std::move(right)
+        );
     } // end while
 
     return left;
@@ -426,11 +479,16 @@ ast::ExprPtr Parser::parseAddExpr(std::optional<ast::AssignElementPtr> elem) {
 
     ast::ExprPtr left = Parser::parseMulExpr(elem);
     while (check(TokenType::OP_PLUS) || check(TokenType::OP_MINUS)) {
-        TokenType op_token = current.getType();
+        TokenType op = current.getType();
         advance();
+
         ast::ExprPtr right = Parser::parseMulExpr();
-        left = std::make_shared<ast::ArithmeticExpr>(std::move(left),
-                                                     op_token, std::move(right));
+
+        left = std::make_shared<ast::ArithExpr>(
+            std::move(left),
+            tokenType2ArithOper(op),
+            std::move(right)
+        );
     }// end while
 
     return left;
@@ -446,11 +504,16 @@ ast::ExprPtr Parser::parseMulExpr(std::optional<ast::AssignElementPtr> elem) {
 
     ast::ExprPtr left = parseFactor(elem);
     while (check(TokenType::OP_MUL) || check(TokenType::OP_DIV)) {
-        TokenType op_token = current.getType();
+        TokenType op = current.getType();
         advance();
+
         ast::ExprPtr right = Parser::parseFactor();
-        left = std::make_shared<ast::ArithmeticExpr>(std::move(left),
-                                                     op_token, std::move(right));
+
+        left = std::make_shared<ast::ArithExpr>(
+            std::move(left),
+            tokenType2ArithOper(op),
+            std::move(right)
+        );
     } // end while
 
     return left;
@@ -464,7 +527,7 @@ ast::ExprPtr Parser::parseMulExpr(std::optional<ast::AssignElementPtr> elem) {
 ast::ExprPtr Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) {
     using TokenType = lexer::token::Type;
 
-    // arrayElements
+    // ArrayElements
     if (check(TokenType::LBRACK)) {
         advance();
         std::vector<ast::ExprPtr> elements{};
@@ -478,7 +541,7 @@ ast::ExprPtr Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) {
         return std::make_shared<ast::ArrayElements>(elements);
     }
 
-    // tupleElements
+    // TupleElements
     if (check(TokenType::LPAREN)) {
         advance();
         std::vector<ast::ExprPtr> elems{};
@@ -504,7 +567,7 @@ ast::ExprPtr Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) {
     }
 
     ast::RefType ref_type {ast::RefType::Normal};
-    if (check(TokenType::Ref)) {
+    if (check(TokenType::REF)) {
         advance();
         if (check(TokenType::MUT)) {
             advance();
@@ -514,17 +577,18 @@ ast::ExprPtr Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) {
         }
     }
 
-    auto element = parseElementExpr(elem);
+    auto element = parseElement(elem);
 
     return std::make_shared<ast::Factor>(ref_type, std::move(element));
 }
 
 /**
  * @brief  解析元素
- * @return ast::Number or ast::Variable - AST Expression 结点指针
+ * @return ast::Number or ast::Variable or ast::ParenthesisExpr or
+ *         ast::AssignElement or CallExpr
  */
 [[nodiscard]]
-ast::ExprPtr Parser::parseElementExpr(std::optional<ast::AssignElementPtr> elem) {
+ast::ExprPtr Parser::parseElement(std::optional<ast::AssignElementPtr> elem) {
     using TokenType = lexer::token::Type;
 
     if (elem.has_value()) {
@@ -566,9 +630,9 @@ ast::ExprPtr Parser::parseElementExpr(std::optional<ast::AssignElementPtr> elem)
 [[nodiscard]]
 ast::CallExprPtr Parser::parseCallExpr() {
     using TokenType = lexer::token::Type;
-
-    expect(TokenType::ID, "Expected function name");
     std::string name = current.getValue(); // function name
+    expect(TokenType::ID, "Expected function name");
+
     expect(TokenType::LPAREN, "Expected '('");
 
     std::vector<ast::ExprPtr> argv{};
@@ -655,13 +719,13 @@ ast::ForStmtPtr Parser::parseForStmt() {
 
     expect(TokenType::FOR,"Expected 'for'");
 
-    bool mutable_ = false;
+    bool mut = false;
     if (check(TokenType::MUT)) {
-        mutable_ = true;
+        mut = true;
         advance();
     }
     expect(TokenType::ID, "Expected '<ID>'");
-    ast::VarDeclBodyPtr var = std::make_shared<ast::VarDeclBody>(mutable_, current.getValue());
+    ast::VarDeclBodyPtr var = std::make_shared<ast::VarDeclBody>(mut, current.getValue());
 
     expect(TokenType::IN,"Expected 'in'");
 
@@ -698,7 +762,7 @@ ast::VarTypePtr Parser::parseVarType() {
     using TokenType = lexer::token::Type;
 
     ast::RefType ref_type {ast::RefType::Normal};
-    if (check(TokenType::Ref)) {
+    if (check(TokenType::REF)) {
         advance();
         if (check(TokenType::MUT)) {
             advance();
