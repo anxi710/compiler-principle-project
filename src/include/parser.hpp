@@ -37,7 +37,7 @@ private:
     ast::ExprPtr              parseAddExpr(std::optional<ast::AssignElementPtr> elem = std::nullopt);
     ast::ExprPtr              parseMulExpr(std::optional<ast::AssignElementPtr> elem = std::nullopt);
     ast::ExprPtr              parseFactor(std::optional<ast::AssignElementPtr> elem = std::nullopt);
-    ast::ExprPtr              parseElementExpr(std::optional<ast::AssignElementPtr> elem = std::nullopt);
+    ast::ExprPtr              parseElement(std::optional<ast::AssignElementPtr> elem = std::nullopt);
     ast::CallExprPtr          parseCallExpr();
     ast::IfStmtPtr            parseIfStmt();
     ast::ElseClausePtr        parseElseClause();

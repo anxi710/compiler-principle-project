@@ -5,7 +5,6 @@
 #include <string>
 #include <fstream>
 #include <optional>
-#include "token.hpp"
 
 namespace parser::ast {
 
@@ -23,7 +22,7 @@ enum class NodeType {
     VarDeclAssignStmt, ElseClause, IfStmt, WhileStmt, ForStmt,
     LoopStmt, BreakStmt, ContinueStmt, NullStmt,
 
-    Number, Factor, ArithmeticExpr, CallExpr, ParenthesisExpr,
+    Number, Factor, ComparExpr, ArithExpr, CallExpr, ParenthesisExpr,
     FuncExprBlockStmt, IfExpr, ArrayElements, TupleElements,
 
     Integer, Array, Tuple,
@@ -390,21 +389,55 @@ struct VarDeclAssignStmt : VarDeclStmt {
 };
 using  VarDeclAssignStmtPtr = std::shared_ptr<VarDeclAssignStmt>;
 
-// Arithmetic Expression
-struct ArithmeticExpr : Expr {
-    ExprPtr            lhs; // 左操作数
-    lexer::token::Type op;  // operator
-    ExprPtr            rhs; // 右操作数
+// Comparison Operator
+enum class ComparOperator {
+    Equal,  // equal to
+    Nequal, // not equal to
+    Gequal, // great than or equal to
+    Lequal, // less than or equal to
+    Great,  // great than
+    Less    // less than
+};
 
-    ArithmeticExpr() = default;
-    explicit ArithmeticExpr(const ExprPtr& l, const lexer::token::Type& op, const ExprPtr& r)
+// Arithmetic Operator
+enum class ArithOperator {
+    Add,
+    Sub,
+    Mul,
+    Div
+};
+
+// Comparison Expression
+struct ComparExpr : Expr {
+    ExprPtr        lhs; // 左部
+    ComparOperator op;  // operator
+    ExprPtr        rhs; // 右部
+
+    ComparExpr() = default;
+    explicit ComparExpr(const ExprPtr& l, ComparOperator op, const ExprPtr& r)
         : lhs(l), op(op), rhs(r) {}
-    explicit ArithmeticExpr(ExprPtr&& l, const lexer::token::Type& op, ExprPtr&& r)
+    explicit ComparExpr(ExprPtr&& l, ComparOperator op, ExprPtr&& r)
         : lhs(std::move(l)), op(op), rhs(std::move(r)) {}
 
-    constexpr NodeType type() const override { return NodeType::ArithmeticExpr; }
+    constexpr NodeType type() const override { return NodeType::ComparExpr; }
 };
-using  ArithmeticExprPtr = std::shared_ptr<ArithmeticExpr>;
+using  ComparExprPtr = std::shared_ptr<ComparExpr>;
+
+// Arithmetic Expression
+struct ArithExpr : Expr {
+    ExprPtr       lhs; // 左操作数
+    ArithOperator op;  // operator
+    ExprPtr       rhs; // 右操作数
+
+    ArithExpr() = default;
+    explicit ArithExpr(const ExprPtr& l, ArithOperator op, const ExprPtr& r)
+        : lhs(l), op(op), rhs(r) {}
+    explicit ArithExpr(ExprPtr&& l, ArithOperator op, ExprPtr&& r)
+        : lhs(std::move(l)), op(op), rhs(std::move(r)) {}
+
+    constexpr NodeType type() const override { return NodeType::ArithExpr; }
+};
+using  ArithExprPtr = std::shared_ptr<ArithExpr>;
 
 // Call Expression
 struct CallExpr : Expr {
