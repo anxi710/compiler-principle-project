@@ -8,9 +8,10 @@ namespace parser::ast {
 
 static int cnt = 0;
 
+// dot 结点声明
 struct DotNodeDecl {
-    std::string name  {};
-    std::string label {};
+    std::string name  {}; // 结点名 - 唯一，用于区分不同结点
+    std::string label {}; // 标签 - 不唯一，用于图片显示
 
     DotNodeDecl() = default;
     explicit DotNodeDecl(const std::string& n, const std::string& l)
@@ -20,27 +21,30 @@ struct DotNodeDecl {
 
     ~DotNodeDecl() = default;
 
-    inline bool initialized() const {
-        return name.length() > 0 && label.length() > 0;
-    }
+    inline bool initialized() const { return name.length() > 0 && label.length() > 0; }
     inline std::string toString() const { return name + label; }
 };
+
 /**
- * @brief  构造带编号的 DOT 节点声明
- * @param  s 节点标签名
- * @return DotNodeDecl 包含唯一名称和标签的结构体
+ * @brief  通过名称构造带编号的 DOT 节点声明
+ * @param  s std::string 节点名称
+ * @return DotNodeDecl
  */
 static DotNodeDecl str2NodeDecl(const std::string& s) {
     std::ostringstream oss;
-    oss << s << cnt++;
-    std::string name {oss.str()};
-
-    std::string label = "[label = \"" + s + "\"]";
+    oss << s << cnt++; // 确保唯一性
+    std::string name  {oss.str()},
+                label {"[label = \"" + s + "\"]"};
 
     return DotNodeDecl{name, label};
 }
 
-static DotNodeDecl tokenType2NodeDecl(const lexer::token::Type& t) {
+/**
+ * @brief  通过 token type 构造 DOT 结点声明
+ * @param  t token type
+ * @return DotNodeDecl
+ */
+static DotNodeDecl tokenType2NodeDecl(lexer::token::Type t) {
     using TokenType = lexer::token::Type;
     static const std::unordered_map<TokenType, std::string> maps {
         {TokenType::REF,       "&"},
@@ -79,7 +83,7 @@ static DotNodeDecl tokenType2NodeDecl(const lexer::token::Type& t) {
         {TokenType::OP_LT,     "<"},
         {TokenType::OP_LE,     "<="},
         {TokenType::OP_GT,     ">"},
-        {TokenType::OP_GE,     ">="},
+        {TokenType::OP_GE,     ">="}
     };
 
     if (maps.find(t) == maps.end()) {
@@ -88,13 +92,83 @@ static DotNodeDecl tokenType2NodeDecl(const lexer::token::Type& t) {
 
     std::ostringstream oss;
     oss << lexer::token::tokenType2str(t) << cnt++;
-    std::string name {oss.str()};
-
-    std::string label = "[label = \"" + maps.find(t)->second + "\"]";
+    std::string name {oss.str()},
+                label = "[label = \"" + maps.find(t)->second + "\"]";
 
     return DotNodeDecl{name, label};
 }
 
+/**
+ * @brief  将 comparison operator 转换为 token type
+ * @param  op comparison operator
+ * @return token type
+ */
+static lexer::token::Type comparOper2TokenType(ast::ComparOperator op) {
+    using TokenType = lexer::token::Type;
+    using CmpOper   = ast::ComparOperator;
+    static std::unordered_map<CmpOper, TokenType> map {
+        {CmpOper::Equal,  TokenType::OP_EQ},
+        {CmpOper::Nequal, TokenType::OP_NEQ},
+        {CmpOper::Gequal, TokenType::OP_GE},
+        {CmpOper::Great,  TokenType::OP_GT},
+        {CmpOper::Less,   TokenType::OP_LT}
+    };
+
+    if (auto res = map.find(op);
+        res == map.end()) {
+        throw std::runtime_error{"Incorrect token type."};
+    } else {
+        return res->second;
+    }
+}
+
+/**
+ * @brief  将 arithmetic operator 转换为 token type
+ * @param  op arithmetic operator
+ * @return token type
+ */
+static lexer::token::Type arithOper2TokenType(ast::ArithOperator op) {
+    using TokenType = lexer::token::Type;
+    static std::unordered_map<ast::ArithOperator, TokenType> map {
+        {ast::ArithOperator::Add, TokenType::OP_PLUS},
+        {ast::ArithOperator::Sub, TokenType::OP_MINUS},
+        {ast::ArithOperator::Mul, TokenType::OP_MUL},
+        {ast::ArithOperator::Div, TokenType::OP_DIV}
+    };
+
+    if (auto res = map.find(op);
+        res == map.end()) {
+        throw std::runtime_error{"Incorrect token type."};
+    } else {
+        return res->second;
+    }
+}
+
+/**
+ * @brief  通过 comparison operator 构造 DOT 结点声明
+ * @param  op comparison operator
+ * @return DotNodeDecl
+ */
+inline static DotNodeDecl comparOper2NodeDecl(ast::ComparOperator op) {
+    // 先将 comparison operator 转换为 token type 再转 dot node decl
+    return tokenType2NodeDecl(comparOper2TokenType(op));
+}
+
+/**
+ * @brief  通过 arithmetic operator 构造 DOT 结点声明
+ * @param  op arithmetic operator
+ * @return DotNodeDecl
+ */
+inline static DotNodeDecl arithOper2NodeDecl(ast::ArithOperator op) {
+    // 先将 arithmetic operator 转换为 token type 再转 dot node decl
+    return tokenType2NodeDecl(arithOper2TokenType(op));
+}
+
+/**
+ * @brief  将一系列 DOT 结点声明转换为字符串
+ * @param  nd 变长参数
+ * @return std::string
+ */
 template<typename... T> // 变长参数模板
 static std::string nodeDecls2Str(const T&... nd) {
     static_assert((std::is_same_v<T, DotNodeDecl> && ...),
@@ -106,11 +180,18 @@ static std::string nodeDecls2Str(const T&... nd) {
     return oss.str();
 }
 
+/**
+ * @brief  将一个 DOT 边转换为相应 DOT 声明字符串
+ * @param  a 起始节点
+ * @param  b 终止结点
+ * @return std::string DOT 边声明字符串
+ */
 inline static std::string edge2Str(const DotNodeDecl& a, const DotNodeDecl& b) {
     std::ostringstream oss;
     oss << "    " << a.name << " -> " << b.name << std::endl;
     return oss.str();
 }
+
 /**
  * @brief  将边列表转换为 DOT 格式字符串
  * @param  edges 边的起点和终点节点对列表
@@ -122,8 +203,10 @@ static std::string edges2Str(std::initializer_list<std::pair<DotNodeDecl, DotNod
     for(auto edge : edges) {
         oss << "    " << edge.first.name << " -> " << edge.second.name << std::endl;
     }
+
     return oss.str();
 }
+
 /**
  * @brief  将变量声明体 VarDeclBody 转换为 DOT 图表示
  * @param  vdb 变量声明体指针
@@ -148,6 +231,7 @@ static auto varDeclBody2Dot(const VarDeclBodyPtr& vdb) {
 
     return std::make_tuple(n_vdb, oss_nd.str(), oss_ed.str());
 }
+
 /**
  * @brief   ast::Integer 转 dot 格式
  * @param   integer AST Integer 结点指针
@@ -192,11 +276,9 @@ static auto integer2Dot(const IntegerPtr& integer) {
 }
 
 // static std::tuple<DotNodeDecl, std::string, std::string> array2Dot(const ArrayPtr& arr) {
-
 // }
 
 // static std::tuple<DotNodeDecl, std::string, std::string> tuple2Dot(const TuplePtr& tup) {
-
 // }
 
 /**
@@ -232,6 +314,7 @@ static auto varType2Dot(const VarTypePtr& vt) {
 
     return std::make_tuple(n_vt, oss_nd.str(), oss_ed.str());
 }
+
 /**
  * @brief   将参数 Arg 转 dot 格式
  * @param   arg AST Arg 结点指针
@@ -250,6 +333,7 @@ static auto arg2Dot(const ArgPtr& arg) {
 
     return std::make_tuple(n_arg, oss_nd.str(), oss_ed.str());
 }
+
 /**
  * @brief   将赋值元素 AssignElement 转 dot 格式
  * @param   ae AST AssignElement 结点指针
@@ -275,6 +359,7 @@ static auto assignElement2Dot(const AssignElementPtr& ae) {
 
     return std::make_tuple(n_assign_elem, oss_nd.str(), oss_ed.str());
 }
+
 /**
  * @brief   将函数头声明 FuncHeaderDecl 转 dot 格式
  * @param   fhd AST FuncHeaderDecl 结点指针
@@ -305,19 +390,25 @@ static auto funcHeaderDecl2Dot(const FuncHeaderDeclPtr& fhd) {
             oss_ed << edge2Str(n_fhd, n_comma);
         }
     }
+
     oss_nd << nodeDecls2Str(n_rparen);
     oss_ed << edge2Str(n_fhd, n_rparen);
+
     if (fhd->retval_type.has_value()){
         DotNodeDecl n_arrow = tokenType2NodeDecl(TokenType::ARROW);
+
         oss_nd << nodeDecls2Str(n_arrow);
         oss_ed << edge2Str(n_fhd, n_arrow);
+
         auto [n_vt, nd_vt, ed_vt] = varType2Dot(fhd->retval_type.value());
+
         oss_nd << nd_vt;
         oss_ed << edge2Str(n_fhd, n_vt) << ed_vt;
     }
 
     return std::make_tuple(n_fhd, oss_nd.str(), oss_ed.str());
 }
+
 /**
  * @brief   将数字表达式 Number 转 dot 格式
  * @param   n AST Number 结点指针
@@ -333,6 +424,7 @@ static auto numberExpr2Dot(const std::shared_ptr<ast::Number>& n) {
 
     return std::make_tuple(n_num, oss_nd.str(), oss_ed.str());
 }
+
 /**
  * @brief   将变量表达式 Variable 转 dot 格式
  * @param   v AST Variable 结点指针
@@ -350,6 +442,7 @@ static auto variableExpr2Dot(const std::shared_ptr<ast::Variable>& v) {
 }
 
 static std::tuple<DotNodeDecl, std::string, std::string> expr2Dot(const ExprPtr &expr);
+
 /**
  * @brief   将因子表达式 Factor 转 dot 格式
  * @param   f AST Factor 结点指针
@@ -362,7 +455,7 @@ static auto factorExpr2Dot(const FactorPtr& f) {
     std::ostringstream oss_nd, oss_ed;
     oss_nd << nodeDecls2Str(n_factor);
 
-    //DEBUG 打印错误
+    //DEBUG 打印错误 - 涉及扩展规则，暂不解决
     if (f->ref_type != RefType::Normal) {
         std::string ref_str;
         switch (f->ref_type) {
@@ -388,27 +481,26 @@ static auto factorExpr2Dot(const FactorPtr& f) {
 
     return std::make_tuple(n_factor, oss_nd.str(), oss_ed.str());
 }
+
 /**
  * @brief   将比较表达式 ComparExpr 转 dot 格式
  * @param   ce AST ComparExpr 结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-
 static auto comparExpr2Dot(const ComparExprPtr &ce){
     DotNodeDecl n_expr = str2NodeDecl("CmpExpr");
 
     auto [n_lhs, lhs_nd, lhs_ed] = expr2Dot(ce->lhs);
-    DotNodeDecl n_op = comparOperator2NodeDecl(ce->op);
+    DotNodeDecl n_op = comparOper2NodeDecl(ce->op);
     auto [n_rhs, rhs_nd, rhs_ed] = expr2Dot(ce->rhs);
 
     std::ostringstream oss_nd, oss_ed;
     oss_nd << lhs_nd << nodeDecls2Str(n_expr, n_op) << rhs_nd;
-    oss_ed << lhs_ed
-           << edges2Str({{n_expr, n_lhs}, {n_expr, n_op}, {n_expr, n_rhs}})
-           << rhs_ed;
+    oss_ed << lhs_ed << edges2Str({{n_expr, n_lhs}, {n_expr, n_op}, {n_expr, n_rhs}}) << rhs_ed;
 
     return std::make_tuple(n_expr, oss_nd.str(), oss_ed.str());
 }
+
 /**
  * @brief   将算术表达式 ArithExpr 转 dot 格式
  * @param   ae AST ArithExpr 结点指针
@@ -430,17 +522,16 @@ static auto arithExpr2Dot(const ArithExprPtr& ae) {
 
     DotNodeDecl n_expr = str2NodeDecl(expr_type);
     auto [n_lhs, lhs_nd, lhs_ed] = expr2Dot(ae->lhs);
-    DotNodeDecl n_op = tokenType2NodeDecl(ae->op);
+    DotNodeDecl n_op = arithOper2NodeDecl(ae->op);
     auto [n_rhs, rhs_nd, rhs_ed] = expr2Dot(ae->rhs);
 
     std::ostringstream oss_nd, oss_ed;
     oss_nd << lhs_nd << nodeDecls2Str(n_expr, n_op) << rhs_nd;
-    oss_ed << lhs_ed
-           << edges2Str({{n_expr, n_lhs}, {n_expr, n_op}, {n_expr, n_rhs}})
-           << rhs_ed;
+    oss_ed << lhs_ed << edges2Str({{n_expr, n_lhs}, {n_expr, n_op}, {n_expr, n_rhs}}) << rhs_ed;
 
     return std::make_tuple(n_expr, oss_nd.str(), oss_ed.str());
 }
+
 /**
  * @brief   将函数调用表达式 CallExpr 转 dot 格式
  * @param   ce AST CallExpr 结点指针
@@ -476,6 +567,7 @@ static auto callExpr2Dot(const std::shared_ptr<ast::CallExpr>& ce) {
 
     return std::make_tuple(n_call, oss_nd.str(), oss_ed.str());
 }
+
 /**
  * @brief   将括号表达式 ParenthesisExpr 转 dot 格式
  * @param   pe AST ParenthesisExpr 结点指针
@@ -496,6 +588,7 @@ static auto parenthesisExpr2Dot(const std::shared_ptr<ast::ParenthesisExpr>& pe)
 
     return std::make_tuple(n_paren, oss_nd.str(), oss_ed.str());
 }
+
 /**
  * @brief   将表达式 Element 转 dot 格式，根据type来进行分发
  * @param   e AST Expression 结点指针
@@ -540,6 +633,7 @@ static auto element2Dot(const ExprPtr& e){
 
     return std::make_tuple(n_element, oss_nd.str(), oss_ed.str());
 }
+
 /**
  * @brief   将表达式 Expr 转 dot 格式，根据type来进行分发
  * @param   expr AST Expression 结点指针
@@ -577,6 +671,7 @@ static std::tuple<DotNodeDecl, std::string, std::string> expr2Dot(const ExprPtr&
 
     return std::make_tuple(rt, nd, ed);
 }
+
 /**
  * @brief   将表达式语句 ExprStmt 转 dot 格式
  * @param   es AST Expression Statement 结点指针
@@ -592,6 +687,7 @@ static auto exprStmt2Dot(const std::shared_ptr<ast::ExprStmt>& es) {
 
     return std::make_tuple(n_es, oss_nd.str(), oss_ed.str());
 }
+
 /**
  * @brief   将返回语句 ReturnStmt 转 dot 格式
  * @param   rs AST Return Statement 结点指针
@@ -613,6 +709,7 @@ static auto returnStmt2Dot(const std::shared_ptr<ast::RetStmt>& rs) {
 
     return std::make_tuple(n_rs, oss_nd.str(), oss_ed.str());
 }
+
 /**
  * @brief   将变量声明语句 VarDeclStmt 转 dot 格式
  * @param   vds AST Variable Declaration Statement 结点指针
@@ -642,6 +739,7 @@ static auto varDeclStmt2Dot(const VarDeclStmtPtr& vds) {
 
     return std::make_tuple(n_vds, oss_nd.str(), oss_ed.str());
 }
+
 /**
  * @brief   将赋值语句 AssignStmt 转 dot 格式
  * @param   as AST Assign Statement 结点指针
@@ -668,6 +766,7 @@ static auto assignStmt2Dot(const AssignStmtPtr& as) {
 
     return std::make_tuple(n_as, oss_nd.str(), oss_ed.str());
 }
+
 /**
  * @brief   将变量声明并赋值语句 VarDeclAssignStmt 转 dot 格式
  * @param   vdas AST VarDeclAssign Statement 结点指针
@@ -703,14 +802,15 @@ static auto varDeclAssignStmt2Dot(const VarDeclAssignStmtPtr& vdas) {
 
     return std::make_tuple(n_vdas, oss_nd.str(), oss_ed.str());
 }
+
 static std::tuple<DotNodeDecl, std::string, std::string> stmt2Dot(const StmtPtr &stmt);
+
 /**
  * @brief   将代码块语句 BlockStmt 转 dot 格式
  * @param   bs AST Block Statement 结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static std::tuple<DotNodeDecl, std::string, std::string> blockStmt2Dot(const BlockStmtPtr &bs)
-{
+static std::tuple<DotNodeDecl, std::string, std::string> blockStmt2Dot(const BlockStmtPtr &bs) {
     using TokenType = lexer::token::Type;
 
     DotNodeDecl n_bs = str2NodeDecl("BlockStmt");
@@ -735,6 +835,7 @@ static std::tuple<DotNodeDecl, std::string, std::string> blockStmt2Dot(const Blo
 
     return std::make_tuple(n_bs, oss_nd.str(), oss_ed.str());
 }
+
 /**
  * @brief   将 if 语句 IfStmt 转 dot 格式
  * @param   istmt AST If Statement 结点指针
@@ -783,9 +884,9 @@ static auto ifStmt2Dot(const IfStmtPtr& istmt) {
         }
     }
 
-
     return std::make_tuple(n_if_stmt, oss_nd.str(), oss_ed.str());
 }
+
 /**
  * @brief   将 while 语句转为 dot 格式
  * @param   ws WhileStmt 语句结点指针
@@ -812,6 +913,7 @@ static auto whileStmt2Dot(const WhileStmtPtr& ws) {
 
     return std::make_tuple(n_while_stmt, oss_nd.str(), oss_ed.str());
 }
+
 /**
  * @brief   将语句 Stmt 转 dot 格式，根据type来进行分发
  * @param   stmt AST 语句结点指针
@@ -861,6 +963,7 @@ static std::tuple<DotNodeDecl, std::string, std::string> stmt2Dot(const StmtPtr 
 
     return std::make_tuple(rt, oss_nd.str(), oss_ed.str());
 }
+
 /**
  * @brief   将函数声明转为 dot 格式
  * @param   fd FuncDecl 语句结点指针
@@ -880,6 +983,7 @@ static auto funcDecl2Dot(const FuncDeclPtr& fd) {
 
     return std::make_tuple(n_fd, oss_nd.str(), oss_ed.str());
 }
+
 /**
  * @brief   将抽象语法树转换为 dot 格式，并输出到文件
  * @param   out 输出流对象
