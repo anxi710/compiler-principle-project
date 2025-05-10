@@ -458,7 +458,6 @@ static auto comparExpr2Dot(const ComparExprPtr &ce){
  * @param   ae AST ArithExpr 结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-
 static auto arithExpr2Dot(const ArithExprPtr& ae) {
     std::string expr_type;
 
