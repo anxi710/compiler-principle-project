@@ -709,10 +709,12 @@ static auto varDeclStmt2Dot(const VarDeclStmtPtr& vds) {
     using TokenType = lexer::token::Type;
 
     DotNodeDecl n_vds = str2NodeDecl("VarDeclStmt");
+    DotNodeDecl n_let = str2NodeDecl("let");
 
     std::ostringstream oss_nd, oss_ed;
-    oss_nd << nodeDecls2Str(n_vds);
-
+    
+    oss_nd << nodeDecls2Str(n_vds,n_let);
+    oss_ed << edge2Str(n_vds, n_let);
     auto [n_var, var_nd, var_ed] = varDeclBody2Dot(vds->variable);
     oss_nd << var_nd;
     oss_ed << var_ed << edge2Str(n_vds, n_var);
@@ -765,9 +767,11 @@ static auto assignStmt2Dot(const AssignStmtPtr& as) {
 static auto varDeclAssignStmt2Dot(const VarDeclAssignStmtPtr& vdas) {
     using TokenType = lexer::token::Type;
     DotNodeDecl n_vdas = str2NodeDecl("VarDeclAssignStmt");
+    DotNodeDecl n_let = str2NodeDecl("let");
 
     std::ostringstream oss_nd, oss_ed;
-    oss_nd << nodeDecls2Str(n_vdas);
+    oss_nd << nodeDecls2Str(n_vdas,n_let);
+    oss_ed << edge2Str(n_vdas, n_let);
 
     auto [n_var, var_nd, var_ed] = varDeclBody2Dot(vdas->variable);
     oss_nd << var_nd;

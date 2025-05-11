@@ -947,9 +947,16 @@ struct Stmt : Node {
     constexpr NodeType type() const override { return NodeType::Stmt; }
 };
 using  StmtPtr = std::shared_ptr<Stmt>;
+
+// Expression
+struct Expr : Node {
+    virtual ~Expr() = default;
+    constexpr NodeType type() const override { return NodeType::Expr; }
+};
+using  ExprPtr = std::shared_ptr<Expr>;
 ```
 
-- `函数头声明节点`
+- 具体节点拓展，此处以`函数头声明节点`为例
 ```cpp
 // Function header declaration
 struct FuncHeaderDecl : Decl {
@@ -1425,10 +1432,285 @@ digraph AST {
 ```
 将这个dot文件转化为png可视化：
 
-<img src="output1.png" width=500/>
+<img src="output_ex/ex1.png" width=500/>
 
 这就是所得到的AST可视化结果，可以看到所有节点名称与边信息，将所有树中的叶节点串起来，可以验证与源代码一致。
 
 ## 6 测试与验证
 
+### 6.1 编译器功能概述与使用方式
+
+本项目实现了一个简化版类 Rust 编程语言的编译器，命名为 `toy_compiler`，具备基础的词法分析与语法分析功能，并可生成相应的中间结果（Token 表与 AST 图）。其支持的命令行选项如下：
+
+
+#### 支持的命令行选项：
+
+| 选项 | 说明 |
+|------|------|
+| `-h`, `--help` | 显示帮助信息 |
+| `-v`, `-V`, `--version` | 显示编译器版本信息 |
+| `-i`, `--input <filename>` | 指定输入文件，必须带有后缀 |
+| `-o`, `--output <filename>` | 指定输出文件（不包含后缀） |
+| `-t`, `--token` | 输出词法分析结果（Token） |
+| `-p`, `--parse` | 输出语法分析结果（AST） |
+
+#### 使用示例：
+
+```bash
+$ ./toy_compiler -t -i test.txt          # 输出词法分析结果
+$ ./toy_compiler -p -i test.txt          # 输出语法分析结果（AST）
+$ ./toy_compiler -t -p -i test.txt       # 同时输出 Token 和 AST
+$ ./toy_compiler -i test.txt -o result   # 自定义输出文件名（生成 result.token 与 result.dot）
+```
+编译器生成的 .dot 文件可通过 Graphviz 工具进行可视化，命令如下：
+```bash
+$ dot -Tpng path/to/output.dot -o AST.png
+```
+
+执行该命令后即可得到 .png 格式的抽象语法树图像，便于对程序结构进行直观分析。
+
+具体帮助信息界面截图如下：
+
+<img src="output_ex/ex_help.png" width=500/>
+
+编译器版本信息如下：
+
+<img src="output_ex/ex_version.png" width=500/>
+
+### 6.2 编译器功能测试与验证
+
+#### 6.2.1 词法分析器
+
+词法分析器的作用是将源代码转换为一系列有意义的记号（Token），为语法分析阶段做好准备。
+
+以下列类Rust代码为例：
+```rs
+// comment
+/*
+ * multiline comment
+ */
+fn main() {
+    /* */
+    /*
+    /* */
+    */
+    ; // /* */
+}
+```
+编译器首先将所有注释进行识别与忽略，然后识别其中的词法，使用命令行：
+```bash
+$ ./build/toy_compiler -t -i test/test_case/1-1_2.rs
+```
+可以得到`output.token`，如下：
+```token
+<type: FN, value: "fn">@(5, 1)
+<type: ID, value: "main">@(5, 4)
+<type: LPAREN, value: "(">@(5, 8)
+<type: RPAREN, value: ")">@(5, 9)
+<type: LBRACE, value: "{">@(5, 11)
+<type: SEMICOLON, value: ";">@(10, 5)
+<type: RBRACE, value: "}">@(11, 1)
+```
+每一行为一个 Token，包含以下三部分信息：
+
+- `type`：Token 的类型，如 `FN` 表示关键字 `fn`，`ID` 表示标识符，`LPAREN` 表示左括号等；
+- `value`：Token 的实际文本值；
+- `@(line, col)`：Token 在源文件中的行列位置，有助于后续错误定位。
+
+从上面的输出可以看出，词法分析器成功识别了函数声明结构中的关键词、标识符、括号、分号与代码块边界，说明基本功能已正确实现。
+
+#### 6.2.2 语法分析器
+
+语法分析器负责将词法分析器生成的 Token 流进一步解析为抽象语法树（AST），用于表示源代码的语法结构。为了验证语法分析器的功能，继续使用上一节中的测试输入，并执行以下命令：
+```bash
+$ ./build/toy_compiler -p -i test/test_case/1-1_2.rs
+```
+会给出语法分析的结果：
+
+<img src="output_ex/ex_parser_success.png" width=500/>
+
+如图显示`Parsing success`，同时可以得到`output.token`和`output.dot`。
+
+`.dot`文件并不是语法分析器的直接产物，而是基于语法分析结果（AST）生成的可视化输出。此部分在5.3节中有较为详细的描述，
+
+同样地，可以使用 Graphviz 工具将 .dot 文件渲染为图片：
+```bash
+$ dot -Tpng output.dot -o output.png
+```
+可以得到`output.png`，如下：
+
+<img src="output_ex/ex2.png" width=500/>
+
+生成的 `png` 直观展示了语法结构的层次与关系，方便开发者进行验证和调试。
+
+下面给出一些基础部分实现的语法树部分截图，基础规则的示例类Rust代码与分析结果和完整实现语法树图，会在文件夹`test_basic_example`中给出
+
+##### 1.1-1.3 基础语句及函数返回语句
+
+可参考上面的示例输出png
+
+##### 1.4&5 函数输入与输出
+
+<img src="output_ex/ex3.png" width=500/>
+
+##### 2.1 变量声明语句
+
+<img src="output_ex/ex4.png" width=500/>
+
+##### 2.2 赋值语句 与 3.1&2 表达式部分 
+
+<img src="output_ex/ex5.png" width=500/>
+
+##### 2.3 变量声明赋值语句 与 3.1&2 表达式部分 
+
+<img src="output_ex/ex6.png" width=500/>
+
+##### 3.3 函数调用语句 与 3.1&2 表达式部分
+
+<img src="output_ex/ex7.png" width=500/>
+
+##### 4.1&2 选择语句
+
+<img src="output_ex/ex8.png" width=500/>
+
+##### 5.1 while循环语句
+
+<img src="output_ex/ex9.png" width=500/>
+
+由于我们在语法分析器中的实现到了`拓展`部分结束（即9.2），但AST到dot的转化目前只实现了基础部分。
+
+因此，以下列代码为例的规则均可以通过词法与语法分析器的分析，得到`Parsing success`，但暂时没有dot的生成。
+
+```rs
+fn f5_8_9(mut x:[i32;3],mut y:(i32,i32,i32)) -> i32 {
+    let a : i32 = 1;
+    if a > 1 {
+        return 2;
+    } else if a > 0 {
+        return 1;
+    } else {
+        return 0;
+    }
+    let mut n : i32;
+    while n>0 {
+        n = n-1;
+    }
+    for mut i in 1..n+1 {
+        n=n-1;
+        }
+    loop {
+        continue;
+    }
+    let mut b:i32=x[0];
+    x[0] = 1;
+    let mut c:i32=y.0;
+    a.0=x[0]+x[0];
+    a.1=a.0;
+    return x[1]>a.1;
+}
+fn f6() -> i32 {
+    let mut a : i32 = 1;
+    let mut b : &mut i32 = &mut a;
+    let mut c : i32 = *b;
+    c = *b * 2;
+    c = 2 * *b;
+    c = *b + 2;
+    c = 2 + *b * 2 + *b + 2;
+    2 + *b;
+    *b * 2 * 3 + 2 + 3 + *b;
+    *b = 2;
+    let x : i32 = 1;
+    let y : & i32 = &x;
+    let z : i32 = *y;
+    return x+y+z;
+}
+fn f7_1(mut x: i32, mut y : i32) {
+    let mut z = {
+        let mut t = x * x + x;
+        t = t + x * y;
+        t + x * y;
+        t
+    };
+}
+fn f7_2(mut x : i32, mut y : i32) -> i32 {
+    let mut t = x * x + x;
+    t = t + x*y;
+    t
+}
+fn f7_3(mut a : i32) {
+    let mut b = if a > 0 {
+        1
+    } else{
+        0
+    };
+}
+fn f7_4() {
+    let mut a = loop {
+        break 2;
+    };
+}
+fn f9(){
+    let mut b: (&i32, &i32);
+    let mut c: ((&i32, &i32), &i32);
+    let mut d: &mut (i32, i32, i32);
+    b = (2>5,a.0);
+    c = (1,);
+    let e: (i32,);
+}
+fn main(){
+    let mut a : i32;
+    let mut a_array:[i32;3];
+    let mut b:[&i32;3];
+    let mut c:[[&i32;3];3];
+    let mut d:&mut[[i32;3];3];
+    a_array = [1,2,3];
+    let a_tuple:(i32,i32,i32);
+    a_tuple=(1,2,f3());
+    f1(f2(a_array,a_tuple),666 + 999 / 1 > (2 * 2));
+    return ;
+}
+```
+
 ## 7 总结与展望
+
+
+本项目致力于实现一个类 Rust 编程语言的编译器前端系统，涵盖了**词法分析**、**语法分析**、**AST 构建**以及**可视化输出**等完整流程。在功能实现过程中，我们围绕编译器架构的核心阶段逐步搭建了清晰、模块化的系统结构，旨在为日后的语义分析、中间代码生成等后续阶段打下良好的基础。
+
+具体，项目具备以下亮点与成果：
+
+- **词法分析器**能够正确将源程序分割为一系列 Token，支持关键词、标识符、符号、操作符等多类词法单元，并附带位置信息，有助于后续阶段进行语义检查与错误定位。
+- **语法分析器**基于抽象语法树（AST）构建原理，将 Token 序列还原为语法结构，支持函数声明、变量定义、表达式、条件语句、循环语句等语法形式，构建出具有语义层次的中间表示结构。
+- **AST 可视化模块**支持将语法结构以 Graphviz DOT 格式输出，使抽象语法树具象为图形，提升调试可读性。通过一系列 `xxx2Dot` 函数，项目实现了 AST 结点到 DOT 图元素的转换，生成的 `.dot` 文件可直接转为图像展示。
+- **命令行工具链**通过统一的参数接口，允许用户按需输出 Token 列表和 AST 图，并支持设置输入输出文件路径，方便灵活集成测试脚本和多种输入源。
+
+整个开发过程中，我们采用面向对象设计思想和现代 C++ 技术，注重代码可维护性与模块解耦，并通过单元测试和多组样例验证了各阶段模块的稳定性与正确性。
+
+目前功能已基本完善，但在以下几个方面仍有进一步提升空间：
+
+- **面向后续语法扩展的 DOT 生成支持**：当前 AST 到 DOT 的转换函数覆盖了基础语句和表达式，但对于拓展规则，需要后续逐步补全。
+- **错误处理机制的完善**：目前词法分析只有识别到未知 token 错误，会在分析完代码后，报告 UnknownToken 错误。语法分析阶段缺乏对异常输入的鲁棒性支持，后续会加入详细的错误信息提示与定位能力。
+- **符号表的设计与实现**：目前项目未涉及语义分析层面的符号表管理，未来在支持类型检查、作用域分析和变量绑定等语义处理功能时，符号表将成为必不可少的关键组件。
+
+综上所述，当前项目已搭建起完整的编译器前端基础框架，后续工作将在此基础上逐步拓展，朝着功能完整、鲁棒性强的实际编译器目标持续迭代。
+
+
+## 8 参考文献与资料
+
+### 8.1 网站类资料
+
+| 名称                                   | 链接                                                                                         | 说明                                 |
+|--------------------------------------|--------------------------------------------------------------------------------------------|--------------------------------------|
+| B站编译原理公开课合集（来自清华大学等） | [https://space.bilibili.com/479141149/lists/2312309?type=season](https://space.bilibili.com/479141149/lists/2312309?type=season) | 视频资料，入门与讲解                  |
+| 《A Tour of C++》                    | [https://www.stroustrup.com/Tour.html](https://www.stroustrup.com/Tour.html)               | C++ 作者 Stroustrup 的简明教程        |
+| Rust 官方书籍（The Rust Programming Language） | [https://doc.rust-lang.org/book/title-page.html](https://doc.rust-lang.org/book/title-page.html) | Rust 学习权威资料                    |
+| Graphviz DOT 语言参考文档             | [https://graphviz.org/doc/info/lang.html](https://graphviz.org/doc/info/lang.html)         | 用于 AST 可视化的 DOT 图语言文档      |
+| Rust 源码中的词法分析实现             | [https://github.com/rust-lang/rust/blob/master/compiler/rustc_lexer/src/lib.rs](https://github.com/rust-lang/rust/blob/master/compiler/rustc_lexer/src/lib.rs) | Rust 编译器源码中的 lexer 模块参考 |
+
+### 8.2 书籍资料
+
+| 书名 | 简要说明 |
+|------|----------|
+| 《C++ Templates: The Complete Guide, 2nd Edition》 | 深入理解模板编程，为 AST 与 DOT 输出的泛型模板使用提供理论支持。 |
+| 《正则表达式必知必会（修订版）》 | 协助构建词法分析器中的正则表达式匹配规则。 |
+| 《Effective Modern C++》 | 优化 C++11/14 的语法使用，提升编译器模块的效率与鲁棒性。 |
+| 《modern-cpp-tutorial 中文版》 | 用于理解现代 C++ 特性，尤其是智能指针、可变参数模板等语法要点。 |
