@@ -7,7 +7,8 @@ namespace parser::base {
 /* constructor */
 
 Parser::Parser(std::function<std::expected<lexer::token::Token, error::LexError>()> nextTokenFunc)
-    : nextTokenFunc(std::move(nextTokenFunc)) {
+    : nextTokenFunc(std::move(nextTokenFunc))
+{
     advance(); // 初始化，使 current 指向第一个 token
 }
 
@@ -18,7 +19,9 @@ Parser::Parser(std::function<std::expected<lexer::token::Token, error::LexError>
 /**
  * @brief 向前扫描一个 token
  */
-void Parser::advance() {
+void
+Parser::advance()
+{
     if (lookahead.has_value()) {
         current = lookahead.value();
         lookahead.reset(); // 清除 lookahead 中的值
@@ -37,7 +40,9 @@ void Parser::advance() {
  * @param  type 需匹配的 token 类型
  * @return 是否成功匹配
  */
-bool Parser::match(lexer::token::Type type) {
+bool
+Parser::match(lexer::token::Type type)
+{
     if (check(type)) {
         advance();
         return true;
@@ -50,7 +55,9 @@ bool Parser::match(lexer::token::Type type) {
  * @param  type 指定的 token 类型
  * @return 是否通过检查
  */
-bool Parser::check(lexer::token::Type type) const {
+bool
+Parser::check(lexer::token::Type type) const
+{
     return current.getType() == type;
 }
 
@@ -59,7 +66,9 @@ bool Parser::check(lexer::token::Type type) const {
  * @param  type 指定的 token 类型
  * @return 是否通过检查
  */
-bool Parser::checkAhead(lexer::token::Type type) {
+bool
+Parser::checkAhead(lexer::token::Type type)
+{
     if (!lookahead.has_value()) {
         if (auto token = nextTokenFunc();
             token.has_value()) {
@@ -76,7 +85,9 @@ bool Parser::checkAhead(lexer::token::Type type) {
  * @param type 期望的 token 类型
  * @param msg  错误信息
  */
-void Parser::expect(lexer::token::Type type, const std::string& msg) {
+void
+Parser::expect(lexer::token::Type type, const std::string& msg)
+{
     if (!match(type)) {
         reporter->report(
             error::ParseErrorType::UnexpectToken,
@@ -92,8 +103,9 @@ void Parser::expect(lexer::token::Type type, const std::string& msg) {
  * @brief  对指定程序进行语法解析
  * @return ast::ProgPtr - AST Program 结点指针 (AST 根结点)
  */
-[[nodiscard]]
-ast::ProgPtr Parser::parseProgram() {
+ast::ProgPtr
+Parser::parseProgram()
+{
     std::vector<ast::DeclPtr> decls; // declarations;
 
     // Prog -> (FuncDecl)*
@@ -108,8 +120,8 @@ ast::ProgPtr Parser::parseProgram() {
  * @brief  解析函数声明
  * @return ast::FuncDeclPtr - AST Function Declaration 结点指针
  */
-[[nodiscard]]
-ast::FuncDeclPtr Parser::parseFuncDecl() {
+ast::FuncDeclPtr
+Parser::parseFuncDecl() {
     // FuncDecl -> FuncHeaderDecl BlockStmt
     auto header = parseFuncHeaderDecl();
     auto body        = parseBlockStmt();
@@ -120,8 +132,9 @@ ast::FuncDeclPtr Parser::parseFuncDecl() {
  * @brief  解析函数头声明
  * @return ast::FuncHeaderDeclPtr - AST Function Header Declaration 结点指针
  */
-[[nodiscard]]
-ast::FuncHeaderDeclPtr Parser::parseFuncHeaderDecl() {
+ast::FuncHeaderDeclPtr
+Parser::parseFuncHeaderDecl()
+{
     // FuncHeaderDecl -> fn <ID> ( (arg)* ) (-> VarType)?
     using TokenType = lexer::token::Type;
 
@@ -155,9 +168,9 @@ ast::FuncHeaderDeclPtr Parser::parseFuncHeaderDecl() {
  * @brief  解析语句块
  * @return ast::BlockStmtPtr - AST Block Statement 结点指针
  */
-[[nodiscard]]
-ast::BlockStmtPtr Parser::parseBlockStmt() {
-    // BlockStmt -> { (Stmt)* }; FuncExprBlockStmt -> { (Stmt)* Expr }
+ast::BlockStmtPtr
+Parser::parseBlockStmt()
+{   // BlockStmt -> { (Stmt)* }; FuncExprBlockStmt -> { (Stmt)* Expr }
     using TokenType = lexer::token::Type;
     expect(TokenType::LBRACE, "Expected '{' for block");
 
@@ -194,8 +207,9 @@ ast::BlockStmtPtr Parser::parseBlockStmt() {
  * @brief  解析语句或表达式
  * @return ast::NodePtr - Stmt 或 Expr 结点指针
  */
-[[nodiscard]]
-ast::NodePtr Parser::parseStmtOrExpr() {
+ast::NodePtr
+Parser::parseStmtOrExpr()
+{
     using TokenType = lexer::token::Type;
 
     ast::StmtPtr stmt {};
@@ -245,8 +259,9 @@ ast::NodePtr Parser::parseStmtOrExpr() {
  * @brief  解析返回语句
  * @return ast::RetStmtPtr - AST Return Statement 结点指针
  */
-[[nodiscard]]
-ast::RetStmtPtr Parser::parseRetStmt() {
+ast::RetStmtPtr
+Parser::parseRetStmt()
+{
     using TokenType = lexer::token::Type;
 
     expect(TokenType::RETURN, "Expected 'return'");
@@ -265,8 +280,9 @@ ast::RetStmtPtr Parser::parseRetStmt() {
  * @brief  解析参数
  * @return ast::ArgPtr - AST Argument 结点指针
  */
-[[nodiscard]]
-ast::ArgPtr Parser::parseArg() {
+ast::ArgPtr
+Parser::parseArg()
+{
     using TokenType = lexer::token::Type;
 
     bool mutable_ = false;
@@ -288,8 +304,9 @@ ast::ArgPtr Parser::parseArg() {
  * @brief  解析变量声明语句或变量声明赋值语句
  * @return ast::VarDeclStmtPtr - AST Variable Declaration Statement 结点指针
  */
-[[nodiscard]]
-ast::VarDeclStmtPtr Parser::parseVarDeclStmt() {
+ast::VarDeclStmtPtr
+Parser::parseVarDeclStmt()
+{
     using TokenType = lexer::token::Type;
 
     expect(TokenType::LET, "Expected 'let'");
@@ -332,8 +349,9 @@ ast::VarDeclStmtPtr Parser::parseVarDeclStmt() {
  * @brief  解析赋值语句
  * @return ast::AssignStmtPtr - AST Assignment Statement 结点指针
  */
-[[nodiscard]]
-ast::AssignStmtPtr Parser::parseAssignStmt(ast::AssignElementPtr&& lvalue) {
+ast::AssignStmtPtr
+Parser::parseAssignStmt(ast::AssignElementPtr&& lvalue)
+{
     using TokenType = lexer::token::Type;
 
     expect(TokenType::ASSIGN, "Expected '='");
@@ -348,7 +366,9 @@ ast::AssignStmtPtr Parser::parseAssignStmt(ast::AssignElementPtr&& lvalue) {
  * @brief 解析可赋值元素
  * @return ast::AssignElementPtr - AST Assign Element 节点指针
  */
-ast::AssignElementPtr Parser::parseAssignElement() {
+ast::AssignElementPtr
+Parser::parseAssignElement()
+{
     using TokenType = lexer::token::Type;
 
     if (check(TokenType::OP_MUL)) {
@@ -381,8 +401,9 @@ ast::AssignElementPtr Parser::parseAssignElement() {
  * @brief  解析表达式，用递归下降解析分层处理运算优先级
  * @return ast::ExprPtr - 顶层比较表达式
  */
-[[nodiscard]]
-ast::ExprPtr Parser::parseExpr(std::optional<ast::AssignElementPtr> elem) {
+ast::ExprPtr
+Parser::parseExpr(std::optional<ast::AssignElementPtr> elem)
+{
     using TokenType = lexer::token::Type;
 
     if (check(TokenType::LBRACE)) {
@@ -401,7 +422,9 @@ ast::ExprPtr Parser::parseExpr(std::optional<ast::AssignElementPtr> elem) {
  * @param  t token type
  * @return comparison operator
  */
-static ast::ComparOperator tokenType2ComparOper(lexer::token::Type t) {
+static ast::ComparOperator
+tokenType2ComparOper(lexer::token::Type t)
+{
     using TokenType = lexer::token::Type;
     using CmpOper   = ast::ComparOperator;
     static std::unordered_map<TokenType, CmpOper> map {
@@ -425,7 +448,9 @@ static ast::ComparOperator tokenType2ComparOper(lexer::token::Type t) {
  * @param  t token type
  * @return arithmetic operator
  */
-static ast::ArithOperator tokenType2ArithOper(lexer::token::Type t) {
+static ast::ArithOperator
+tokenType2ArithOper(lexer::token::Type t)
+{
     using TokenType = lexer::token::Type;
     static std::unordered_map<TokenType, ast::ArithOperator> map {
         {TokenType::OP_PLUS,  ast::ArithOperator::Add},
@@ -446,8 +471,9 @@ static ast::ArithOperator tokenType2ArithOper(lexer::token::Type t) {
  * @brief  解析比较表达式（最顶层的表达式）
  * @return ast::ArithmeticExprPtr - AST Expression 结点指针（若无，则为下一层的加法表达式）
  */
-[[nodiscard]]
-ast::ExprPtr Parser::parseCmpExpr(std::optional<ast::AssignElementPtr> elem) {
+ast::ExprPtr
+Parser::parseCmpExpr(std::optional<ast::AssignElementPtr> elem)
+{
     using TokenType = lexer::token::Type;
     
     ast::ExprPtr left = Parser::parseAddExpr(elem);
@@ -473,8 +499,9 @@ ast::ExprPtr Parser::parseCmpExpr(std::optional<ast::AssignElementPtr> elem) {
  * @brief  解析加法表达式
  * @return ast::ArithmeticExprPtr - AST Expression 结点指针（若无，则为下一层的乘法表达式）
  */
-[[nodiscard]]
-ast::ExprPtr Parser::parseAddExpr(std::optional<ast::AssignElementPtr> elem) {
+ast::ExprPtr
+Parser::parseAddExpr(std::optional<ast::AssignElementPtr> elem)
+{
     using TokenType = lexer::token::Type;
     
     ast::ExprPtr left = Parser::parseMulExpr(elem);
@@ -498,8 +525,9 @@ ast::ExprPtr Parser::parseAddExpr(std::optional<ast::AssignElementPtr> elem) {
  * @brief  解析乘法表达式（即为Item）
  * @return ast::ArithmeticExprPtr - AST Expression 结点指针（若无，则为下一层的因子）
  */
-[[nodiscard]]
-ast::ExprPtr Parser::parseMulExpr(std::optional<ast::AssignElementPtr> elem) {
+ast::ExprPtr
+Parser::parseMulExpr(std::optional<ast::AssignElementPtr> elem)
+{
     using TokenType = lexer::token::Type;
     
     ast::ExprPtr left = parseFactor(elem);
@@ -523,8 +551,9 @@ ast::ExprPtr Parser::parseMulExpr(std::optional<ast::AssignElementPtr> elem) {
  * @brief  解析因子
  * @return ast::FactorPtr - AST Factor 结点指针
  */
-[[nodiscard]]
-ast::ExprPtr Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) {
+ast::ExprPtr
+Parser::parseFactor(std::optional<ast::AssignElementPtr> elem)
+{
     using TokenType = lexer::token::Type;
 
     // arrayElements
@@ -587,8 +616,9 @@ ast::ExprPtr Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) {
  * @return ast::Number or ast::Variable or ast::ParenthesisExpr or
  *         ast::AssignElement or CallExpr
  */
-[[nodiscard]]
-ast::ExprPtr Parser::parseElement(std::optional<ast::AssignElementPtr> elem) {
+ast::ExprPtr
+Parser::parseElement(std::optional<ast::AssignElementPtr> elem)
+{
     using TokenType = lexer::token::Type;
 
     
@@ -629,8 +659,9 @@ ast::ExprPtr Parser::parseElement(std::optional<ast::AssignElementPtr> elem) {
  * @brief  解析函数调用
  * @return ast::CallExpr - AST Expression 结点指针
  */
-[[nodiscard]]
-ast::CallExprPtr Parser::parseCallExpr() {
+ast::CallExprPtr
+Parser::parseCallExpr()
+{
     using TokenType = lexer::token::Type;
     std::string name = current.getValue(); // function name
     expect(TokenType::ID, "Expected function name");
@@ -654,8 +685,9 @@ ast::CallExprPtr Parser::parseCallExpr() {
  * @brief  解析 if 语句
  * @return ast::IfStmtPtr - AST If Statement 结点指针
  */
-[[nodiscard]]
-ast::IfStmtPtr Parser::parseIfStmt() {
+ast::IfStmtPtr
+Parser::parseIfStmt()
+{
     using TokenType = lexer::token::Type;
 
     expect(TokenType::IF, "Expected 'if'");
@@ -680,8 +712,9 @@ ast::IfStmtPtr Parser::parseIfStmt() {
  * @brief  解析 else/else if 语句
  * @return ast::ElseClausePtr - AST Else Statement 结点指针
  */
-[[nodiscard]]
-ast::ElseClausePtr Parser::parseElseClause() {
+ast::ElseClausePtr
+Parser::parseElseClause()
+{
     using TokenType = lexer::token::Type;
 
     if(check(TokenType::IF)) {
@@ -699,8 +732,9 @@ ast::ElseClausePtr Parser::parseElseClause() {
  * @brief  解析 while 语句
  * @return ast::WhileStmtPtr - AST While Statement 结点指针
  */
-[[nodiscard]]
-ast::WhileStmtPtr Parser::parseWhileStmt() {
+ast::WhileStmtPtr
+Parser::parseWhileStmt()
+{
     using TokenType = lexer::token::Type;
 
     expect(TokenType::WHILE,"Expected 'while'");
@@ -715,8 +749,9 @@ ast::WhileStmtPtr Parser::parseWhileStmt() {
  * @brief  解析 for 语句
  * @return ast::ForStmtPtr - AST For Statement 结点指针
  */
-[[nodiscard]]
-ast::ForStmtPtr Parser::parseForStmt() {
+ast::ForStmtPtr
+Parser::parseForStmt()
+{
     using TokenType = lexer::token::Type;
 
     expect(TokenType::FOR,"Expected 'for'");
@@ -745,8 +780,9 @@ ast::ForStmtPtr Parser::parseForStmt() {
  * @brief  解析 loop 语句
  * @return ast::LoopStmtPtr - AST Loop Statement 结点指针
  */
-[[nodiscard]]
-ast::LoopStmtPtr Parser::parseLoopStmt() {
+ast::LoopStmtPtr
+Parser::parseLoopStmt()
+{
     using TokenType = lexer::token::Type;
 
     expect(TokenType::LOOP,"Expected 'loop'");
@@ -759,8 +795,9 @@ ast::LoopStmtPtr Parser::parseLoopStmt() {
  * @brief  解析变量类型
  * @return ast::VarTypePtr - AST Variable Type 结点指针
  */
-[[nodiscard]]
-ast::VarTypePtr Parser::parseVarType() {
+ast::VarTypePtr
+Parser::parseVarType()
+{
     using TokenType = lexer::token::Type;
 
     ast::RefType ref_type {ast::RefType::Normal};
@@ -819,8 +856,9 @@ ast::VarTypePtr Parser::parseVarType() {
  * @brief  解析函数表达式语句块
  * @return ast::FuncExprBlockStmtPtr - AST Function Expression Block Statements 结点指针
  */
-[[nodiscard]]
-ast::FuncExprBlockStmtPtr Parser::parseFuncExprBlockStmt() {
+ast::FuncExprBlockStmtPtr
+Parser::parseFuncExprBlockStmt()
+{
     using TokenType = lexer::token::Type;
 
     expect(TokenType::LBRACE, "Expected '{' for function expression block statements");
@@ -854,8 +892,9 @@ ast::FuncExprBlockStmtPtr Parser::parseFuncExprBlockStmt() {
  * @brief  解析 if 表达式
  * @return ast::IfExprPtr - AST If Expression 结点指针
  */
-[[nodiscard]]
-ast::IfExprPtr Parser::parseIfExpr() {
+ast::IfExprPtr
+Parser::parseIfExpr()
+{
     using TokenType = lexer::token::Type;
 
     expect(TokenType::IF, "Expected 'if' for If Expression");
@@ -873,8 +912,9 @@ ast::IfExprPtr Parser::parseIfExpr() {
  * @brief  解析 Break 表达式
  * @return ast::BreakStmtPtr - AST Break Statement 结点指针
  */
-[[nodiscard]]
-ast::BreakStmtPtr Parser::parseBreakStmt() {
+ast::BreakStmtPtr
+Parser::parseBreakStmt()
+{
     using TokenType = lexer::token::Type;
 
     expect(TokenType::BREAK, "Expected 'break' for break statement");

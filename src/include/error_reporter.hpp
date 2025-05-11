@@ -7,7 +7,6 @@
 #include <source_location>
 #include "error_type.hpp"
 
-
 namespace error {
 
 struct Error {
@@ -21,6 +20,7 @@ struct Error {
     virtual ~Error() = default;
 };
 
+// 词法错误
 struct LexError : Error {
     LexErrorType type;
     std::size_t  row;
@@ -38,6 +38,7 @@ struct LexError : Error {
     constexpr ErrorType kind() const override { return ErrorType::Lex; }
 };
 
+// 语法错误
 struct ParseError : Error {
     ParseErrorType type;
     std::size_t    row;
@@ -55,6 +56,7 @@ struct ParseError : Error {
     constexpr ErrorType kind() const override { return ErrorType::Parse; }
 };
 
+// 内部错误
 struct InternalError : Error {
     InternalErrorType    type;
     std::source_location location;
@@ -68,6 +70,7 @@ struct InternalError : Error {
     constexpr ErrorType kind() const override { return ErrorType::Internal; }
 };
 
+// 错误报告器
 class ErrorReporter {
 public:
     ErrorReporter() = delete;

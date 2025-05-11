@@ -13,7 +13,9 @@ namespace lexer::impl {
  * @brief  获取下一个词法单元
  * @return token / LexErrorPtr
  */
-auto ToyLexer::nextToken() -> std::expected<token::Token, error::LexError> {
+std::expected<token::Token, error::LexError>
+ToyLexer::nextToken()
+{
     using token::Token;
     static const std::vector<std::pair<token::Type, std::regex>> patterns {
         {token::Type::ID,  std::regex{R"(^[a-zA-Z_]\w*)"}},
@@ -184,7 +186,9 @@ auto ToyLexer::nextToken() -> std::expected<token::Token, error::LexError> {
 /**
  * @brief 初始化关键词表
  */
-void ToyLexer::initKeywordTable(void) {
+void
+ToyLexer::initKeywordTable()
+{
     using TokenType = token::Type;
     this->keyword_table.addKeyword("if",       TokenType::IF);
     this->keyword_table.addKeyword("fn",       TokenType::FN);

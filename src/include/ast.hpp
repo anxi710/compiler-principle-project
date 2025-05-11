@@ -11,6 +11,7 @@ namespace parser::ast {
 // 如果基类析构函数没有被声明为虚函数，则 C++ 只会调用基类的析构函数，
 // 而不会调用派生类的析构函数
 
+// 结点类型
 enum class NodeType {
     Prog, Arg,
 
@@ -115,9 +116,9 @@ struct Tuple : VarType{
     std::vector<VarTypePtr> elem_types; // 每个元素的类型
 
     Tuple() = default;
-    explicit Tuple(const std::vector<VarTypePtr>& et, const RefType& rt = RefType::Normal)
+    explicit Tuple(const std::vector<VarTypePtr>& et, RefType rt = RefType::Normal)
         : VarType(rt), cnt(static_cast<int>(et.size())), elem_types(et) {}
-    explicit Tuple(std::vector<VarTypePtr>&& et, const RefType& rt = RefType::Normal)
+    explicit Tuple(std::vector<VarTypePtr>&& et, RefType rt = RefType::Normal)
         : VarType(rt), cnt(static_cast<int>(et.size())), elem_types(std::move(et)) {}
 
     constexpr NodeType type() const override { return NodeType::Tuple; }
@@ -164,8 +165,8 @@ struct FuncHeaderDecl : Decl {
     std::optional<VarTypePtr> retval_type; // return value type
 
     FuncHeaderDecl() = default;
-    explicit FuncHeaderDecl(const std::string& n, const std::vector<ArgPtr>& av, const std::optional<VarTypePtr>& rt)
-        : name(n), argv(av), retval_type(rt) {};
+    explicit FuncHeaderDecl(const std::string& n, const std::vector<ArgPtr>& av,
+        const std::optional<VarTypePtr>& rt) : name(n), argv(av), retval_type(rt) {};
     explicit FuncHeaderDecl(std::string&& n, std::vector<ArgPtr>&& av, std::optional<VarTypePtr>&& rt)
         : name(std::move(n)), argv(std::move(av)), retval_type(std::move(rt)) {}
 
@@ -233,9 +234,9 @@ struct AssignElement : Expr {
     AssignElement(Kind k) : kind(k) {}
     virtual ~AssignElement() = default;
 
-    constexpr NodeType type() const override{ return NodeType::AssignElement; }
+    constexpr NodeType type() const override { return NodeType::AssignElement; }
 };
-using AssignElementPtr = std::shared_ptr<AssignElement>;
+using  AssignElementPtr = std::shared_ptr<AssignElement>;
 
 struct Variable : AssignElement {
     std::string name; // 变量名
@@ -258,7 +259,7 @@ struct Dereference : AssignElement {
 
     constexpr NodeType type() const override { return NodeType::Dereference; }
 };
-using DereferencePtr = std::shared_ptr<Dereference>;
+using  DereferencePtr = std::shared_ptr<Dereference>;
 
 struct ArrayAccess : AssignElement {
     std::string array; // 数组名
@@ -272,7 +273,7 @@ struct ArrayAccess : AssignElement {
 
     constexpr NodeType type() const override { return NodeType::ArrayAccess; }
 };
-using ArrayAccessPtr = std::shared_ptr<ArrayAccess>;
+using  ArrayAccessPtr = std::shared_ptr<ArrayAccess>;
 
 struct TupleAccess : AssignElement {
     std::string tuple; // 元组名
@@ -286,7 +287,7 @@ struct TupleAccess : AssignElement {
 
     constexpr NodeType type() const override { return NodeType::TupleAccess; }
 };
-using TupleAccessPtr = std::shared_ptr<TupleAccess>;
+using  TupleAccessPtr = std::shared_ptr<TupleAccess>;
 
 struct Number : Expr {
     int value; // 值
@@ -303,8 +304,8 @@ struct Factor : Expr {
     ExprPtr element;
 
     Factor() = default;
-    explicit Factor(const RefType& rt, const ExprPtr& e) : ref_type(rt), element(e) {}
-    explicit Factor(RefType&& rt, ExprPtr&& e) : ref_type(std::move(rt)), element(std::move(e)) {}
+    explicit Factor(RefType rt, const ExprPtr& e) : ref_type(rt), element(e) {}
+    explicit Factor(RefType rt, ExprPtr&& e) : ref_type(rt), element(std::move(e)) {}
 
     constexpr NodeType type() const override { return NodeType::Factor; }
 };
@@ -314,7 +315,6 @@ struct ArrayElements : Expr {
     std::vector<ExprPtr> elements;
 
     ArrayElements() = default;
-
     explicit ArrayElements(const std::vector<ExprPtr>& els):elements(els) {}
     explicit ArrayElements(std::vector<ExprPtr>&& els):elements(std::move(els)) {}
 
@@ -326,7 +326,6 @@ struct TupleElements : Expr {
     std::vector<ExprPtr> elements;
 
     TupleElements() = default;
-
     explicit TupleElements(const std::vector<ExprPtr>& els) : elements(els) {}
     explicit TupleElements(std::vector<ExprPtr>&& els) : elements(std::move(els)) {}
 
@@ -383,9 +382,7 @@ struct VarDeclAssignStmt : VarDeclStmt {
     VarDeclAssignStmt(T1&& var, T2&& type, T3&& expr)
         : VarDeclStmt(std::forward<T1>(var), std::forward<T2>(type)), expr(std::forward<T3>(expr)) {}
 
-    constexpr NodeType type() const override {
-        return NodeType::VarDeclAssignStmt;
-    }
+    constexpr NodeType type() const override { return NodeType::VarDeclAssignStmt; }
 };
 using  VarDeclAssignStmtPtr = std::shared_ptr<VarDeclAssignStmt>;
 
@@ -454,6 +451,7 @@ struct CallExpr : Expr {
 };
 using  CallExprPtr = std::shared_ptr<CallExpr>;
 
+// else 子句
 struct ElseClause : Stmt {
     std::optional<ExprPtr>  expr;  // else (if expr)?
     BlockStmtPtr            block;
@@ -466,6 +464,7 @@ struct ElseClause : Stmt {
 };
 using  ElseClausePtr = std::shared_ptr<ElseClause>;
 
+// if statement
 struct IfStmt : Stmt {
     ExprPtr                     expr;
     BlockStmtPtr                if_branch;
@@ -479,6 +478,7 @@ struct IfStmt : Stmt {
 };
 using  IfStmtPtr = std::shared_ptr<IfStmt>;
 
+// while statement
 struct WhileStmt : Stmt {
     ExprPtr         expr;
     BlockStmtPtr    block;
@@ -491,6 +491,7 @@ struct WhileStmt : Stmt {
 };
 using  WhileStmtPtr = std::shared_ptr<WhileStmt>;
 
+// for statement
 struct ForStmt : Stmt {
     VarDeclBodyPtr var;
     ExprPtr        lexpr;
@@ -506,6 +507,7 @@ struct ForStmt : Stmt {
 };
 using  ForStmtPtr = std::shared_ptr<ForStmt>;
 
+// loop statement
 struct LoopStmt : Stmt, Expr {
     BlockStmtPtr    block;
 
@@ -517,6 +519,7 @@ struct LoopStmt : Stmt, Expr {
 };
 using  LoopStmtPtr = std::shared_ptr<LoopStmt>;
 
+// break statement
 struct BreakStmt : Stmt {
     std::optional<ExprPtr> expr;
 
@@ -529,19 +532,21 @@ struct BreakStmt : Stmt {
 };
 using  BreakStmtPtr = std::shared_ptr<BreakStmt>;
 
+// continue statement
 struct ContinueStmt : Stmt {
     ~ContinueStmt() override = default;
     constexpr NodeType type() const override { return NodeType::ContinueStmt; }
 };
 using  ContinueStmtPtr = std::shared_ptr<ContinueStmt>;
 
+// null statement => ;
 struct NullStmt : Stmt {
     ~NullStmt() override = default;
     constexpr NodeType type() const override { return NodeType::NullStmt; }
 };
 using  NullStmtPtr = std::shared_ptr<NullStmt>;
 
-// Function Expression Block Statement
+// 函数表达式语句块
 struct FuncExprBlockStmt : Expr, BlockStmt {
     ExprPtr expr; // the final expression
 

@@ -7,15 +7,17 @@
 namespace error {
 
 // 控制字符
-inline static const std::string RESET  = "\033[0m";
-inline static const std::string RED    = "\033[1;31m";
-inline static const std::string YELLOW = "\033[1;33m";
-inline static const std::string BLUE   = "\033[1;34m";
-inline static const std::string BOLD   = "\033[1m";
+static inline const std::string RESET  = "\033[0m";
+static inline const std::string RED    = "\033[1;31m";
+static inline const std::string YELLOW = "\033[1;33m";
+static inline const std::string BLUE   = "\033[1;34m";
+static inline const std::string BOLD   = "\033[1m";
 
 /*---------------- LexError ----------------*/
 
-void ErrorReporter::displayUnknownType(const LexError& err) const {
+void
+ErrorReporter::displayUnknownType(const LexError& err) const
+{
     std::cerr << BOLD << YELLOW << "warning[UnknownToken]" << RESET << BOLD
         << ": 识别到未知 token '" << err.token << "'" << RESET << std::endl;
 
@@ -30,7 +32,9 @@ void ErrorReporter::displayUnknownType(const LexError& err) const {
     std::cerr << BLUE << "  |" << std::string(delta, ' ') << "^" << RESET << std::endl << std::endl;
 }
 
-void ErrorReporter::displayLexErr(const LexError& err) const {
+void
+ErrorReporter::displayLexErr(const LexError& err) const
+{
     switch(err.type) {
     default:
         break;
@@ -45,19 +49,16 @@ void ErrorReporter::displayLexErr(const LexError& err) const {
 /*---------------- ParseError ----------------*/
 
 
-
 /*---------------- ParseError ----------------*/
 
 /*---------------- InternalError ----------------*/
 
-
-
 /*---------------- InternalError ----------------*/
-
 
 /*---------------- ErrorReporter ----------------*/
 
-ErrorReporter::ErrorReporter(const std::string& t) {
+ErrorReporter::ErrorReporter(const std::string& t)
+{
     std::istringstream iss  {t};
 
     std::string        line {};
@@ -77,18 +78,20 @@ ErrorReporter::ErrorReporter(const std::string& t) {
  * @param token     错误发生的 token
  * @param terminate 是否终止
  */
-void ErrorReporter::report(LexErrorType type, const std::string& msg,
-    std::size_t r, std::size_t c, const std::string& token, bool terminate) {
+void
+ErrorReporter::report(LexErrorType type, const std::string& msg,
+    std::size_t r, std::size_t c, const std::string& token, bool terminate)
+{
     lex_errs.emplace_back(type, msg, r, c, token);
 
     if (terminate) {
         terminateProg();
     }
-
-    return;
 }
 
-void ErrorReporter::report(LexError le, bool terminate) {
+void
+ErrorReporter::report(LexError le, bool terminate)
+{
     this->lex_errs.push_back(le);
 
     if (terminate) {
@@ -105,15 +108,15 @@ void ErrorReporter::report(LexError le, bool terminate) {
  * @param token     错误发生的 token
  * @param terminate 是否终止
  */
-void ErrorReporter::report(ParseErrorType type, const std::string& msg,
-    std::size_t r, std::size_t c, const std::string& token, bool terminate) {
+void
+ErrorReporter::report(ParseErrorType type, const std::string& msg,
+    std::size_t r, std::size_t c, const std::string& token, bool terminate)
+{
     parse_errs.emplace_back(type, msg, r, c, token);
 
     if (terminate) {
         terminateProg();
     }
-
-    return;
 }
 
 /**
@@ -122,16 +125,22 @@ void ErrorReporter::report(ParseErrorType type, const std::string& msg,
  * @param msg       错误信息
  * @param loc       错误发生位置
  */
-void ErrorReporter::report(InternalErrorType t, const std::string& msg, const std::source_location loc) {
+void
+ErrorReporter::report(InternalErrorType t, const std::string& msg, const std::source_location loc)
+{
 }
 
-void ErrorReporter::displayLexErrs() const {
+void
+ErrorReporter::displayLexErrs() const
+{
     for (const auto& lex_err : lex_errs) {
         displayLexErr(lex_err);
     }
 }
 
-void ErrorReporter::terminateProg() {
+void
+ErrorReporter::terminateProg()
+{
     if (hasErrs()) {
     }
 

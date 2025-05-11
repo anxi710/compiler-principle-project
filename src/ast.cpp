@@ -30,7 +30,9 @@ struct DotNodeDecl {
  * @param  s std::string 节点名称
  * @return DotNodeDecl
  */
-static DotNodeDecl str2NodeDecl(const std::string& s) {
+static DotNodeDecl
+str2NodeDecl(const std::string& s)
+{
     std::ostringstream oss;
     oss << s << cnt++; // 确保唯一性
     std::string name  {oss.str()},
@@ -44,7 +46,9 @@ static DotNodeDecl str2NodeDecl(const std::string& s) {
  * @param  t token type
  * @return DotNodeDecl
  */
-static DotNodeDecl tokenType2NodeDecl(lexer::token::Type t) {
+static DotNodeDecl
+tokenType2NodeDecl(lexer::token::Type t)
+{
     using TokenType = lexer::token::Type;
     static const std::unordered_map<TokenType, std::string> maps {
         {TokenType::REF,       "&"},
@@ -103,7 +107,9 @@ static DotNodeDecl tokenType2NodeDecl(lexer::token::Type t) {
  * @param  op comparison operator
  * @return token type
  */
-static lexer::token::Type comparOper2TokenType(ast::ComparOperator op) {
+static lexer::token::Type
+comparOper2TokenType(ast::ComparOperator op)
+{
     using TokenType = lexer::token::Type;
     using CmpOper   = ast::ComparOperator;
     static std::unordered_map<CmpOper, TokenType> map {
@@ -127,7 +133,9 @@ static lexer::token::Type comparOper2TokenType(ast::ComparOperator op) {
  * @param  op arithmetic operator
  * @return token type
  */
-static lexer::token::Type arithOper2TokenType(ast::ArithOperator op) {
+static lexer::token::Type
+arithOper2TokenType(ast::ArithOperator op)
+{
     using TokenType = lexer::token::Type;
     static std::unordered_map<ast::ArithOperator, TokenType> map {
         {ast::ArithOperator::Add, TokenType::OP_PLUS},
@@ -149,7 +157,9 @@ static lexer::token::Type arithOper2TokenType(ast::ArithOperator op) {
  * @param  op comparison operator
  * @return DotNodeDecl
  */
-inline static DotNodeDecl comparOper2NodeDecl(ast::ComparOperator op) {
+static inline DotNodeDecl
+comparOper2NodeDecl(ast::ComparOperator op)
+{
     // 先将 comparison operator 转换为 token type 再转 dot node decl
     return tokenType2NodeDecl(comparOper2TokenType(op));
 }
@@ -159,8 +169,9 @@ inline static DotNodeDecl comparOper2NodeDecl(ast::ComparOperator op) {
  * @param  op arithmetic operator
  * @return DotNodeDecl
  */
-inline static DotNodeDecl arithOper2NodeDecl(ast::ArithOperator op) {
-    // 先将 arithmetic operator 转换为 token type 再转 dot node decl
+static inline DotNodeDecl
+arithOper2NodeDecl(ast::ArithOperator op)
+{   // 先将 arithmetic operator 转换为 token type 再转 dot node decl
     return tokenType2NodeDecl(arithOper2TokenType(op));
 }
 
@@ -170,25 +181,31 @@ inline static DotNodeDecl arithOper2NodeDecl(ast::ArithOperator op) {
  * @return std::string
  */
 template<typename... T> // 变长参数模板
-static std::string nodeDecls2Str(const T&... nd) {
-    static_assert((std::is_same_v<T, DotNodeDecl> && ...),
-        "All arguments must be DotNodeDecl"); // 编译期检查，未通过则编译出错
+static std::string
+nodeDecls2Str(const T&... nd)
+{
+    static_assert(
+        (std::is_same_v<T, DotNodeDecl> && ...),
+        "All arguments must be DotNodeDecl"
+    ); // 编译期检查，未通过则编译出错
 
     std::ostringstream oss;
-    ((oss << "    " << nd.toString() << std::endl), ...); // 左折叠展开
+    ((oss << std::string(4, ' ') << nd.toString() << std::endl), ...); // 左折叠展开
 
     return oss.str();
 }
 
 /**
- * @brief  将一个 DOT 边转换为相应 DOT 声明字符串
+ * @brief  将一条 DOT 边转换为相应 DOT 声明字符串
  * @param  a 起始节点
  * @param  b 终止结点
  * @return std::string DOT 边声明字符串
  */
-inline static std::string edge2Str(const DotNodeDecl& a, const DotNodeDecl& b) {
+static inline std::string
+edge2Str(const DotNodeDecl& a, const DotNodeDecl& b)
+{
     std::ostringstream oss;
-    oss << "    " << a.name << " -> " << b.name << std::endl;
+    oss << std::string(4, ' ') << a.name << " -> " << b.name << std::endl;
     return oss.str();
 }
 
@@ -197,11 +214,13 @@ inline static std::string edge2Str(const DotNodeDecl& a, const DotNodeDecl& b) {
  * @param  edges 边的起点和终点节点对列表
  * @return 表示所有边的字符串，每行一条 DOT 边语句
  */
-static std::string edges2Str(std::initializer_list<std::pair<DotNodeDecl, DotNodeDecl>> edges) {
+static std::string
+edges2Str(std::initializer_list<std::pair<DotNodeDecl, DotNodeDecl>> edges)
+{
     std::ostringstream oss;
 
     for(auto edge : edges) {
-        oss << "    " << edge.first.name << " -> " << edge.second.name << std::endl;
+        oss << std::string(4, ' ') << edge.first.name << " -> " << edge.second.name << std::endl;
     }
 
     return oss.str();
@@ -212,7 +231,9 @@ static std::string edges2Str(std::initializer_list<std::pair<DotNodeDecl, DotNod
  * @param  vdb 变量声明体指针
  * @return [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static auto varDeclBody2Dot(const VarDeclBodyPtr& vdb) {
+static std::tuple<DotNodeDecl, std::string, std::string>
+varDeclBody2Dot(const VarDeclBodyPtr& vdb)
+{
     DotNodeDecl n_vdb     = str2NodeDecl("VarDeclBody");
     DotNodeDecl n_id      = str2NodeDecl("ID");
     DotNodeDecl n_id_name = str2NodeDecl(vdb->name);
@@ -237,12 +258,14 @@ static auto varDeclBody2Dot(const VarDeclBodyPtr& vdb) {
  * @param   integer AST Integer 结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static auto integer2Dot(const IntegerPtr& integer) {
+static std::tuple<DotNodeDecl, std::string, std::string>
+integer2Dot(const IntegerPtr& integer)
+{
     DotNodeDecl n_int = str2NodeDecl("Integer");
     DotNodeDecl n_i32 = str2NodeDecl("i32");
 
-    DotNodeDecl n_ref {},
-                n_mut {};
+    DotNodeDecl n_ref {};
+    DotNodeDecl n_mut {};
     switch(integer->ref_type) {
     default:
         throw std::runtime_error{"Incorrect Reference Type."};
@@ -275,10 +298,14 @@ static auto integer2Dot(const IntegerPtr& integer) {
     return std::make_tuple(n_int, oss_nd.str(), oss_ed.str());
 }
 
-// static std::tuple<DotNodeDecl, std::string, std::string> array2Dot(const ArrayPtr& arr) {
+// static std::tuple<DotNodeDecl, std::string, std::string>
+// array2Dot(const ArrayPtr& arr)
+// {
 // }
 
-// static std::tuple<DotNodeDecl, std::string, std::string> tuple2Dot(const TuplePtr& tup) {
+// static std::tuple<DotNodeDecl, std::string, std::string>
+// tuple2Dot(const TuplePtr& tup)
+// {
 // }
 
 /**
@@ -286,7 +313,9 @@ static auto integer2Dot(const IntegerPtr& integer) {
  * @param   vt AST Variable Type 结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static auto varType2Dot(const VarTypePtr& vt) {
+static std::tuple<DotNodeDecl, std::string, std::string>
+varType2Dot(const VarTypePtr& vt)
+{
     auto n_vt = str2NodeDecl("VarType");
 
     DotNodeDecl rt {};
@@ -320,7 +349,9 @@ static auto varType2Dot(const VarTypePtr& vt) {
  * @param   arg AST Arg 结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static auto arg2Dot(const ArgPtr& arg) {
+static std::tuple<DotNodeDecl, std::string, std::string>
+arg2Dot(const ArgPtr& arg)
+{
     DotNodeDecl n_arg = str2NodeDecl("Arg");
 
     auto [n_vdb, nd_vdb, ed_vdb] = varDeclBody2Dot(arg->variable);
@@ -339,7 +370,9 @@ static auto arg2Dot(const ArgPtr& arg) {
  * @param   ae AST AssignElement 结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static auto assignElement2Dot(const AssignElementPtr& ae) {
+static std::tuple<DotNodeDecl, std::string, std::string>
+assignElement2Dot(const AssignElementPtr& ae)
+{
     DotNodeDecl n_assign_elem = str2NodeDecl("AssignElement");
 
     std::ostringstream oss_nd, oss_ed;
@@ -365,7 +398,9 @@ static auto assignElement2Dot(const AssignElementPtr& ae) {
  * @param   fhd AST FuncHeaderDecl 结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static auto funcHeaderDecl2Dot(const FuncHeaderDeclPtr& fhd) {
+static std::tuple<DotNodeDecl, std::string, std::string>
+funcHeaderDecl2Dot(const FuncHeaderDeclPtr& fhd)
+{
     using TokenType = lexer::token::Type;
     DotNodeDecl n_fhd     = str2NodeDecl("FuncHeaderDecl");
     DotNodeDecl n_fn      = str2NodeDecl("fn");
@@ -414,7 +449,9 @@ static auto funcHeaderDecl2Dot(const FuncHeaderDeclPtr& fhd) {
  * @param   n AST Number 结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static auto numberExpr2Dot(const std::shared_ptr<ast::Number>& n) {
+static std::tuple<DotNodeDecl, std::string, std::string>
+numberExpr2Dot(const std::shared_ptr<ast::Number>& n)
+{
     DotNodeDecl n_num = str2NodeDecl("Number");
     DotNodeDecl n_val = str2NodeDecl(std::to_string(n->value));
 
@@ -430,7 +467,9 @@ static auto numberExpr2Dot(const std::shared_ptr<ast::Number>& n) {
  * @param   v AST Variable 结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static auto variableExpr2Dot(const std::shared_ptr<ast::Variable>& v) {
+static std::tuple<DotNodeDecl, std::string, std::string>
+variableExpr2Dot(const std::shared_ptr<ast::Variable>& v)
+{
     DotNodeDecl v_id = str2NodeDecl("ID");
     DotNodeDecl v_name = str2NodeDecl(v->name);
 
@@ -448,7 +487,9 @@ static std::tuple<DotNodeDecl, std::string, std::string> expr2Dot(const ExprPtr 
  * @param   f AST Factor 结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static auto factorExpr2Dot(const FactorPtr& f) {
+static std::tuple<DotNodeDecl, std::string, std::string>
+factorExpr2Dot(const FactorPtr& f)
+{
     using TokenType = lexer::token::Type;
     DotNodeDecl n_factor = str2NodeDecl("Factor");
 
@@ -487,7 +528,9 @@ static auto factorExpr2Dot(const FactorPtr& f) {
  * @param   ce AST ComparExpr 结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static auto comparExpr2Dot(const ComparExprPtr &ce){
+static std::tuple<DotNodeDecl, std::string, std::string>
+comparExpr2Dot(const ComparExprPtr &ce)
+{
     DotNodeDecl n_expr = str2NodeDecl("CmpExpr");
 
     auto [n_lhs, lhs_nd, lhs_ed] = expr2Dot(ce->lhs);
@@ -506,7 +549,9 @@ static auto comparExpr2Dot(const ComparExprPtr &ce){
  * @param   ae AST ArithExpr 结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static auto arithExpr2Dot(const ArithExprPtr& ae) {
+static std::tuple<DotNodeDecl, std::string, std::string>
+arithExpr2Dot(const ArithExprPtr& ae)
+{
     std::string expr_type;
 
     switch (ae->op) {
@@ -537,7 +582,9 @@ static auto arithExpr2Dot(const ArithExprPtr& ae) {
  * @param   ce AST CallExpr 结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static auto callExpr2Dot(const std::shared_ptr<ast::CallExpr>& ce) {
+static std::tuple<DotNodeDecl, std::string, std::string>
+callExpr2Dot(const std::shared_ptr<ast::CallExpr>& ce)
+{
     using TokenType = lexer::token::Type;
     DotNodeDecl n_call   = str2NodeDecl("CallExpr");
     DotNodeDecl n_id     = str2NodeDecl("ID");
@@ -573,7 +620,9 @@ static auto callExpr2Dot(const std::shared_ptr<ast::CallExpr>& ce) {
  * @param   pe AST ParenthesisExpr 结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static auto parenthesisExpr2Dot(const std::shared_ptr<ast::ParenthesisExpr>& pe) {
+static std::tuple<DotNodeDecl, std::string, std::string>
+parenthesisExpr2Dot(const std::shared_ptr<ast::ParenthesisExpr>& pe)
+{
     using TokenType = lexer::token::Type;
     DotNodeDecl n_paren = str2NodeDecl("ParenthesisExpr");
 
@@ -594,7 +643,9 @@ static auto parenthesisExpr2Dot(const std::shared_ptr<ast::ParenthesisExpr>& pe)
  * @param   e AST Expression 结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static auto element2Dot(const ExprPtr& e){
+static std::tuple<DotNodeDecl, std::string, std::string>
+element2Dot(const ExprPtr& e)
+{
     using enum ast::NodeType;
 
     DotNodeDecl n_element = str2NodeDecl("Element");
@@ -639,7 +690,9 @@ static auto element2Dot(const ExprPtr& e){
  * @param   expr AST Expression 结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static std::tuple<DotNodeDecl, std::string, std::string> expr2Dot(const ExprPtr& expr) {
+static std::tuple<DotNodeDecl, std::string, std::string>
+expr2Dot(const ExprPtr& expr)
+{
     using enum ast::NodeType;
 
     DotNodeDecl rt {};
@@ -677,7 +730,9 @@ static std::tuple<DotNodeDecl, std::string, std::string> expr2Dot(const ExprPtr&
  * @param   es AST Expression Statement 结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static auto exprStmt2Dot(const std::shared_ptr<ast::ExprStmt>& es) {
+static std::tuple<DotNodeDecl, std::string, std::string>
+exprStmt2Dot(const std::shared_ptr<ast::ExprStmt>& es)
+{
     DotNodeDecl n_es = str2NodeDecl("ExprStmt");
     auto [n_expr, expr_nd, expr_ed] = expr2Dot(es->expr);
 
@@ -693,7 +748,9 @@ static auto exprStmt2Dot(const std::shared_ptr<ast::ExprStmt>& es) {
  * @param   rs AST Return Statement 结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static auto returnStmt2Dot(const std::shared_ptr<ast::RetStmt>& rs) {
+static std::tuple<DotNodeDecl, std::string, std::string>
+returnStmt2Dot(const std::shared_ptr<ast::RetStmt>& rs)
+{
     DotNodeDecl n_rs = str2NodeDecl("RetStmt");
     DotNodeDecl n_ret = str2NodeDecl("return");
 
@@ -715,14 +772,16 @@ static auto returnStmt2Dot(const std::shared_ptr<ast::RetStmt>& rs) {
  * @param   vds AST Variable Declaration Statement 结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static auto varDeclStmt2Dot(const VarDeclStmtPtr& vds) {
+static std::tuple<DotNodeDecl, std::string, std::string>
+varDeclStmt2Dot(const VarDeclStmtPtr& vds)
+{
     using TokenType = lexer::token::Type;
 
     DotNodeDecl n_vds = str2NodeDecl("VarDeclStmt");
     DotNodeDecl n_let = str2NodeDecl("let");
 
     std::ostringstream oss_nd, oss_ed;
-    
+
     oss_nd << nodeDecls2Str(n_vds,n_let);
     oss_ed << edge2Str(n_vds, n_let);
     auto [n_var, var_nd, var_ed] = varDeclBody2Dot(vds->variable);
@@ -747,7 +806,9 @@ static auto varDeclStmt2Dot(const VarDeclStmtPtr& vds) {
  * @param   as AST Assign Statement 结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static auto assignStmt2Dot(const AssignStmtPtr& as) {
+static std::tuple<DotNodeDecl, std::string, std::string>
+assignStmt2Dot(const AssignStmtPtr& as)
+{
     using TokenType = lexer::token::Type;
     DotNodeDecl n_as = str2NodeDecl("AssignStmt");
 
@@ -774,7 +835,9 @@ static auto assignStmt2Dot(const AssignStmtPtr& as) {
  * @param   vdas AST VarDeclAssign Statement 结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static auto varDeclAssignStmt2Dot(const VarDeclAssignStmtPtr& vdas) {
+static std::tuple<DotNodeDecl, std::string, std::string>
+varDeclAssignStmt2Dot(const VarDeclAssignStmtPtr& vdas)
+{
     using TokenType = lexer::token::Type;
     DotNodeDecl n_vdas = str2NodeDecl("VarDeclAssignStmt");
     DotNodeDecl n_let = str2NodeDecl("let");
@@ -814,7 +877,9 @@ static std::tuple<DotNodeDecl, std::string, std::string> stmt2Dot(const StmtPtr 
  * @param   bs AST Block Statement 结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static std::tuple<DotNodeDecl, std::string, std::string> blockStmt2Dot(const BlockStmtPtr &bs) {
+static std::tuple<DotNodeDecl, std::string, std::string>
+blockStmt2Dot(const BlockStmtPtr &bs)
+{
     using TokenType = lexer::token::Type;
 
     DotNodeDecl n_bs = str2NodeDecl("BlockStmt");
@@ -845,7 +910,9 @@ static std::tuple<DotNodeDecl, std::string, std::string> blockStmt2Dot(const Blo
  * @param   istmt AST If Statement 结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static auto ifStmt2Dot(const IfStmtPtr& istmt) {
+static std::tuple<DotNodeDecl, std::string, std::string>
+ifStmt2Dot(const IfStmtPtr& istmt)
+{
     using TokenType = lexer::token::Type;
 
     DotNodeDecl n_if_stmt = str2NodeDecl("IfStmt");
@@ -896,7 +963,9 @@ static auto ifStmt2Dot(const IfStmtPtr& istmt) {
  * @param   ws WhileStmt 语句结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static auto whileStmt2Dot(const WhileStmtPtr& ws) {
+static std::tuple<DotNodeDecl, std::string, std::string>
+whileStmt2Dot(const WhileStmtPtr& ws)
+{
     using TokenType = lexer::token::Type;
 
     DotNodeDecl n_while_stmt = str2NodeDecl("WhileStmt");
@@ -923,7 +992,9 @@ static auto whileStmt2Dot(const WhileStmtPtr& ws) {
  * @param   stmt AST 语句结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static std::tuple<DotNodeDecl, std::string, std::string> stmt2Dot(const StmtPtr &stmt) {
+static std::tuple<DotNodeDecl, std::string, std::string>
+stmt2Dot(const StmtPtr &stmt)
+{
     using enum ast::NodeType;
     using TokenType = lexer::token::Type;
 
@@ -954,7 +1025,7 @@ static std::tuple<DotNodeDecl, std::string, std::string> stmt2Dot(const StmtPtr 
         std::tie(rt, nd, ed) = whileStmt2Dot(std::dynamic_pointer_cast<ast::WhileStmt>(stmt));
         return std::make_tuple(rt, nd, ed); // 不加分号
     default:
-        rt = str2NodeDecl("UnknownStmt");
+        rt = str2NodeDecl("NullStmt");
         nd = nodeDecls2Str(rt);
         ed = "";
         break;
@@ -973,7 +1044,9 @@ static std::tuple<DotNodeDecl, std::string, std::string> stmt2Dot(const StmtPtr 
  * @param   fd FuncDecl 语句结点指针
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
-static auto funcDecl2Dot(const FuncDeclPtr& fd) {
+static std::tuple<DotNodeDecl, std::string, std::string>
+funcDecl2Dot(const FuncDeclPtr& fd)
+{
     DotNodeDecl n_fd = str2NodeDecl("FuncDecl");
 
     auto [n_fhd, fhd_nd, fhd_ed] = funcHeaderDecl2Dot(fd->header);
@@ -994,7 +1067,9 @@ static auto funcDecl2Dot(const FuncDeclPtr& fd) {
  * @param   prog 程序的抽象语法树指针
  * @return  void
  */
-void ast2Dot(std::ofstream& out, const ProgPtr& prog) {
+void
+ast2Dot(std::ofstream& out, const ProgPtr& prog)
+{
     out << "digraph AST {" << std::endl
         << "    node [shape=ellipse, fontname=\"Courier\"]" << std::endl << std::endl
         << "    // define nodes" << std::endl;

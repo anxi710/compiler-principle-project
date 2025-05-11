@@ -7,7 +7,9 @@ namespace preproc {
  * @param  text 输入字符串
  * @return 删除后的字符串
  */
-std::string removeAnnotations(std::string text) {
+std::string
+removeAnnotations(std::string text)
+{
     std::string result {}; // 删除注释后的字符串
     std::size_t i      {}; // index
     int         depth  {}; // 嵌套深度
