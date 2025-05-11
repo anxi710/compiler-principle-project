@@ -73,7 +73,7 @@
 └── test
     │── build      # 目标文件目录
     ├── Makefile   # 测试用例构建文件
-    ├── test_case  # 用于词法和语法分析器的测试用例（一组用类 Rust 词法和语法编写的程序）
+    ├── test_case  # 用于词法和语法分析器的测试用例
     └── *.cpp      # 模块测试用例
 ```
 
@@ -82,8 +82,6 @@
 - 2251881 徐  宏：负责代码框架搭建，方法调研，全链条参与全过程，包括命令行参数、文件流、词法语法分析、AST、错误处理。
 - 2253299 戚澍闻：负责词法和语法分析部分模块，实现AST可视化。
 - 2253691 陈书煊：负责词法和语法分析部分模块，负责文档和ppt撰写。
-
-
 
 ## 2 总体设计
 
@@ -116,7 +114,7 @@
 
 1. `main()` 函数接收命令行参数，根据参数确认输入文件 `in_file` 和输出文件 `output.token` & `output.dot`，实例化词法分析器 lexer 和语法分析器 parser。
 
-2. `lexer` 初始化一个 `keyword_table` 来记录需要识别的关键词，`lexer::nextToken()` 解析后续字符串,首先通过正则表达式识别 INT 和 ID 两类文法，在 ID 中识别各种关键词和保留字，在非 ID 和 INT 字符串中接着依次识别各种符号。
+2. `lexer` 初始化一个 `keyword_table` 来记录需要识别的关键词，`lexer::nextToken()` 解析后续字符串，首先通过正则表达式识别 INT 和 ID 两类文法，在 ID 中识别各种关键词和保留字，在非 ID 和 INT 字符串中接着依次识别各种符号。
 
 3. `parser` 实现了 `advance`, `match`, `check`, `checkAhead` 和 `expect` 等工具对词法分析后的 token 进行匹配、检查、前向检查等操作，并从 `parseProgram()` 开始对所有的非终结符节点进行递归下降分析。
 
@@ -126,11 +124,11 @@
 
 ## 3 词法分析详细设计
 
-### 3.1 词法单元Token设计
+### 3.1 词法单元 Token 设计
 
 #### 3.1.1 Token 数据结构设计
 
-Token 数据结构如下，数据成员有type, value 和 pos，除关键词声明声明外，主要包含若干构造函数和运算符重载.
+`Token` 数据结构如下，数据成员有 `type`, `value` 和 `pos`，包含若干构造函数和运算符重载.
 
 ```cpp
 class Token {
@@ -146,7 +144,7 @@ public:
     ~Token() = default;
 
     Token& operator=(const Token& rhs) = default;
-    bool operator==(const Token& rhs) { // == 并不考虑位置！
+    bool operator==(const Token& rhs) {
         return this->type == rhs.type && this->value == rhs.value;
     }
 public:
@@ -169,7 +167,7 @@ public:
     const std::string toString() const;
 private:
     Type           type;  // token type
-    std::string    value; // 组成 token 的字符串
+    std::string    value; // string
     base::Position pos;   // position
 };
 ```
@@ -177,7 +175,7 @@ private:
 #### 3.1.2 Token 类型枚举定义
 
 ```cpp
-// token 类型
+// token type
 enum class Type {
     // Group 0
     END, // end of file
@@ -228,17 +226,13 @@ enum class Type {
 };
 ```
 
-### 3.2 词法分析器Lexer实现
+### 3.2 词法分析器 Lexer 实现
 
 #### 3.2.1 关键字表实现
 
-关键字表包含一个 `std::unordered_map` 哈希表结构，外部可以通过传入 name 获得对应的 token type. 这里的 token type 是枚举类 `TokenType` 中的一员。
+关键字表包含一个 `std::unordered_map` 哈希表结构，外部可以通过传入 name 获得对应的 token type. 这里的 token type 是枚举类 `lexer::token::Type` 中的一员。
 
 ```cpp
-/**
- * @brief   关键字表
- * @details 内置一个存储所有关键字的 hash map，用于查找判断指定 token 是否为关键字
- */
 class KeywordTable {
 public:
     KeywordTable()  = default;
@@ -250,7 +244,7 @@ public:
     token::Type getKeyword(std::string v) const {
         std::ostringstream oss;
         if (keywords.find(v) == keywords.end()) {
-            oss << "调用参数（" << v << "）并非关键字";
+            oss << "parameter (" << v << ") is not a keyword!";
             reporter->report(
                 error::InternalErrorType::UnknownKeyword,
                 oss.str()
@@ -265,8 +259,8 @@ public:
         this->reporter = std::move(reporter);
     }
 private:
-    std::shared_ptr<error::ErrorReporter>        reporter; // error reporter
-    std::unordered_map<std::string, token::Type> keywords; // keyword hash map
+    std::shared_ptr<error::ErrorReporter>        reporter;
+    std::unordered_map<std::string, token::Type> keywords;
 };
 ```
 
@@ -294,13 +288,14 @@ void ToyLexer::initKeywordTable(void) {
 
 #### 3.2.2 有限自动机设计
 
-![alt text](lexer_DFA_1.png)
+<br>
+<img src="lexer_DFA_1.png" height=600/>
 
-![alt text](lexer_DFA_2.png)
+<img src="lexer_DFA_2.png" height=700/>
 
 #### 3.2.3有限自动机实现
 
-step 1: 采用std::regex库使用正则表达式匹配INT和ID类.
+step 1：采用 `std::regex` 库使用正则表达式匹配 INT 和 ID 类。
 
 ```cpp
 static const std::vector<std::pair<token::Type, std::regex>> patterns {
@@ -332,7 +327,7 @@ step 3: 依次匹配剩余符号,包括单字符和双字符组合,优先匹配�
 ```cpp
 Token token       {};        // 识别到的词法单元
 char  first_char  {view[0]}; // 当前看到的第一个字符
-char  second_char {view.length() > 1 ? view[1] : '\0'}; // 当前看到的第二个字符 - 用于 lookahead
+char  second_char {view.length() > 1 ? view[1] : '\0'}; // 第二个字符
 
 // 检测算符和标点符号
 switch (first_char) {
@@ -446,7 +441,7 @@ shiftPos(idx);
 
 return std::unexpected(error::LexError{
     error::LexErrorType::UnknownToken,
-    "识别到未知的 token: " + view.substr(0, idx),
+    "识别到未知 token: " + view.substr(0, idx),
     p.row,
     p.col,
     view.substr(0, idx)
@@ -473,7 +468,7 @@ return std::unexpected(error::LexError{
 
 #### 4.1.1 类RUST语言的文法定义
 
-采用LL(2)兼容的上下文无关文法（CFG），核心规则如下：
+采用 LL(2) 兼容的上下文无关文法，核心规则如下：
 
 ```shell
 Prog        → Decl*
@@ -492,25 +487,25 @@ Expr        → FuncExprBlockStmt | IfExpr | LoopStmt | CmpExpr
 Prog -> (FuncDecl)*
 FuncDecl -> FuncHeaderDecl BlockStmt
 BlockStmt -> FuncExprBlockStmt
-FuncHeaderDecl -> "fn" "\<ID\>" "(" (arg ("," arg)*)? ")" ("->" VarType)?
+FuncHeaderDecl -> "fn" "<ID>" "(" (arg ("," arg)*)? ")" ("->" VarType)?
 arg -> VarDeclBody ":" VarType
 VarDeclBody -> ("mut")? "\<ID\>"
 VarType -> (["&" | "&" "mut"])? [Integer | Array | Tuple]
 Integer -> "i32"
-Array -> "[" VarType ";" "\<INT\>" "]"
+Array -> "[" VarType ";" "<INT>" "]"
 Tuple -> "(" (VarType ",")+ (VarType)? ")"
 BlockStmt -> "{" (Stmt)* "}"
 FuncExprBlockStmt -> "{" (Stmt)* Expr "}"
 Stmt -> VarDeclStmt | RetStmt | CallExpr | AssignStmt | ExprStmt | IfStmt | WhileStmt | ForStmt | LoopStmt | BreakStmt | ContinueStmt | NullStmt
-VarDeclStmt -> "let" ("mut")? "\<ID\>" (":" VarType)? ("=" Expr)? ";"
+VarDeclStmt -> "let" ("mut")? "<ID>" (":" VarType)? ("=" Expr)? ";"
 RetStmt -> "return" (CmpExpr)? ";"
-CallExpr -> "\<ID\>" "(" (arg ("," arg)*)? ")"
+CallExpr -> "<ID>" "(" (arg ("," arg)*)? ")"
 AssignStmt -> AssignElement "=" Expr ";"
 AssignElement -> Deference | ArrayAccess | TupleAccess | Variable
-Deference -> "*" "\<ID\>"
-ArrayAccess -> "\<ID\>" "[" Expr "]"
-TupleAccess -> "\<ID\>" "." "\<INT\>"
-Variable -> "\<ID\>"
+Deference -> "*" "<ID>"
+ArrayAccess -> "<ID>" "[" Expr "]"
+TupleAccess -> "<ID>" "." "<INT>"
+Variable -> "<ID>"
 ExprStmt -> Expr ";"
 IfStmt -> "if" CmpExpr BlockStmt (ElseClause)*
 ElseClause -> "else" ("if" Expr)? BlockStmt
@@ -521,13 +516,13 @@ BreakStmt -> "break" (Expr)? ";"
 ContinueStmt -> "continue" ";"
 NullStmt -> ";"
 Expr -> FuncExprBlockStmt | IfExpr | loopExpr | CmpExpr
-CmpExpr -> AddExpr ([\< | \<= | \> | \>= | == | !=] AddExpr)*
+CmpExpr -> AddExpr ([< | <= | > | >= | == | !=] AddExpr)*
 AddExpr -> MulExpr ([+ | -] MulExpr)*
-MulExpr -> Factor ([\* | /] Factor)*
+MulExpr -> Factor ([* | /] Factor)*
 Factor -> ArrayElements | TupleElements | (["&" | "&" "mut"])? Element | ParenthesisExpr
 ArrayElements -> "[" Expr ("," Expr)* "]"
 TupleElements -> "(" (Expr ",")+ (Expr)? ")"
-Element -> ParenthesisExpr | "\<INT\>" | AssignElement | CallExpr | Variable
+Element -> ParenthesisExpr | "<INT>" | AssignElement | CallExpr | Variable
 ParenthesisExpr -> "(" CmpExpr ")"
 IfExpr -> "if" Expr FuncExprBlockStmt "else" FuncExprBlockStmt
 ```
@@ -539,18 +534,18 @@ IfExpr -> "if" Expr FuncExprBlockStmt "else" FuncExprBlockStmt
 ```shell
 3.2 表达式增加计算和比较（前置规则 3.1）:
 
-Expr -> Expr [\< | \<= | \> | \>= | == | !=] AddExpr
+Expr -> Expr [< | <= | > | >= | == | !=] AddExpr
 AddExpr -> AddExpr [+ | -] Item
-Item -> Item [\* | /] Factor
+Item -> Item [* | /] Factor
 ```
 
 我们采用分层处理优先级方法实现Expr并消除左递归：
 
 ```shell
 Expr -> FuncExprBlockStmt | IfExpr | loopExpr | CmpExpr
-CmpExpr -> AddExpr ([\< | \<= | \> | \>= | == | !=] AddExpr)*
+CmpExpr -> AddExpr ([< | <= | > | >= | == | !=] AddExpr)*
 AddExpr -> MulExpr ([+ | -] MulExpr)*
-MulExpr -> Factor ([\* | /] Factor)*
+MulExpr -> Factor ([* | /] Factor)*
 Factor -> ArrayElements | TupleElements | (["&" | "&" "mut"])? Element | ParenthesisExpr
 ```
 
@@ -590,11 +585,11 @@ private:
 };
 ```
 
-采用**三明治模型**管理Token:
+采用 **三明治模型** 管理 Token:
 
-- current 表示当前token
-- lookahead 表示预读token
-- nextTokenFunc 接收lexer::nextToken()
+- current 表示当前 token
+- lookahead 表示预读 token
+- nextTokenFunc 接收 `lexer::nextToken()`
 
 主要方法有：`advance`, `match`, `check`, `checkAhead`, `expect`，这些方法为词法分析提供必要功能，详见下面注释与代码：
 
@@ -610,7 +605,7 @@ void Parser::advance() {
         if (auto token = nextTokenFunc();
             token.has_value()) {
             current = token.value();
-        } else { // 如果识别到未知 token，则发生了词法分析错误，且需要立即终止
+        } else { // 识别到未知 token，且需立即终止
             reporter->report(token.error(), true);
         }
     }
@@ -648,7 +643,7 @@ bool Parser::checkAhead(lexer::token::Type type) {
         if (auto token = nextTokenFunc();
             token.has_value()) {
             lookahead = token.value(); // 获取下一个 token
-        } else { // 如果识别到未知 token，则发生了词法分析错误，且需要立即终止
+        } else { // 识别到未知 token，且需立即终止
             reporter->report(token.error(), true);
         }
     }
@@ -751,12 +746,11 @@ ast::FuncHeaderDeclPtr Parser::parseFuncHeaderDecl() {
 }
 ```
 
-`Parser::parseFuncHeaderDecl()`实现的就是函数头对应`FuncHeaderDecl -> fn <ID> ( Args )`和`FuncHeaderDecl -> fn <ID> ( Args ) -> VarType` 两条产生,该函数可以体现出解析器的实现特点：
+`Parser::parseFuncHeaderDecl()` 实现的就是函数头对应 `FuncHeaderDecl -> fn <ID> ( Args )` 和 `FuncHeaderDecl -> fn <ID> ( Args ) -> VarType` 两条产生式，该函数可以体现出解析器的实现特点：
 
-1. 充分利用具有错误提示的`expect`来实现 Token 匹配.
-2. `advance()`通常与 if/while (check()) 结合使用,来实现一个非终结符多条产生式的不同分支情况,来实现LL(1).
-3. 对于右递归,如 Args 的解析,就会充分使用std::vector来操作.
-
+1. 充分利用具有错误提示的 `expect` 来实现 Token 匹配.
+2. `advance()` 通常与 `if/while (check())` 结合使用,来实现一个非终结符多条产生式的不同分支情况,来实现LL(1).
+3. 对于右递归,如 Args 的解析,就会充分使用 `std::vector` 来操作.
 
 ```cpp
 /**
@@ -811,7 +805,7 @@ ast::NodePtr Parser::parseStmtOrExpr() {
 }
 ```
 
-`Parser::parseStmtOrExpr()`是整个语法分析器中非常重要的函数,因为单个Statement是程序中最复杂的单位,需要充分的前向搜索来确定下一步调用的是哪个解析函数,而这里就使用了checkAhead来实现LL(2).
+`Parser::parseStmtOrExpr()` 是整个语法分析器中非常重要的函数，因为单个Statement是程序中最复杂的单位，需要充分的前向搜索来确定下一步调用的是哪个解析函数，而这里就使用了 checkAhead 来实现 LL(2)。
 
 ### 4.3 语法错误处理
 
@@ -821,23 +815,23 @@ ast::NodePtr Parser::parseStmtOrExpr() {
 
 ### 5.1 AST节点设计
 
-在本项目中，我们为语言的各类语句与表达式设计了一套`结构化、面向对象的抽象语法树（AST）节点体系`。每类语法成分均对应一个派生自抽象基类 `Stmt` 或 `Expr` 的具体节点结构，并通过智能指针统一管理节点生命周期，便于后续分析与可视化处理。
+在本项目中，我们为语言的各类语句与表达式设计了一套 **结构化、面向对象的 AST（抽象语法树）节点体系**。每类语法成分均对应一个派生自抽象基类 `Stmt` 或 `Expr` 的具体节点结构，并通过智能指针统一管理节点生命周期，便于后续分析与可视化处理。
 
 #### 5.1.1 设计原则
 
-1. `语法对齐`：每种语言结构均映射为一个对应的 AST 节点类，确保语法到语义结构的准确还原。
+1. **语法对齐**：每种语言结构均映射为一个对应的 AST 节点类，确保语法到语义结构的准确还原。
 
-2. `层次分明`：节点之间通过组合表达语义层级。
+2. **层次分明**：节点之间通过组合表达语义层级。
 
-3. `类型枚举分发`：每个节点实现 type() 方法，返回 NodeType 枚举值，用于类型匹配与动态分发。
+3. **类型枚举分发**：每个节点实现 `type()` 方法，返回 `NodeType` 枚举值，用于类型匹配与动态分发。
 
-4. `可视化友好`：节点设计天然支持转为可视化结构 `DOT` 格式,用于调试与展示。
+4. **可视化友好**：节点设计天然支持转为可视化结构 `DOT` 格式,用于调试与展示。
 
 #### 5.1.2 节点类型
 
-根据上述实际实现的产生式，对不同类型的节点予以定义，由于本次 **实现功能** 已经 **超出** 基本要求，1.1 - 9.2 所有要求都已经实现，在AST节点定义中便以给出所有要求所需要的节点类型。
+根据上述实际实现的产生式，对不同类型的节点予以定义，由于本次实现功能已经超出基本要求，在 AST 节点定义中已经给出所有要求所需要的节点类型。
 
-- `基础节点类型`
+- **基础节点类型**
   - Prog：程序入口，包含所有顶层声明。
   - Decl：通用声明类型，是函数声明等的基类。
   - Stmt：语句基类。
@@ -845,7 +839,7 @@ ast::NodePtr Parser::parseStmtOrExpr() {
   - VarType：变量类型（如 int、int[]、(int, int)）。
   - Arg：函数参数节点。
 
-- `声明与语句类节点`
+- **声明与语句类节点**
   - FuncDecl：函数定义，包括头部和主体。
   - FuncHeaderDecl：函数头，包含名称、返回类型与参数。
   - BlockStmt：语句块，表示 { ... }。
@@ -862,7 +856,7 @@ ast::NodePtr Parser::parseStmtOrExpr() {
   - BreakStmt：中断语句。
   - ContinueStmt：跳过语句。
   - NullStmt：空语句 ;
-- `表达式类节点`
+- **表达式类节点**
   - Number：数字常量。
   - Factor：因子节点，表达式的基本单位。
   - ComparExpr：比较表达式。
@@ -873,11 +867,11 @@ ast::NodePtr Parser::parseStmtOrExpr() {
   - IfExpr：条件表达式（if 表达式）。
   - ArrayElements：数组元素列表。
   - TupleElements：元组元素列表。
-- `类型节点`
+- **类型节点**
   - Integer：整数类型。
   - Array：数组类型。
   - Tuple：元组类型。
-- `左值与访问节点`
+- **左值与访问节点**
   - Variable：变量。
   - Dereference：解引用。
   - ArrayAccess：数组访问（如 a[i]）。
@@ -889,9 +883,10 @@ ast::NodePtr Parser::parseStmtOrExpr() {
 
 抽象语法树（AST）的构建是在语法分析阶段完成的。每一种语法结构都对应一个具体的 AST 节点类型，这些节点都派生自统一的基类 `Node`。节点的构造过程与语法规则一一对应，在语法匹配的过程中由递归下降分析器动态生成。
 
-整个 AST 结构通过智能指针组织为`一棵具有层级关系的树`，能够完整表达源代码的语法与语义结构。下面是 AST 中基础与关键结构体的定义的示例：
+整个 AST 结构通过智能指针组织为 **一棵具有层级关系的树**，能够完整表达源代码的语法与语义结构。下面是 AST 中基础与关键结构体的定义的示例：
 
-- `基础节点类型定义`
+- 基础节点类型定义
+
 ```cpp
 // 所有 AST 结点的基类
 struct Node {
@@ -900,7 +895,9 @@ struct Node {
 };
 using NodePtr = std::shared_ptr<Node>;
 ```
-- `程序入口节点定义`
+
+- 程序入口节点定义
+
 ```cpp
 // Program
 struct Prog : Node {
@@ -914,7 +911,9 @@ struct Prog : Node {
 };
 using  ProgPtr = std::shared_ptr<Prog>;
 ```
-- `声明节点基类`
+
+- 声明节点基类
+
 ```cpp
 // Declaration 节点
 struct Decl : Node {
@@ -964,7 +963,8 @@ struct Expr : Node {
 using  ExprPtr = std::shared_ptr<Expr>;
 ```
 
-- 具体节点拓展，此处以`函数头声明节点`为例
+- 具体节点拓展，此处以 **函数头声明节点** 为例
+
 ```cpp
 // Function header declaration
 struct FuncHeaderDecl : Decl {
@@ -982,7 +982,9 @@ struct FuncHeaderDecl : Decl {
 };
 using FuncHeaderDeclPtr = std::shared_ptr<FuncHeaderDecl>;
 ```
+
 下面按照逻辑模块进行分层展示各节点之间的结构与类别：
+
 ```shell
 Node
 ├── Prog
@@ -1045,7 +1047,6 @@ Node
  * @brief   将抽象语法树转换为 dot 格式，并输出到文件
  * @param   out 输出流对象
  * @param   prog 程序的抽象语法树指针
- * @return  void
  */
 void ast2Dot(std::ofstream& out, const ProgPtr& prog) {
     out << "digraph AST {" << std::endl
@@ -1129,7 +1130,8 @@ static DotNodeDecl str2NodeDecl(const std::string& s) {
 
 在完成 AST 向 DotNodeDecl 的转换后，为便于构造完整的 DOT 图文件，还需要将结点与边统一转化为符合 DOT 语法的字符串。为此，设计了如下辅助函数：
 
-1. `DOT 结点列表转字符串`
+1. **DOT 结点列表转字符串**
+
 ```cpp
 /**
  * @brief  将一系列 DOT 结点声明转换为字符串
@@ -1149,7 +1151,8 @@ static std::string nodeDecls2Str(const T&... nd) {
 ```
 这个函数支持变长参数，允许传入多个 DotNodeDecl 类型的结点，并在编译期进行类型检查，保证类型安全。输出格式符合 DOT 图的结点声明规范。
 
-2. `DOT 边的单条转换`
+2. **DOT 边的单条转换**
+
 ```cpp
 /**
  * @brief  将一系列 DOT 结点声明转换为字符串
@@ -1168,9 +1171,10 @@ static std::string nodeDecls2Str(const T&... nd) {
 }
 ```
 
-这个函数用于生成单条边的 DOT 表达式，形式为 A -> B，符合 DOT 语言的语义连接规范。
+这个函数用于生成单条边的 DOT 表达式，形式为 `A -> B`，符合 DOT 语言的语义连接规范。
 
-3. `多条边的批量转换`
+3. **多条边的批量转换**
+
 ```cpp
 /**
  * @brief  将边列表转换为 DOT 格式字符串
@@ -1187,13 +1191,14 @@ static std::string edges2Str(std::initializer_list<std::pair<DotNodeDecl, DotNod
     return oss.str();
 }
 ```
+
 这个函数支持通过初始化列表批量生成边声明，适用于构造多个子节点连接场景，常配合 AST 遍历使用以构建完整图结构。
 
 以上函数共同构成了 AST 可视化中 DOT 输出模块的核心逻辑，配合 DotNodeDecl 结构体与生成函数，可高效构建语法树的图形化表示。
 
-4. `AST 结点辅助构造函数`
+4. **AST 结点辅助构造函数**
 
-在生成 DOT 图的过程中，除了需要将 AST 的结构节点转换为 DOT 格式节点外，还需要将具体的词法标记（Token）作为图中叶子节点进行可视化表示。为此，定义了辅助函数 tokenType2NodeDecl：
+在生成 DOT 图的过程中，除了需要将 AST 的结构节点转换为 DOT 格式节点外，还需要将具体的词法标记（Token）作为图中叶子节点进行可视化表示。为此，定义了辅助函数 `tokenType2NodeDecl`：
 
 ```cpp
 /**
@@ -1245,15 +1250,17 @@ static DotNodeDecl tokenType2NodeDecl(lexer::token::Type t) {
     return DotNodeDecl{name, label};
 }
 ```
+
 这个函数是连接词法分析器输出与 AST 可视化的重要桥梁，提升了图形展示的清晰度与一致性。
 
 #### 5.3.4 AST 转 DOT 转换示例
 
-本节以具体语法结构为例，展示如何将 AST 中的结点及其子结构转换为 DOT 图的格式。以下选取了两个典型的转换函数：通用语句 Stmt 结点和函数头声明 FuncHeaderDecl 结点。
+本节以具体语法结构为例，展示如何将 AST 中的结点及其子结构转换为 DOT 图的格式。以下选取了两个典型的转换函数：通用语句 Stmt 结点和函数头声明 `FuncHeaderDecl` 结点。
 
 ##### 通用语句 Stmt 转换
 
 语句结构复杂多样，统一使用分发函数 stmt2Dot 进行处理，根据语句类型选择具体转换逻辑：
+
 ```cpp
 /**
  * @brief   将语句 Stmt 转 dot 格式，根据type来进行分发
@@ -1307,7 +1314,7 @@ static std::tuple<DotNodeDecl, std::string, std::string> stmt2Dot(const StmtPtr 
 ```
 转换过程：
 
-1. 类型分发：根据语句类型,ExprStmt、RetStmt、AssignStmt 等,调用对应的转换函数,比如 exprStmt2Dot；
+1. 类型分发：根据语句类型 `ExprStmt`, `RetStmt`, `AssignStmt` 等，调用对应的转换函数，比如 `exprStmt2Dot`；
 
 2. 递归生成子树：子函数同样返回三元组，累加生成所有声明；
 
@@ -1317,7 +1324,8 @@ static std::tuple<DotNodeDecl, std::string, std::string> stmt2Dot(const StmtPtr 
 
 ##### 函数头 FuncHeaderDecl 转换
 
-函数头 FuncHeaderDecl 包含关键字 fn、函数名、参数列表（括号包裹）和返回值类型。
+函数头 `FuncHeaderDecl` 包含关键字 "fn"、函数名、参数列表（括号包裹）和返回值类型。
+
 ```cpp
 /**
  * @brief   将函数头声明 FuncHeaderDecl 转 dot 格式
@@ -1371,23 +1379,26 @@ static auto funcHeaderDecl2Dot(const FuncHeaderDeclPtr& fhd) {
 
 转换过程如下：
 
-1. 根节点创建：使用 str2NodeDecl("FuncHeaderDecl") 生成根结点；
+1. 根节点创建：使用 `str2NodeDecl("FuncHeaderDecl")` 生成根结点；
 2. 基础元素转节点：依次为 fn 关键字、ID 标识符及其名称、左括号 ( 生成 DOT 结点，并与根结点建立边；
-3. 处理参数列表：遍历参数 argv，调用 arg2Dot 分别转换为子树；所有子树的根结点与 FuncHeaderDecl 结点连接；如果参数非末尾，插入逗号结点 , 与根结点相连；
+3. 处理参数列表：遍历参数 argv，调用 `arg2Dot` 分别转换为子树；所有子树的根结点与 `FuncHeaderDecl` 结点连接；如果参数非末尾，插入逗号结点 , 与根结点相连；
 4. 补充右括号结点 )；
-5. 处理返回值类型（若存在）：生成箭头 -> 结点；调用 varType2Dot 将返回类型转换为子树，并连接至根结点。
+5. 处理返回值类型（若存在）：生成箭头 -> 结点；调用 `varType2Dot` 将返回类型转换为子树，并连接至根结点。
 
 这个函数最终返回一个三元组：根结点、所有结点声明字符串和所有边声明字符串，供 DOT 图构建使用。
 
-从上述示例中可以看出，在创建节点的过程中，不光处理了所有已定义的非终结符节点类型，还添加了所有终结符的节点类型，也就是 5.3.3中的辅助构造函数，`因此打印出的dot树中的叶节点串起来和原始代码完全一致`。
+从上述示例中可以看出，在创建节点的过程中，不光处理了所有已定义的非终结符节点类型，还添加了所有终结符的节点类型，也就是 5.3.3中的辅助构造函数，**因此打印出的dot树中的叶节点串起来和原始代码完全一致**。
 
 在对所有节点分析结束后，会生成output.dot，下面给出简单的示例：
+
 ```rs
 fn main() {
     let mut a : i32;
 }
 ```
+
 对上述代码可以生成如下的结果：
+
 ```dot
 digraph AST {
     node [shape=ellipse, fontname="Courier"]
@@ -1438,6 +1449,7 @@ digraph AST {
     BlockStmt8 -> RBRACE10
 }
 ```
+
 将这个dot文件转化为png可视化：
 
 <img src="output_ex/ex1.png" width=500/>
@@ -1464,14 +1476,16 @@ digraph AST {
 
 #### 使用示例：
 
-```bash
+```shell
 $ ./toy_compiler -t -i test.txt          # 输出词法分析结果
 $ ./toy_compiler -p -i test.txt          # 输出语法分析结果（AST）
 $ ./toy_compiler -t -p -i test.txt       # 同时输出 Token 和 AST
 $ ./toy_compiler -i test.txt -o result   # 自定义输出文件名（生成 result.token 与 result.dot）
 ```
+
 编译器生成的 .dot 文件可通过 Graphviz 工具进行可视化，命令如下：
-```bash
+
+```shell
 $ dot -Tpng path/to/output.dot -o AST.png
 ```
 
@@ -1492,6 +1506,7 @@ $ dot -Tpng path/to/output.dot -o AST.png
 词法分析器的作用是将源代码转换为一系列有意义的记号（Token），为语法分析阶段做好准备。
 
 以下列类Rust代码为例：
+
 ```rs
 // comment
 /*
@@ -1505,12 +1520,16 @@ fn main() {
     ; // /* */
 }
 ```
+
 编译器首先将所有注释进行识别与忽略，然后识别其中的词法，使用命令行：
-```bash
+
+```shell
 $ ./build/toy_compiler -t -i test/test_case/1-1_2.rs
 ```
-可以得到`output.token`，如下：
-```token
+
+可以得到 `output.token`，如下：
+
+```shell
 <type: FN, value: "fn">@(5, 1)
 <type: ID, value: "main">@(5, 4)
 <type: LPAREN, value: "(">@(5, 8)
@@ -1519,6 +1538,7 @@ $ ./build/toy_compiler -t -i test/test_case/1-1_2.rs
 <type: SEMICOLON, value: ";">@(10, 5)
 <type: RBRACE, value: "}">@(11, 1)
 ```
+
 每一行为一个 Token，包含以下三部分信息：
 
 - `type`：Token 的类型，如 `FN` 表示关键字 `fn`，`ID` 表示标识符，`LPAREN` 表示左括号等；
@@ -1530,21 +1550,25 @@ $ ./build/toy_compiler -t -i test/test_case/1-1_2.rs
 #### 6.2.2 语法分析器
 
 语法分析器负责将词法分析器生成的 Token 流进一步解析为抽象语法树（AST），用于表示源代码的语法结构。为了验证语法分析器的功能，继续使用上一节中的测试输入，并执行以下命令：
-```bash
+
+```shell
 $ ./build/toy_compiler -p -i test/test_case/1-1_2.rs
 ```
+
 会给出语法分析的结果：
 
 <img src="output_ex/ex_parser_success.png" width=500/>
 
-如图显示`Parsing success`，同时可以得到`output.token`和`output.dot`。
+如图显示 `Parsing success`，同时可以得到 `output.token` 和 `output.dot`。
 
-`.dot`文件并不是语法分析器的直接产物，而是基于语法分析结果（AST）生成的可视化输出。此部分在5.3节中有较为详细的描述，
+`.dot` 文件并不是语法分析器的直接产物，而是基于语法分析结果（AST）生成的可视化输出。此部分在5.3节中有较为详细的描述，
 
 同样地，可以使用 Graphviz 工具将 .dot 文件渲染为图片：
-```bash
+
+```shell
 $ dot -Tpng output.dot -o output.png
 ```
+
 可以得到`output.png`，如下：
 
 <img src="output_ex/ex2.png" width=500/>
@@ -1565,11 +1589,11 @@ $ dot -Tpng output.dot -o output.png
 
 <img src="output_ex/ex4.png" width=500/>
 
-##### 2.2 赋值语句 与 3.1&2 表达式部分 
+##### 2.2 赋值语句 与 3.1&2 表达式部分
 
 <img src="output_ex/ex5.png" width=500/>
 
-##### 2.3 变量声明赋值语句 与 3.1&2 表达式部分 
+##### 2.3 变量声明赋值语句 与 3.1&2 表达式部分
 
 <img src="output_ex/ex6.png" width=500/>
 
@@ -1585,9 +1609,9 @@ $ dot -Tpng output.dot -o output.png
 
 <img src="output_ex/ex9.png" width=500/>
 
-由于我们在语法分析器中的实现到了`拓展`部分结束（即9.2），但AST到dot的转化目前只实现了基础部分。
+由于我们在语法分析器中的实现到了 **拓展** 部分结束（即9.2），但 AST 到 dot 的转化目前只实现了基础部分。
 
-因此，以下列代码为例的规则均可以通过词法与语法分析器的分析，得到`Parsing success`，但暂时没有dot的生成。
+因此，以下列代码为例的规则均可以通过词法与语法分析器的分析，得到 `Parsing success`，但暂时没有 dot 的生成。
 
 ```rs
 fn f5_8_9(mut x:[i32;3],mut y:(i32,i32,i32)) -> i32 {
@@ -1682,14 +1706,14 @@ fn main(){
 ## 7 总结与展望
 
 
-本项目致力于实现一个类 Rust 编程语言的编译器前端系统，涵盖了**词法分析**、**语法分析**、**AST 构建**以及**可视化输出**等完整流程。在功能实现过程中，我们围绕编译器架构的核心阶段逐步搭建了清晰、模块化的系统结构，旨在为日后的语义分析、中间代码生成等后续阶段打下良好的基础。
+本项目致力于实现一个类 Rust 编程语言的编译器前端系统，涵盖了 **词法分析**、**语法分析**、**AST 构建** 以及 **可视化输出** 等完整流程。在功能实现过程中，我们围绕编译器架构的核心阶段逐步搭建了清晰、模块化的系统结构，旨在为日后的语义分析、中间代码生成等后续阶段打下良好的基础。
 
 具体，项目具备以下亮点与成果：
 
-- **词法分析器**能够正确将源程序分割为一系列 Token，支持关键词、标识符、符号、操作符等多类词法单元，并附带位置信息，有助于后续阶段进行语义检查与错误定位。
-- **语法分析器**基于抽象语法树（AST）构建原理，将 Token 序列还原为语法结构，支持函数声明、变量定义、表达式、条件语句、循环语句等语法形式，构建出具有语义层次的中间表示结构。
-- **AST 可视化模块**支持将语法结构以 Graphviz DOT 格式输出，使抽象语法树具象为图形，提升调试可读性。通过一系列 `xxx2Dot` 函数，项目实现了 AST 结点到 DOT 图元素的转换，生成的 `.dot` 文件可直接转为图像展示。
-- **命令行工具链**通过统一的参数接口，允许用户按需输出 Token 列表和 AST 图，并支持设置输入输出文件路径，方便灵活集成测试脚本和多种输入源。
+- **词法分析器** 能够正确将源程序分割为一系列 Token，支持关键词、标识符、符号、操作符等多类词法单元，并附带位置信息，有助于后续阶段进行语义检查与错误定位。
+- **语法分析器** 基于抽象语法树（AST）构建原理，将 Token 序列还原为语法结构，支持函数声明、变量定义、表达式、条件语句、循环语句等语法形式，构建出具有语义层次的中间表示结构。
+- **AST 可视化模块** 支持将语法结构以 Graphviz DOT 格式输出，使抽象语法树具象为图形，提升调试可读性。通过一系列 `xxx2Dot` 函数，项目实现了 AST 结点到 DOT 图元素的转换，生成的 `.dot` 文件可直接转为图像展示。
+- **命令行工具链** 通过统一的参数接口，允许用户按需输出 Token 列表和 AST 图，并支持设置输入输出文件路径，方便灵活集成测试脚本和多种输入源。
 
 整个开发过程中，我们采用面向对象设计思想和现代 C++ 技术，注重代码可维护性与模块解耦，并通过单元测试和多组样例验证了各阶段模块的稳定性与正确性。
 
@@ -1708,7 +1732,7 @@ fn main(){
 
 | 名称                                   | 链接                                                                                         | 说明                                 |
 |--------------------------------------|--------------------------------------------------------------------------------------------|--------------------------------------|
-| B站编译原理公开课合集（来自清华大学等） | [https://space.bilibili.com/479141149/lists/2312309?type=season](https://space.bilibili.com/479141149/lists/2312309?type=season) | 视频资料，入门与讲解                  |
+| 南京大学编译原理公开课 | [https://space.bilibili.com/479141149/lists/2312309?type=season](https://space.bilibili.com/479141149/lists/2312309?type=season) | 词法分析器的设计                  |
 | 《A Tour of C++》                    | [https://www.stroustrup.com/Tour.html](https://www.stroustrup.com/Tour.html)               | C++ 作者 Stroustrup 的简明教程        |
 | Rust 官方书籍（The Rust Programming Language） | [https://doc.rust-lang.org/book/title-page.html](https://doc.rust-lang.org/book/title-page.html) | Rust 学习权威资料                    |
 | Graphviz DOT 语言参考文档             | [https://graphviz.org/doc/info/lang.html](https://graphviz.org/doc/info/lang.html)         | 用于 AST 可视化的 DOT 图语言文档      |

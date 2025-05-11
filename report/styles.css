@@ -1,28 +1,22 @@
-/* 
- *   Typora Theme - Lapis converted to normal CSS / Author - YiNN 
+/*
+ *   Typora Theme - Lapis converted to normal CSS / Author - YiNN
  *   https://github.com/YiNNx/typora-theme-lapis
  */
 
 /* Font-face for Cantarell, Source Han Serif CN and JetBrains Mono */
 @font-face {
   font-family: "Cantarell";
-  src: url('lapis/Cantarell-VF-fixed.otf');
+  src: url('fonts/Cantarell-VF-fixed.ttf');
 }
 
 @font-face {
   font-family: "JetBrainsMono";
-  src: url('lapis/JetBrainsMono-Regular.ttf');
+  src: url('fonts/JetBrainsMono-Regular.ttf');
 }
 
 @font-face {
-  font-family: "SourceHanSerifCN";
-  src: url('lapis/SourceHanSerifCN-Medium.otf');
-}
-
-@font-face {
-  font-family: "SourceHanSerifCN";
-  src: url('lapis/SourceHanSerifCN-Bold.otf');
-  font-weight: bold;
+  font-family: "STZhongsong";
+  src: url('fonts/STZhongsong.ttf');
 }
 
 /* Basic Style */
@@ -36,7 +30,7 @@ body {
   word-break: break-word;
   word-wrap: break-word;
   text-align: justify;
-  font-family: 'Cantarell', 'SourceHanSerifCN', 'JetBrainsMono';
+  font-family: 'Cantarell', 'STZhongsong', 'JetBrainsMono';
   margin-bottom: 20rem;
 }
 
@@ -94,7 +88,7 @@ h2.md-heading a {
 
 /* TOC */
 .md-toc-content {
-  font-family: 'SourceHanSerifCN';
+  font-family: 'STZhongsong';
 }
 
 .md-toc-content:empty:before {
@@ -102,7 +96,7 @@ h2.md-heading a {
 }
 
 div.md-toc-tooltip {
-  font-family: 'SourceHanSerifCN';
+  font-family: 'STZhongsong';
   color: #4870ac;
   position: static;
   margin-top: 10px;
@@ -157,7 +151,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: 'SourceHanSerifCN';
+  font-family: 'STZhongsong';
   padding: 0px;
   color: #4870ac;
 }
@@ -376,7 +370,7 @@ table tr td {
 }
 
 table tr th {
-  font-family: SourceHanSerifCN;
+  font-family: STZhongsong;
   text-align: center;
   min-width: 10rem;
   font-weight: bold;
@@ -482,7 +476,7 @@ blockquote.task-list-item input::before {
 /* Sidebar */
 #typora-sidebar,
 #sidebar-content.sidebar-content {
-  font-family: 'Cantarell', 'SourceHanSerifCN';
+  font-family: 'Cantarell', 'STZhongsong';
   height: 100%;
   color: #40464f;
   font-size: 0.92rem;
@@ -638,4 +632,5 @@ pre.CodeMirror-line {
 }
 
 .cm-s-inner.cm-operator {
-  color: #2f8
+  color: rgb(62, 243, 147);
+}
