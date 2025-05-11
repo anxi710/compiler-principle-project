@@ -19,7 +19,7 @@ report/*.pdf
 !test/test_case/*.rs
 
 
-!test_basic_example/
+!test_basic_example/*
 !test_basic_example/**/
 
 src_regex/*
