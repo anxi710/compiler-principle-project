@@ -170,20 +170,14 @@ auto ToyLexer::nextToken() -> std::expected<token::Token, error::LexError> {
     }
 
     base::Position p = this->pos;
-    std::size_t idx = 0;
-    for (; idx < view.length(); ++idx) {
-        if (std::isspace(view[idx])) {
-            break;
-        }
-    }
-    shiftPos(idx);
+    shiftPos(1);
 
     return std::unexpected(error::LexError{
         error::LexErrorType::UnknownToken,
-        "识别到未知的 token: " + view.substr(0, idx),
+        "识别到未知的 token: " + view.substr(0, 1),
         p.row,
         p.col,
-        view.substr(0, idx)
+        view.substr(0, 1)
     });
 }
 
