@@ -8,6 +8,7 @@
 !/note/*
 !/docs/*
 !/report/*
+!/report/output_ex/*
 report/*.pdf
 !**/*.cpp
 !**/*.hpp
@@ -16,5 +17,12 @@ report/*.pdf
 !.vscode/tasks.json
 !**/Makefile
 !test/test_case/*.rs
+
+
+!test_basic_example/
+!test_basic_example/**/
+!test_basic_example/**/*.rs
+!test_basic_example/**/*.dot
+!test_basic_example/**/*.png
 
 src_regex/*
