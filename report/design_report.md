@@ -759,10 +759,621 @@ ast::NodePtr Parser::parseStmtOrExpr() {
 
 ### 5.1 AST节点设计
 
+在本项目中，我们为语言的各类语句与表达式设计了一套`结构化、面向对象的抽象语法树（AST）节点体系`。每类语法成分均对应一个派生自抽象基类 `Stmt` 或 `Expr` 的具体节点结构，并通过智能指针统一管理节点生命周期，便于后续分析与可视化处理。
+
+#### 5.1.1 设计原则
+
+1. `语法对齐`：每种语言结构均映射为一个对应的 AST 节点类，确保语法到语义结构的准确还原。
+
+2. `层次分明`：节点之间通过组合表达语义层级。
+
+3. `类型枚举分发`：每个节点实现 type() 方法，返回 NodeType 枚举值，用于类型匹配与动态分发。
+
+4. `可视化友好`：节点设计天然支持转为可视化结构 `DOT` 格式,用于调试与展示。
+
+#### 5.1.2 节点类型
+
+根据上述实际实现的产生式，对不同类型的节点予以定义，由于本次 **实现功能** 已经 **超出** 基本要求，1.1 - 9.2 所有要求都已经实现，在AST节点定义中便以给出所有要求所需要的节点类型。
+
+- `基础节点类型`
+  - Prog：程序入口，包含所有顶层声明。
+  - Decl：通用声明类型，是函数声明等的基类。
+  - Stmt：语句基类。
+  - Expr：表达式基类。
+  - VarType：变量类型（如 int、int[]、(int, int)）。
+  - Arg：函数参数节点。
+
+- `声明与语句类节点`
+  - FuncDecl：函数定义，包括头部和主体。
+  - FuncHeaderDecl：函数头，包含名称、返回类型与参数。
+  - BlockStmt：语句块，表示 { ... }。
+  - ExprStmt：表达式语句。
+  - RetStmt：返回语句。
+  - VarDeclStmt：变量声明。
+  - AssignStmt：赋值语句。
+  - VarDeclAssignStmt：声明并赋值语句。
+  - IfStmt：if 条件语句，包含多个 ElseClause。
+  - ElseClause：if 的 else 或 else-if 子句。
+  - WhileStmt：while 循环语句。
+  - ForStmt：for 循环语句。
+  - LoopStmt：无限循环语句。
+  - BreakStmt：中断语句。
+  - ContinueStmt：跳过语句。
+  - NullStmt：空语句 ;
+- `表达式类节点`
+  - Number：数字常量。
+  - Factor：因子节点，表达式的基本单位。
+  - ComparExpr：比较表达式。
+  - ArithExpr：算术表达式。
+  - CallExpr：函数调用表达式。
+  - ParenthesisExpr：括号表达式。
+  - FuncExprBlockStmt：匿名函数表达式（带语句块）。
+  - IfExpr：条件表达式（if 表达式）。
+  - ArrayElements：数组元素列表。
+  - TupleElements：元组元素列表。
+- `类型节点`
+  - Integer：整数类型。
+  - Array：数组类型。
+  - Tuple：元组类型。
+- `左值与访问节点`
+  - Variable：变量。
+  - Dereference：解引用。
+  - ArrayAccess：数组访问（如 a[i]）。
+  - TupleAccess：元组访问（如 t.0）。
+
+各节点通过重写 `NodeType type() const` 方法实现运行时类型识别，并支持向下转型操作，以支持语法结构分析与转换。
+
 ### 5.2 AST构建
 
+抽象语法树（AST）的构建是在语法分析阶段完成的。每一种语法结构都对应一个具体的 AST 节点类型，这些节点都派生自统一的基类 `Node`。节点的构造过程与语法规则一一对应，在语法匹配的过程中由递归下降分析器动态生成。
+
+整个 AST 结构通过智能指针组织为`一棵具有层级关系的树`，能够完整表达源代码的语法与语义结构。下面是 AST 中基础与关键结构体的定义的示例：
+
+- `基础节点类型定义`
+```cpp
+// 所有 AST 结点的基类
+struct Node {
+    virtual constexpr NodeType type() const = 0;
+    virtual ~Node() = default;
+};
+using NodePtr = std::shared_ptr<Node>;
+```
+- `程序入口节点定义`
+```cpp
+// Program
+struct Prog : Node {
+    std::vector<DeclPtr> decls; // declarations
+
+    Prog() = default;
+    explicit Prog(const std::vector<DeclPtr>& ds) : decls(ds) {}
+    explicit Prog(std::vector<DeclPtr>&& ds) : decls(std::move(ds)) {}
+
+    constexpr NodeType type() const override { return NodeType::Prog; }
+};
+using  ProgPtr = std::shared_ptr<Prog>;
+```
+- `声明节点基类`
+```cpp
+// Declaration 节点
+struct Decl : Node {
+    constexpr NodeType type() const override { return NodeType::Decl; }
+    virtual ~Decl() = default;
+};
+using DeclPtr = std::shared_ptr<Decl>;
+
+// Variable Type
+struct VarType : Node {
+    RefType ref_type = RefType::Normal;
+
+    VarType() = default;
+    explicit VarType(RefType rt) : ref_type(rt) {}
+    virtual ~VarType() = default;
+
+    constexpr NodeType type() const override { return NodeType::VarType; }
+};
+using  VarTypePtr = std::shared_ptr<VarType>;
+
+// Argument
+struct Arg : Node {
+    VarDeclBodyPtr variable; // variable
+    VarTypePtr     var_type; // variable type
+
+    Arg() = default;
+    explicit Arg(const VarDeclBodyPtr& var, const VarTypePtr& vt) : variable(var), var_type(vt) {}
+    explicit Arg(VarDeclBodyPtr&& var, VarTypePtr&& vt)
+        : variable(std::move(var)), var_type(std::move(vt)) {}
+
+    constexpr NodeType type() const override { return NodeType::Arg; }
+};
+using  ArgPtr = std::shared_ptr<Arg>;
+
+// Statement
+struct Stmt : Node {
+    virtual ~Stmt() = default;
+    constexpr NodeType type() const override { return NodeType::Stmt; }
+};
+using  StmtPtr = std::shared_ptr<Stmt>;
+```
+
+- `函数头声明节点`
+```cpp
+// Function header declaration
+struct FuncHeaderDecl : Decl {
+    std::string               name;        // 函数名
+    std::vector<ArgPtr>       argv;        // 参数列表
+    std::optional<VarTypePtr> retval_type; // 返回类型
+
+    FuncHeaderDecl() = default;
+    explicit FuncHeaderDecl(const std::string& n, const std::vector<ArgPtr>& av, const std::optional<VarTypePtr>& rt)
+        : name(n), argv(av), retval_type(rt) {}
+    explicit FuncHeaderDecl(std::string&& n, std::vector<ArgPtr>&& av, std::optional<VarTypePtr>&& rt)
+        : name(std::move(n)), argv(std::move(av)), retval_type(std::move(rt)) {}
+
+    constexpr NodeType type() const override { return NodeType::FuncHeaderDecl; }
+};
+using FuncHeaderDeclPtr = std::shared_ptr<FuncHeaderDecl>;
+```
+下面按照逻辑模块进行分层展示各节点之间的结构与类别：
+```shell
+Node
+├── Prog
+├── Arg
+├── Decl
+│   ├── FuncDecl
+│   ├── VarDeclStmt
+│   │   └── VarDeclAssignStmt
+│   └── FuncHeaderDecl
+├── Stmt
+│   ├── BlockStmt
+│   │   └── FuncExprBlockStmt  
+│   ├── ExprStmt
+│   ├── RetStmt
+│   ├── VarDeclStmt
+│   │   └── VarDeclAssignStmt
+│   ├── AssignStmt
+│   ├── VarDeclAssignStmt
+│   ├── ElseClause
+│   ├── IfStmt
+│   ├── WhileStmt
+│   ├── ForStmt
+│   ├── LoopStmt
+│   ├── BreakStmt
+│   ├── ContinueStmt
+│   └── NullStmt
+├── Expr
+│   ├── Number
+│   ├── Factor
+│   ├── ComparExpr
+│   ├── ArithExpr
+│   ├── CallExpr
+│   ├── ParenthesisExpr
+│   ├── FuncExprBlockStmt
+│   ├── LoopStmt
+│   ├── IfExpr
+│   ├── ArrayElements
+│   └── TupleElements
+├── VarType
+│   ├── Integer
+│   ├── Array
+│   └── Tuple
+├── VarDeclBody
+├── AssignElement
+│   ├── Variable
+│   ├── Dereference
+│   ├── ArrayAccess
+│   └── TupleAccess
+└── 
+
+```
 ### 5.3 AST可视化
 
+#### 5.3.1 AST 转 DOT 格式函数
+
+为了实现 AST 的可视化展示，设计了统一的导出接口 `ast2Dot`，用于遍历整个语法树并输出 DOT 图格式内容，结构如下：
+
+```cpp
+/**
+ * @brief   将抽象语法树转换为 dot 格式，并输出到文件
+ * @param   out 输出流对象
+ * @param   prog 程序的抽象语法树指针
+ * @return  void
+ */
+void ast2Dot(std::ofstream& out, const ProgPtr& prog) {
+    out << "digraph AST {" << std::endl
+        << "    node [shape=ellipse, fontname=\"Courier\"]" << std::endl << std::endl
+        << "    // define nodes" << std::endl;
+
+    DotNodeDecl n_prog = str2NodeDecl("Prog");
+
+    std::ostringstream oss_nd;
+    std::ostringstream oss_ed;
+
+    oss_nd << nodeDecls2Str(n_prog);
+    for (const auto& decl : prog->decls) {
+        assert(std::dynamic_pointer_cast<FuncDecl>(decl));
+        auto [n_fd, fd_nd, fd_ed] = funcDecl2Dot(std::dynamic_pointer_cast<FuncDecl>(decl));
+        oss_nd << fd_nd;
+        oss_ed << edge2Str(n_prog, n_fd) << fd_ed;
+    }
+
+    out << oss_nd.str() << std::endl
+        << "    // define edges" << std::endl
+        << oss_ed.str() << std::endl
+        << "}" << std::endl;
+}
+```
+
+此函数中核心流程：
+1. 创建根节点 Prog
+2. 遍历每个函数声明 FuncDecl
+3. 调用 funcDecl2Dot 将其转为节点描述与边描述
+4. 最终统一输出所有节点与边
+
+#### 5.3.2 DOT 结点声明与生成
+
+在 AST 可视化过程中，我们需要将抽象语法树中的每个语法结点转换为 DOT 图的结点，以便后续图形化展示。为此，定义了一个 `DotNodeDecl` 结构体用于表示 DOT 语言中的图结点，其设计如下所示：
+
+```cpp
+struct DotNodeDecl {
+    std::string name  {}; // 结点名 - 唯一，用于区分不同结点
+    std::string label {}; // 标签 - 不唯一，用于图片显示
+
+    DotNodeDecl() = default;
+    explicit DotNodeDecl(const std::string& n, const std::string& l)
+        : name(n), label(l) {}
+    explicit DotNodeDecl(std::string&& n, std::string&& l)
+        : name(std::move(n)), label(std::move(l)) {}
+
+    ~DotNodeDecl() = default;
+
+    inline bool initialized() const { return name.length() > 0 && label.length() > 0; }
+    inline std::string toString() const { return name + label; }
+};
+```
+该结构体包含以下两个核心字段：
+
+- `name`：用于标识结点的唯一名称，在 DOT 文件中每个结点必须具有唯一标识；
+- `label`：用于图形化展示时的标签名称，支持相同类型的多个结点使用相同标签。
+
+这个结构体作为 DOT 图生成的基础，支撑了整个 AST 向图形结构的映射过程，是可视化模块的重要组成部分。
+
+为了简化结点的构造过程，我们进一步封装了如下函数 `str2NodeDecl`：
+```cpp
+/**
+ * @brief  通过名称构造带编号的 DOT 节点声明
+ * @param  s std::string 节点名称
+ * @return DotNodeDecl
+ */
+static DotNodeDecl str2NodeDecl(const std::string& s) {
+    std::ostringstream oss;
+    oss << s << cnt++; // 确保唯一性
+    std::string name  {oss.str()},
+                label {"[label = \"" + s + "\"]"};
+
+    return DotNodeDecl{name, label};
+}
+```
+
+该函数实现的关键在于通过`全局计数器 cnt `自动为结点名称添加编号后缀，从而确保 DOT 图中每个结点名称的唯一性。同时，它统一封装了 DOT 标签的构造逻辑，返回标准的 DotNodeDecl 对象，方便在遍历 AST 过程中直接调用使用。
+
+#### 5.3.3 DOT 结构化输出函数
+
+在完成 AST 向 DotNodeDecl 的转换后，为便于构造完整的 DOT 图文件，还需要将结点与边统一转化为符合 DOT 语法的字符串。为此，设计了如下辅助函数：
+
+1. `DOT 结点列表转字符串`
+```cpp
+/**
+ * @brief  将一系列 DOT 结点声明转换为字符串
+ * @param  nd 变长参数
+ * @return std::string
+ */
+template<typename... T> // 变长参数模板
+static std::string nodeDecls2Str(const T&... nd) {
+    static_assert((std::is_same_v<T, DotNodeDecl> && ...),
+        "All arguments must be DotNodeDecl"); // 编译期检查，未通过则编译出错
+
+    std::ostringstream oss;
+    ((oss << "    " << nd.toString() << std::endl), ...); // 左折叠展开
+
+    return oss.str();
+}
+```
+这个函数支持变长参数，允许传入多个 DotNodeDecl 类型的结点，并在编译期进行类型检查，保证类型安全。输出格式符合 DOT 图的结点声明规范。
+
+2. `DOT 边的单条转换`
+```cpp
+/**
+ * @brief  将一系列 DOT 结点声明转换为字符串
+ * @param  nd 变长参数
+ * @return std::string
+ */
+template<typename... T> // 变长参数模板
+static std::string nodeDecls2Str(const T&... nd) {
+    static_assert((std::is_same_v<T, DotNodeDecl> && ...),
+        "All arguments must be DotNodeDecl"); // 编译期检查，未通过则编译出错
+
+    std::ostringstream oss;
+    ((oss << "    " << nd.toString() << std::endl), ...); // 左折叠展开
+
+    return oss.str();
+}
+```
+
+这个函数用于生成单条边的 DOT 表达式，形式为 A -> B，符合 DOT 语言的语义连接规范。
+
+3. `多条边的批量转换`
+```cpp
+/**
+ * @brief  将边列表转换为 DOT 格式字符串
+ * @param  edges 边的起点和终点节点对列表
+ * @return 表示所有边的字符串，每行一条 DOT 边语句
+ */
+static std::string edges2Str(std::initializer_list<std::pair<DotNodeDecl, DotNodeDecl>> edges) {
+    std::ostringstream oss;
+
+    for(auto edge : edges) {
+        oss << "    " << edge.first.name << " -> " << edge.second.name << std::endl;
+    }
+
+    return oss.str();
+}
+```
+这个函数支持通过初始化列表批量生成边声明，适用于构造多个子节点连接场景，常配合 AST 遍历使用以构建完整图结构。
+
+以上函数共同构成了 AST 可视化中 DOT 输出模块的核心逻辑，配合 DotNodeDecl 结构体与生成函数，可高效构建语法树的图形化表示。
+
+4. `AST 结点辅助构造函数`
+
+在生成 DOT 图的过程中，除了需要将 AST 的结构节点转换为 DOT 格式节点外，还需要将具体的词法标记（Token）作为图中叶子节点进行可视化表示。为此，定义了辅助函数 tokenType2NodeDecl：
+
+```cpp
+/**
+ * @brief  通过 token type 构造 DOT 结点声明
+ * @param  t token type
+ * @return DotNodeDecl
+ */
+static DotNodeDecl tokenType2NodeDecl(lexer::token::Type t) {
+    using TokenType = lexer::token::Type;
+    static const std::unordered_map<TokenType, std::string> map {
+        {TokenType::REF,       "&"},
+        {TokenType::LPAREN,    "("},
+        {TokenType::RPAREN,    ")"},
+        {TokenType::LBRACE,    "{"},
+        {TokenType::RBRACE,    "}"},
+        {TokenType::LBRACK,    "["},
+        {TokenType::RBRACK,    "]"},
+        {TokenType::SEMICOLON, ";"},
+        {TokenType::COLON,     ":"},
+        {TokenType::COMMA,     ","},
+        {TokenType::ASSIGN,    "="},
+        {TokenType::DOT,       "."},
+        {TokenType::DOTS,      ".."},
+        {TokenType::ARROW,     "->"},
+        {TokenType::IF,        "if"},
+        {TokenType::ELSE,      "else"},
+        {TokenType::WHILE,     "while"},
+        {TokenType::OP_PLUS,   "+"},
+        {TokenType::OP_MINUS,  "-"},
+        {TokenType::OP_MUL,    "*"},
+        {TokenType::OP_DIV,    "/"},
+        {TokenType::OP_EQ,     "=="},
+        {TokenType::OP_NEQ,    "!="},
+        {TokenType::OP_LT,     "<"},
+        {TokenType::OP_LE,     "<="},
+        {TokenType::OP_GT,     ">"},
+        {TokenType::OP_GE,     ">="}
+    };
+
+    if (map.find(t) == map.end()) {
+        throw std::runtime_error{"tokenType2NodeDecl(): Unknown Token Type."};
+    }
+
+    std::ostringstream oss;
+    oss << lexer::token::tokenType2str(t) << cnt++;
+    std::string name {oss.str()},
+                label = "[label = \"" + map.find(t)->second + "\"]";
+
+    return DotNodeDecl{name, label};
+}
+```
+这个函数是连接词法分析器输出与 AST 可视化的重要桥梁，提升了图形展示的清晰度与一致性。
+
+#### 5.3.4 AST 转 DOT 转换示例
+
+本节以具体语法结构为例，展示如何将 AST 中的结点及其子结构转换为 DOT 图的格式。以下选取了两个典型的转换函数：通用语句 Stmt 结点和函数头声明 FuncHeaderDecl 结点。
+
+##### 通用语句 Stmt 转换
+
+语句结构复杂多样，统一使用分发函数 stmt2Dot 进行处理，根据语句类型选择具体转换逻辑：
+```cpp
+/**
+ * @brief   将语句 Stmt 转 dot 格式，根据type来进行分发
+ * @param   stmt AST 语句结点指针
+ * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
+ */
+static std::tuple<DotNodeDecl, std::string, std::string> stmt2Dot(const StmtPtr &stmt) {
+    using enum ast::NodeType;
+    using TokenType = lexer::token::Type;
+
+    DotNodeDecl rt{};
+    std::string nd{};
+    std::string ed{};
+
+    switch (stmt->type()) {
+    case ExprStmt:
+        std::tie(rt, nd, ed) = exprStmt2Dot(std::dynamic_pointer_cast<ast::ExprStmt>(stmt));
+        break;
+    case RetStmt:
+        std::tie(rt, nd, ed) = returnStmt2Dot(std::dynamic_pointer_cast<ast::RetStmt>(stmt));
+        break;
+    case VarDeclStmt:
+        std::tie(rt, nd, ed) = varDeclStmt2Dot(std::dynamic_pointer_cast<ast::VarDeclStmt>(stmt));
+        break;
+    case AssignStmt:
+        std::tie(rt, nd, ed) = assignStmt2Dot(std::dynamic_pointer_cast<ast::AssignStmt>(stmt));
+        break;
+    case VarDeclAssignStmt:
+        std::tie(rt, nd, ed) = varDeclAssignStmt2Dot(std::dynamic_pointer_cast<ast::VarDeclAssignStmt>(stmt));
+        break;
+    case IfStmt:
+        std::tie(rt, nd, ed) = ifStmt2Dot(std::dynamic_pointer_cast<ast::IfStmt>(stmt));
+        return std::make_tuple(rt, nd, ed);  // 不加分号
+    case WhileStmt:
+        std::tie(rt, nd, ed) = whileStmt2Dot(std::dynamic_pointer_cast<ast::WhileStmt>(stmt));
+        return std::make_tuple(rt, nd, ed); // 不加分号
+    default:
+        rt = str2NodeDecl("UnknownStmt");
+        nd = nodeDecls2Str(rt);
+        ed = "";
+        break;
+    }
+    // 为普通语句添加分号
+    DotNodeDecl n_semi = tokenType2NodeDecl(TokenType::SEMICOLON);
+    std::ostringstream oss_nd, oss_ed;
+    oss_nd << nd << nodeDecls2Str(n_semi);
+    oss_ed << ed << edge2Str(rt, n_semi);
+
+    return std::make_tuple(rt, oss_nd.str(), oss_ed.str());
+}
+```
+转换过程：
+
+1. 类型分发：根据语句类型,ExprStmt、RetStmt、AssignStmt 等,调用对应的转换函数,比如 exprStmt2Dot；
+
+2. 递归生成子树：子函数同样返回三元组，累加生成所有声明；
+
+3. 语句末尾补分号：除控制结构外（if、while），其余语句都统一追加一个分号 ; 结点并与语句根节点相连，控制结构（if、while）不追加分号，避免语义错误。
+
+通过该设计，AST 中各类语句可以统一接口处理，确保语义结构完整且图形表示清晰。
+
+##### 函数头 FuncHeaderDecl 转换
+
+函数头 FuncHeaderDecl 包含关键字 fn、函数名、参数列表（括号包裹）和返回值类型。
+```cpp
+/**
+ * @brief   将函数头声明 FuncHeaderDecl 转 dot 格式
+ * @param   fhd AST FuncHeaderDecl 结点指针
+ * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
+ */
+static auto funcHeaderDecl2Dot(const FuncHeaderDeclPtr& fhd) {
+    using TokenType = lexer::token::Type;
+    DotNodeDecl n_fhd     = str2NodeDecl("FuncHeaderDecl");
+    DotNodeDecl n_fn      = str2NodeDecl("fn");
+    DotNodeDecl n_id      = str2NodeDecl("ID");
+    DotNodeDecl n_id_name = str2NodeDecl(fhd->name);
+
+    DotNodeDecl n_lparen  = tokenType2NodeDecl(TokenType::LPAREN);
+    DotNodeDecl n_rparen  = tokenType2NodeDecl(TokenType::RPAREN);
+
+    std::ostringstream oss_nd;
+    std::ostringstream oss_ed;
+    oss_nd << nodeDecls2Str(n_fhd, n_fn, n_id, n_id_name, n_lparen);
+    oss_ed << edges2Str({{n_fhd, n_fn}, {n_fhd, n_id}, {n_id, n_id_name}, {n_fhd, n_lparen}});
+
+    for (auto it = fhd->argv.begin(); it != fhd->argv.end(); ++it) {
+        auto [rt, nd, ed] = arg2Dot(*it);
+        oss_nd << nd;
+        oss_ed << ed << edge2Str(n_fhd, rt);
+        if (std::next(it) != fhd->argv.end()) {
+            DotNodeDecl n_comma = tokenType2NodeDecl(TokenType::COMMA);
+            oss_nd << nodeDecls2Str(n_comma);
+            oss_ed << edge2Str(n_fhd, n_comma);
+        }
+    }
+
+    oss_nd << nodeDecls2Str(n_rparen);
+    oss_ed << edge2Str(n_fhd, n_rparen);
+
+    if (fhd->retval_type.has_value()){
+        DotNodeDecl n_arrow = tokenType2NodeDecl(TokenType::ARROW);
+
+        oss_nd << nodeDecls2Str(n_arrow);
+        oss_ed << edge2Str(n_fhd, n_arrow);
+
+        auto [n_vt, nd_vt, ed_vt] = varType2Dot(fhd->retval_type.value());
+
+        oss_nd << nd_vt;
+        oss_ed << edge2Str(n_fhd, n_vt) << ed_vt;
+    }
+
+    return std::make_tuple(n_fhd, oss_nd.str(), oss_ed.str());
+}
+```
+
+转换过程如下：
+
+1. 根节点创建：使用 str2NodeDecl("FuncHeaderDecl") 生成根结点；
+2. 基础元素转节点：依次为 fn 关键字、ID 标识符及其名称、左括号 ( 生成 DOT 结点，并与根结点建立边；
+3. 处理参数列表：遍历参数 argv，调用 arg2Dot 分别转换为子树；所有子树的根结点与 FuncHeaderDecl 结点连接；如果参数非末尾，插入逗号结点 , 与根结点相连；
+4. 补充右括号结点 )；
+5. 处理返回值类型（若存在）：生成箭头 -> 结点；调用 varType2Dot 将返回类型转换为子树，并连接至根结点。
+
+这个函数最终返回一个三元组：根结点、所有结点声明字符串和所有边声明字符串，供 DOT 图构建使用。
+
+从上述示例中可以看出，在创建节点的过程中，不光处理了所有已定义的非终结符节点类型，还添加了所有终结符的节点类型，也就是 5.3.3中的辅助构造函数，`因此打印出的dot树中的叶节点串起来和原始代码完全一致`。
+
+在对所有节点分析结束后，会生成output.dot，下面给出简单的示例：
+```rs
+fn main() {
+    let mut a : i32;
+}
+```
+对上述代码可以生成如下的结果：
+```dot
+digraph AST {
+    node [shape=ellipse, fontname="Courier"]
+
+    // define nodes
+    Prog0[label = "Prog"]
+    FuncDecl1[label = "FuncDecl"]
+    FuncHeaderDecl2[label = "FuncHeaderDecl"]
+    fn3[label = "fn"]
+    ID4[label = "ID"]
+    main5[label = "main"]
+    LPAREN6[label = "("]
+    RPAREN7[label = ")"]
+    BlockStmt8[label = "BlockStmt"]
+    LBRACE9[label = "{"]
+    VarDeclStmt11[label = "VarDeclStmt"]
+    VarDeclBody12[label = "VarDeclBody"]
+    mut15[label = "mut"]
+    ID13[label = "ID"]
+    a14[label = "a"]
+    COLON16[label = ":"]
+    VarType17[label = "VarType"]
+    Integer18[label = "Integer"]
+    i3219[label = "i32"]
+    SEMICOLON20[label = ";"]
+    RBRACE10[label = "}"]
+
+    // define edges
+    Prog0 -> FuncDecl1
+    FuncDecl1 -> FuncHeaderDecl2
+    FuncDecl1 -> BlockStmt8
+    FuncHeaderDecl2 -> fn3
+    FuncHeaderDecl2 -> ID4
+    ID4 -> main5
+    FuncHeaderDecl2 -> LPAREN6
+    FuncHeaderDecl2 -> RPAREN7
+    BlockStmt8 -> LBRACE9
+    VarDeclBody12 -> mut15
+    VarDeclBody12 -> ID13
+    ID13 -> a14
+    VarDeclStmt11 -> VarDeclBody12
+    VarDeclStmt11 -> COLON16
+    VarType17 -> Integer18
+    Integer18 -> i3219
+    VarDeclStmt11 -> VarType17
+    VarDeclStmt11 -> SEMICOLON20
+    BlockStmt8 -> VarDeclStmt11
+    BlockStmt8 -> RBRACE10
+}
+```
+将这个dot文件转化为png可视化：
+<img src="output1.png" width=500/>
+
+这就是所得到的AST可视化结果，可以看到所有节点名称与边信息，将所有树中的叶节点串起来，可以验证与源代码一致。
 ## 6 测试与验证
+
 
 ## 7 总结与展望
