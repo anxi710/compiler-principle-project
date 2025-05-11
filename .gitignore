@@ -8,6 +8,7 @@
 !/note/*
 !/docs/*
 !/report/*
+!/report/output_ex/*
 report/*.pdf
 !**/*.cpp
 !**/*.hpp
