@@ -1,0 +1,33 @@
+digraph AST {
+    node [shape=ellipse, fontname="Courier"]
+
+    // define nodes
+    Prog0[label = "Prog"]
+    FuncDecl1[label = "FuncDecl"]
+    FuncHeaderDecl2[label = "FuncHeaderDecl"]
+    fn3[label = "fn"]
+    ID4[label = "ID"]
+    main5[label = "main"]
+    LPAREN6[label = "("]
+    RPAREN7[label = ")"]
+    BlockStmt8[label = "BlockStmt"]
+    LBRACE9[label = "{"]
+    UnknownStmt11[label = "UnknownStmt"]
+    SEMICOLON12[label = ";"]
+    RBRACE10[label = "}"]
+
+    // define edges
+    Prog0 -> FuncDecl1
+    FuncDecl1 -> FuncHeaderDecl2
+    FuncDecl1 -> BlockStmt8
+    FuncHeaderDecl2 -> fn3
+    FuncHeaderDecl2 -> ID4
+    ID4 -> main5
+    FuncHeaderDecl2 -> LPAREN6
+    FuncHeaderDecl2 -> RPAREN7
+    BlockStmt8 -> LBRACE9
+    UnknownStmt11 -> SEMICOLON12
+    BlockStmt8 -> UnknownStmt11
+    BlockStmt8 -> RBRACE10
+
+}

@@ -1,0 +1,55 @@
+digraph AST {
+    node [shape=ellipse, fontname="Courier"]
+
+    // define nodes
+    Prog0[label = "Prog"]
+    FuncDecl1[label = "FuncDecl"]
+    FuncHeaderDecl2[label = "FuncHeaderDecl"]
+    fn3[label = "fn"]
+    ID4[label = "ID"]
+    main5[label = "main"]
+    LPAREN6[label = "("]
+    RPAREN7[label = ")"]
+    ARROW8[label = "->"]
+    VarType9[label = "VarType"]
+    Integer10[label = "Integer"]
+    i3211[label = "i32"]
+    BlockStmt12[label = "BlockStmt"]
+    LBRACE13[label = "{"]
+    UnknownStmt15[label = "UnknownStmt"]
+    SEMICOLON16[label = ";"]
+    UnknownStmt17[label = "UnknownStmt"]
+    SEMICOLON18[label = ";"]
+    UnknownStmt19[label = "UnknownStmt"]
+    SEMICOLON20[label = ";"]
+    RetStmt21[label = "RetStmt"]
+    return22[label = "return"]
+    SEMICOLON23[label = ";"]
+    RBRACE14[label = "}"]
+
+    // define edges
+    Prog0 -> FuncDecl1
+    FuncDecl1 -> FuncHeaderDecl2
+    FuncDecl1 -> BlockStmt12
+    FuncHeaderDecl2 -> fn3
+    FuncHeaderDecl2 -> ID4
+    ID4 -> main5
+    FuncHeaderDecl2 -> LPAREN6
+    FuncHeaderDecl2 -> RPAREN7
+    FuncHeaderDecl2 -> ARROW8
+    FuncHeaderDecl2 -> VarType9
+    VarType9 -> Integer10
+    Integer10 -> i3211
+    BlockStmt12 -> LBRACE13
+    UnknownStmt15 -> SEMICOLON16
+    BlockStmt12 -> UnknownStmt15
+    UnknownStmt17 -> SEMICOLON18
+    BlockStmt12 -> UnknownStmt17
+    UnknownStmt19 -> SEMICOLON20
+    BlockStmt12 -> UnknownStmt19
+    RetStmt21 -> return22
+    RetStmt21 -> SEMICOLON23
+    BlockStmt12 -> RetStmt21
+    BlockStmt12 -> RBRACE14
+
+}
