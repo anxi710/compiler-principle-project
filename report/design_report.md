@@ -106,13 +106,13 @@
 
 ### 2.2 工作流程
 
-1. `main()`函数接收命令行参数，根据参数确认输入文件 `in_file` 和输出文件 `output.token` & `output.dot`，实例化词法分析器 lexer 和语法分析器 parser。
+1. `main()` 函数接收命令行参数，根据参数确认输入文件 `in_file` 和输出文件 `output.token` & `output.dot`，实例化词法分析器 lexer 和语法分析器 parser。
 
-2. `lexer`初始化一个`keyword_table` 来记录需要识别的关键词,`lexer::nextToken()`解析后续字符串,首先通过正则表达式识别 INT 和 ID 两类文法,在ID中识别各种关键词和保留字,在非 ID 和 INT 字符串中接着依次识别各种符号.
+2. `lexer` 初始化一个 `keyword_table` 来记录需要识别的关键词，`lexer::nextToken()` 解析后续字符串,首先通过正则表达式识别 INT 和 ID 两类文法，在 ID 中识别各种关键词和保留字，在非 ID 和 INT 字符串中接着依次识别各种符号。
 
-3. `parser`实现了`advance & match & check & checkAhead & expect`等工具对词法分析后的token进行匹配、检查、向前检查等操作,并从`parseProgram()` 开始对所有的非终结符节点进行递归下降分析.
+3. `parser` 实现了 `advance`, `match`, `check`, `checkAhead` 和 `expect` 等工具对词法分析后的 token 进行匹配、检查、前向检查等操作，并从 `parseProgram()` 开始对所有的非终结符节点进行递归下降分析。
 
-4. `ast`根据parser的分析结果,将各个结点采用dot形式绘制出语法树.
+4. `ast` 根据 parser 的分析结果，将各个结点采用 dot 形式绘制出语法树。
 
 5. `error reporter` 在程序词法和语法分析器工作过程中收集错误并统一报告。
 
@@ -224,7 +224,7 @@ enum class Type {
 
 #### 3.2.1 关键字表实现
 
-关键字表包含一个unordered_map哈希表结构,外部可以通过传入name获得对应的Token,这里的Token是 **class Token**中已经定义好的关键字.
+关键字表包含一个 `std::unordered_map` 哈希表结构，外部可以通过传入 name 获得对应的 token type. 这里的 token type 是枚举类 `TokenType` 中的一员。
 
 ```cpp
 /**
