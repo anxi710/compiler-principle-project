@@ -23,7 +23,9 @@ std::shared_ptr<error::ErrorReporter> reporter {}; // 错误报告器
  * @param msg 错误信息
  */
 template<typename T>
-inline void checkFileStream(T& fs, std::string msg) {
+inline void
+checkFileStream(T& fs, std::string msg)
+{
     static_assert(
         (std::is_same_v<T, std::fstream>  ||
          std::is_same_v<T, std::ofstream> ||
@@ -39,7 +41,9 @@ inline void checkFileStream(T& fs, std::string msg) {
 /**
  * @brief 打印版本信息
  */
-void printVersion() {
+void
+printVersion()
+{
     /*
      * 使用语义版本控制 (SemVer) 原则设置版本号
      * major.minor.patch
@@ -51,10 +55,12 @@ void printVersion() {
 
 /**
  * @brief 打印帮助信息
- * @param executable_file_name 可执行文件名
+ * @param exec 可执行文件名
  */
-void printHelp(const char* const executable_file_name) {
-    std::cout << "Usage: " << executable_file_name << " [options]" << std::endl
+void
+printHelp(const char* const exec)
+{
+    std::cout << "Usage: " << exec << " [options]" << std::endl
         << std::endl
         << "This is a Rust-like programming language compiler." << std::endl
         << "By default, the \'-t\' and \'-p\' options have been configured." << std::endl
@@ -83,7 +89,9 @@ void printHelp(const char* const executable_file_name) {
 /**
  * @brief 编译器初始化
  */
-void initialize(std::ifstream& in) {
+void
+initialize(std::ifstream& in)
+{
     std::ostringstream oss;
     oss << in.rdbuf();
 
@@ -115,7 +123,9 @@ void initialize(std::ifstream& in) {
  * @param  argv argument vector
  * @return tuple: flag_default, flag_parse, flag_token, in_file, out_file
  */
-auto argumentParsing(int argc, char* argv[]) {
+auto
+argumentParsing(int argc, char* argv[])
+{
     // 定义长选项
     static const struct option long_options[] = {
         {"help",    no_argument,       NULL, 'h'},
@@ -186,7 +196,9 @@ auto argumentParsing(int argc, char* argv[]) {
  * @brief 打印分析出的所有 token 到指定文件
  * @param out 输出文件流
  */
-void printToken(std::ofstream& out) {
+void
+printToken(std::ofstream& out)
+{
     while(true) {
         if (auto token = lex->nextToken();
             token.has_value()) {
@@ -209,27 +221,27 @@ void printToken(std::ofstream& out) {
  * @brief 以 dot 格式打印 AST
  * @param out 输出文件流
  */
-void printAST(std::ofstream& out) {
+void
+printAST(std::ofstream& out)
+{   // 初始化 parser
     auto nextTokenFunc = []() {
-        return lex->nextToken();
+        return lex->nextToken(); // 封装 nextToken() 方法
     };
     pars = std::make_unique<parser::base::Parser>(nextTokenFunc);
 
-    try {
-        auto ast_prog_node = pars->parseProgram();
-        std::cout << "Parsing success" << std::endl;
+    auto ast_prog_node = pars->parseProgram();
+    std::cout << "Parsing success" << std::endl;
 
-        parser::ast::ast2Dot(out, ast_prog_node);
-    } catch (const std::runtime_error& e) {
-        std::cerr << "Parsing error: " << e.what() << std::endl;
-    }
+    parser::ast::ast2Dot(out, ast_prog_node);
 }
 
 /**
  * @brief   toy compiler 主函数
  * @details 拼装各组件
  */
-int main(int argc, char* argv[]) {
+int
+main(int argc, char* argv[])
+{
     auto [flag_default, flag_token, flag_parse, in_file, out_file]
         = argumentParsing(argc, argv);
 

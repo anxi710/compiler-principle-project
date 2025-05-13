@@ -9,7 +9,9 @@ namespace lexer::token {
  * @brief  将 token 格式化为一个 string
  * @return 格式化后的字符串
  */
-const std::string Token::toString() const {
+const std::string
+Token::toString() const
+{
     std::ostringstream oss;
     oss << "<type: " << tokenType2str(type) << ", value: \"" << value << "\">@("
         << this->pos.row + 1 << ", " << this->pos.col + 1 << ")";

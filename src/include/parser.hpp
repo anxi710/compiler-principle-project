@@ -23,7 +23,7 @@ public:
     ~Parser() = default;
 
 public:
-    ast::ProgPtr parseProgram();
+    [[nodiscard]] ast::ProgPtr parseProgram();
 
 private:
     void advance();
@@ -32,31 +32,31 @@ private:
     bool checkAhead(lexer::token::Type type);
     void expect(lexer::token::Type type, const std::string& error_msg);
 
-    ast::FuncDeclPtr          parseFuncDecl();
-    ast::FuncHeaderDeclPtr    parseFuncHeaderDecl();
-    ast::NodePtr              parseStmtOrExpr();
-    ast::BlockStmtPtr         parseBlockStmt();
-    ast::RetStmtPtr           parseRetStmt();
-    ast::ArgPtr               parseArg();
-    ast::VarDeclStmtPtr       parseVarDeclStmt();
-    ast::AssignStmtPtr        parseAssignStmt(ast::AssignElementPtr&& lvalue);
-    ast::AssignElementPtr     parseAssignElement();
-    ast::ExprPtr              parseExpr(std::optional<ast::AssignElementPtr> elem = std::nullopt);
-    ast::ExprPtr              parseCmpExpr(std::optional<ast::AssignElementPtr> elem = std::nullopt);
-    ast::ExprPtr              parseAddExpr(std::optional<ast::AssignElementPtr> elem = std::nullopt);
-    ast::ExprPtr              parseMulExpr(std::optional<ast::AssignElementPtr> elem = std::nullopt);
-    ast::ExprPtr              parseFactor(std::optional<ast::AssignElementPtr> elem = std::nullopt);
-    ast::ExprPtr              parseElement(std::optional<ast::AssignElementPtr> elem = std::nullopt);
-    ast::CallExprPtr          parseCallExpr();
-    ast::IfStmtPtr            parseIfStmt();
-    ast::ElseClausePtr        parseElseClause();
-    ast::WhileStmtPtr         parseWhileStmt();
-    ast::ForStmtPtr           parseForStmt();
-    ast::LoopStmtPtr          parseLoopStmt();
-    ast::VarTypePtr           parseVarType();
-    ast::FuncExprBlockStmtPtr parseFuncExprBlockStmt();
-    ast::IfExprPtr            parseIfExpr();
-    ast::BreakStmtPtr         parseBreakStmt();
+    [[nodiscard]] ast::ArgPtr               parseArg();
+    [[nodiscard]] ast::IfExprPtr            parseIfExpr();
+    [[nodiscard]] ast::IfStmtPtr            parseIfStmt();
+    [[nodiscard]] ast::ForStmtPtr           parseForStmt();
+    [[nodiscard]] ast::RetStmtPtr           parseRetStmt();
+    [[nodiscard]] ast::VarTypePtr           parseVarType();
+    [[nodiscard]] ast::FuncDeclPtr          parseFuncDecl();
+    [[nodiscard]] ast::CallExprPtr          parseCallExpr();
+    [[nodiscard]] ast::LoopStmtPtr          parseLoopStmt();
+    [[nodiscard]] ast::BlockStmtPtr         parseBlockStmt();
+    [[nodiscard]] ast::BreakStmtPtr         parseBreakStmt();
+    [[nodiscard]] ast::WhileStmtPtr         parseWhileStmt();
+    [[nodiscard]] ast::ElseClausePtr        parseElseClause();
+    [[nodiscard]] ast::NodePtr              parseStmtOrExpr();
+    [[nodiscard]] ast::VarDeclStmtPtr       parseVarDeclStmt();
+    [[nodiscard]] ast::AssignElementPtr     parseAssignElement();
+    [[nodiscard]] ast::FuncHeaderDeclPtr    parseFuncHeaderDecl();
+    [[nodiscard]] ast::FuncExprBlockStmtPtr parseFuncExprBlockStmt();
+    [[nodiscard]] ast::AssignStmtPtr        parseAssignStmt(ast::AssignElementPtr&& lvalue);
+    [[nodiscard]] ast::ExprPtr              parseExpr(std::optional<ast::AssignElementPtr> elem = std::nullopt);
+    [[nodiscard]] ast::ExprPtr              parseFactor(std::optional<ast::AssignElementPtr> elem = std::nullopt);
+    [[nodiscard]] ast::ExprPtr              parseCmpExpr(std::optional<ast::AssignElementPtr> elem = std::nullopt);
+    [[nodiscard]] ast::ExprPtr              parseAddExpr(std::optional<ast::AssignElementPtr> elem = std::nullopt);
+    [[nodiscard]] ast::ExprPtr              parseMulExpr(std::optional<ast::AssignElementPtr> elem = std::nullopt);
+    [[nodiscard]] ast::ExprPtr              parseElement(std::optional<ast::AssignElementPtr> elem = std::nullopt);
 
 private:
     std::shared_ptr<error::ErrorReporter> reporter; // error reporter

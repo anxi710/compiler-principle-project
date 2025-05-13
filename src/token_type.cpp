@@ -9,7 +9,9 @@ namespace lexer::token {
  * @param  type enum class token::Type 中的一个
  * @return 对应的 string
  */
-const std::string tokenType2str(Type type) {
+const std::string
+tokenType2str(Type type)
+{
     static const std::unordered_map<lexer::token::Type, std::string> map {
         {Type::END,       "END"},
         {Type::IF,        "IF"},
