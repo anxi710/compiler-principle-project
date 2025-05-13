@@ -1,1 +1,4 @@
 !fonts/*.ttf
+!proj1/*
+!proj1/output_ex/*
+**/*.pdf

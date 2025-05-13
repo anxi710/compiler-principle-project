@@ -6,17 +6,17 @@
 /* Font-face for Cantarell, Source Han Serif CN and JetBrains Mono */
 @font-face {
   font-family: "Cantarell";
-  src: url('fonts/Cantarell-VF-fixed.ttf');
+  src: url('../fonts/Cantarell-VF-fixed.ttf');
 }
 
 @font-face {
   font-family: "JetBrainsMono";
-  src: url('fonts/JetBrainsMono-Regular.ttf');
+  src: url('../fonts/JetBrainsMono-Regular.ttf');
 }
 
 @font-face {
   font-family: "STZhongsong";
-  src: url('fonts/STZhongsong.ttf');
+  src: url('../fonts/STZhongsong.ttf');
 }
 
 /* Basic Style */
