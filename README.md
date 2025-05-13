@@ -30,7 +30,8 @@
 ├── docs             # 参考资料
 │   ├── allstar.pdf  # Adaptive LL(*) Algorithm
 │   ├── maximal_munch.pdf
-│   └── 【Rust版】大作业1：词法和语法分析工具设计与实现.pdf
+│   ├── 【Rust版】大作业1：词法和语法分析工具设计与实现.pdf
+│   └── 【Rust版】大作业2：中间代码生成器.pdf
 ├── note           # 设计文档及笔记
 │   └── parser.md  # 语法分析器相关设计文档
 ├── Makefile       # 构建文件
