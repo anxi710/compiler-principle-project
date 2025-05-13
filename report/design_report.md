@@ -489,7 +489,7 @@ FuncDecl -> FuncHeaderDecl BlockStmt
 BlockStmt -> FuncExprBlockStmt
 FuncHeaderDecl -> "fn" "<ID>" "(" (arg ("," arg)*)? ")" ("->" VarType)?
 arg -> VarDeclBody ":" VarType
-VarDeclBody -> ("mut")? "\<ID\>"
+VarDeclBody -> ("mut")? "<ID>"
 VarType -> (["&" | "&" "mut"])? [Integer | Array | Tuple]
 Integer -> "i32"
 Array -> "[" VarType ";" "<INT>" "]"
@@ -529,7 +529,7 @@ IfExpr -> "if" Expr FuncExprBlockStmt "else" FuncExprBlockStmt
 
 #### 4.1.2 消除左递归
 
-产生式左递归主要出现在Expr相关内容：
+产生式左递归主要出现在 Expr 相关内容：
 
 ```shell
 3.2 表达式增加计算和比较（前置规则 3.1）:
@@ -539,19 +539,19 @@ AddExpr -> AddExpr [+ | -] Item
 Item -> Item [* | /] Factor
 ```
 
-我们采用分层处理优先级方法实现Expr并消除左递归：
+我们采用分层处理优先级方法实现 Expr 并消除左递归：
 
 ```shell
-Expr -> FuncExprBlockStmt | IfExpr | loopExpr | CmpExpr
+Expr -> CmpExpr
 CmpExpr -> AddExpr ([< | <= | > | >= | == | !=] AddExpr)*
 AddExpr -> MulExpr ([+ | -] MulExpr)*
 MulExpr -> Factor ([* | /] Factor)*
 Factor -> ArrayElements | TupleElements | (["&" | "&" "mut"])? Element | ParenthesisExpr
 ```
 
-#### 4.1.3 通过vector实现右递归减少递归层数
+#### 4.1.3 通过 vector 实现右递归减少递归层数
 
-以 `Args → (Arg ("," Arg)*)?` 为例,采用vector来代替右递归.
+以 `Args → (Arg ("," Arg)*)?` 为例，采用 `std::vector` 来代替右递归.
 
 ```cpp
 std::vector<ast::ArgPtr> argv {};
@@ -564,9 +564,9 @@ while(!check(TokenType::RPAREN)) {
 }
 ```
 
-### 4.2 语法分析器Parser实现
+### 4.2 语法分析器 Parser 实现
 
-#### 4.2.1 Token流管理
+#### 4.2.1 Token 流管理
 
 ```cpp
 class Parser {
@@ -668,11 +668,11 @@ void Parser::expect(lexer::token::Type type, const std::string& msg) {
 }
 ```
 
-#### 4.2.2 LL(2)解析器设计
+#### 4.2.2 LL(2) 解析器设计
 
 ##### 递归下降解析
 
-对于每个非终结符,都有对应的解析函数.
+对于每个非终结符，都有对应的解析函数：
 
 ```cpp
 ast::ProgPtr              parseProgram();
@@ -703,11 +703,11 @@ ast::IfExprPtr            parseIfExpr();
 ast::BreakStmtPtr         parseBreakStmt();
 ```
 
-每个函数的返回值都是 AST 结点，每个非终结符都有各自的解析函数，顶层是 `parseProgram()` 外部调用，由此逐层向下递归分析整个程序。
+每个函数的返回值都是 AST 结点指针，顶层是 `parseProgram()` 供外部调用，由此逐层向下递归分析整个程序。
 
 ##### 解析函数示例
 
-由于这些函数比较复杂,所以只展示几个代表性函数的实现.
+由于这些函数比较复杂，所以只展示几个代表性函数的实现。
 
 ```cpp
 /**
@@ -716,7 +716,7 @@ ast::BreakStmtPtr         parseBreakStmt();
  */
 [[nodiscard]]
 ast::FuncHeaderDeclPtr Parser::parseFuncHeaderDecl() {
-    // FuncHeaderDecl -> fn <ID> ( (arg)* ) (-> VarType)?
+    // FuncHeaderDecl -> fn <ID> ( (arg (, arg)*)? ) (-> VarType)?
     using TokenType = lexer::token::Type;
 
     expect(TokenType::FN, "此处期望有一个 'fn'");
@@ -748,9 +748,9 @@ ast::FuncHeaderDeclPtr Parser::parseFuncHeaderDecl() {
 
 `Parser::parseFuncHeaderDecl()` 实现的就是函数头对应 `FuncHeaderDecl -> fn <ID> ( Args )` 和 `FuncHeaderDecl -> fn <ID> ( Args ) -> VarType` 两条产生式，该函数可以体现出解析器的实现特点：
 
-1. 充分利用具有错误提示的 `expect` 来实现 Token 匹配.
-2. `advance()` 通常与 `if/while (check())` 结合使用,来实现一个非终结符多条产生式的不同分支情况,来实现LL(1).
-3. 对于右递归,如 Args 的解析,就会充分使用 `std::vector` 来操作.
+1. 充分利用具有错误提示的 `expect` 来实现 Token 匹配。
+2. `advance()` 通常与 `if/while (check())` 结合使用，来实现一个非终结符多条产生式的不同分支情况，来实现 LL(1)。
+3. 对于右递归，如 Args 的解析，就会充分使用 `std::vector` 来操作。
 
 ```cpp
 /**
@@ -766,7 +766,7 @@ ast::NodePtr Parser::parseStmtOrExpr() {
         stmt = parseVarDeclStmt();
     } else if (check(TokenType::RETURN)) {
         stmt = parseRetStmt();
-    } else if (check(TokenType::ID) || check(TokenType::OP_MUL)) {
+    } else if (check(TokenType::ID)||check(TokenType::OP_MUL)) {
         if (check(TokenType::ID) && checkAhead(TokenType::LPAREN)) {
             return parseCallExpr();
         }
@@ -780,7 +780,7 @@ ast::NodePtr Parser::parseStmtOrExpr() {
         } else {
             return parseExpr(elem);
         }
-    } else if (check(TokenType::INT) || check(TokenType::LPAREN)) {
+    } else if (check(TokenType::INT)||check(TokenType::LPAREN)) {
         return parseExpr();
     } else if (check(TokenType::IF)) {
         stmt = parseIfStmt();
@@ -795,7 +795,7 @@ ast::NodePtr Parser::parseStmtOrExpr() {
     } else if (check(TokenType::CONTINUE)) {
         stmt = std::make_shared<ast::ContinueStmt>();
         advance();
-        expect(TokenType::SEMICOLON,"Expected ';' after Continue");
+        expect(TokenType::SEMICOLON,"Expected ';'");
     } else if (check(TokenType::SEMICOLON)){
         stmt = std::make_shared<ast::NullStmt>();
         advance();
@@ -813,7 +813,7 @@ ast::NodePtr Parser::parseStmtOrExpr() {
 
 ## 5 AST详细设计
 
-### 5.1 AST节点设计
+### 5.1 AST 节点设计
 
 在本项目中，我们为语言的各类语句与表达式设计了一套 **结构化、面向对象的 AST（抽象语法树）节点体系**。每类语法成分均对应一个派生自抽象基类 `Stmt` 或 `Expr` 的具体节点结构，并通过智能指针统一管理节点生命周期，便于后续分析与可视化处理。
 
@@ -825,7 +825,7 @@ ast::NodePtr Parser::parseStmtOrExpr() {
 
 3. **类型枚举分发**：每个节点实现 `type()` 方法，返回 `NodeType` 枚举值，用于类型匹配与动态分发。
 
-4. **可视化友好**：节点设计天然支持转为可视化结构 `DOT` 格式,用于调试与展示。
+4. **可视化友好**：节点设计天然支持转为可视化结构 `DOT` 格式，用于调试与展示。
 
 #### 5.1.2 节点类型
 
@@ -836,7 +836,7 @@ ast::NodePtr Parser::parseStmtOrExpr() {
   - Decl：通用声明类型，是函数声明等的基类。
   - Stmt：语句基类。
   - Expr：表达式基类。
-  - VarType：变量类型（如 int、int[]、(int, int)）。
+  - VarType：变量类型（如 i32、\[i32 ; 3\]、(i32, i32)）。
   - Arg：函数参数节点。
 
 - **声明与语句类节点**
@@ -879,11 +879,11 @@ ast::NodePtr Parser::parseStmtOrExpr() {
 
 各节点通过重写 `NodeType type() const` 方法实现运行时类型识别，并支持向下转型操作，以支持语法结构分析与转换。
 
-### 5.2 AST构建
+### 5.2 AST 构建
 
 抽象语法树（AST）的构建是在语法分析阶段完成的。每一种语法结构都对应一个具体的 AST 节点类型，这些节点都派生自统一的基类 `Node`。节点的构造过程与语法规则一一对应，在语法匹配的过程中由递归下降分析器动态生成。
 
-整个 AST 结构通过智能指针组织为 **一棵具有层级关系的树**，能够完整表达源代码的语法与语义结构。下面是 AST 中基础与关键结构体的定义的示例：
+整个 AST 结构通过智能指针组织为 **一棵具有层级关系的树**，能够完整表达源代码的语法结构。下面是 AST 中基础与关键结构体的定义的示例：
 
 - 基础节点类型定义
 
@@ -904,10 +904,12 @@ struct Prog : Node {
     std::vector<DeclPtr> decls; // declarations
 
     Prog() = default;
-    explicit Prog(const std::vector<DeclPtr>& ds) : decls(ds) {}
-    explicit Prog(std::vector<DeclPtr>&& ds) : decls(std::move(ds)) {}
+    explicit Prog(const std::vector<DeclPtr>& ds);
+    explicit Prog(std::vector<DeclPtr>&& ds);
 
-    constexpr NodeType type() const override { return NodeType::Prog; }
+    constexpr NodeType type() const override {
+        return NodeType::Prog;
+    }
 };
 using  ProgPtr = std::shared_ptr<Prog>;
 ```
@@ -917,7 +919,9 @@ using  ProgPtr = std::shared_ptr<Prog>;
 ```cpp
 // Declaration 节点
 struct Decl : Node {
-    constexpr NodeType type() const override { return NodeType::Decl; }
+    constexpr NodeType type() const override {
+        return NodeType::Decl;
+    }
     virtual ~Decl() = default;
 };
 using DeclPtr = std::shared_ptr<Decl>;
@@ -930,7 +934,9 @@ struct VarType : Node {
     explicit VarType(RefType rt) : ref_type(rt) {}
     virtual ~VarType() = default;
 
-    constexpr NodeType type() const override { return NodeType::VarType; }
+    constexpr NodeType type() const override {
+        return NodeType::VarType;
+    }
 };
 using  VarTypePtr = std::shared_ptr<VarType>;
 
@@ -940,25 +946,32 @@ struct Arg : Node {
     VarTypePtr     var_type; // variable type
 
     Arg() = default;
-    explicit Arg(const VarDeclBodyPtr& var, const VarTypePtr& vt) : variable(var), var_type(vt) {}
+    explicit Arg(const VarDeclBodyPtr& var, const VarTypePtr& vt)
+        : variable(var), var_type(vt) {}
     explicit Arg(VarDeclBodyPtr&& var, VarTypePtr&& vt)
         : variable(std::move(var)), var_type(std::move(vt)) {}
 
-    constexpr NodeType type() const override { return NodeType::Arg; }
+    constexpr NodeType type() const override {
+        return NodeType::Arg;
+    }
 };
 using  ArgPtr = std::shared_ptr<Arg>;
 
 // Statement
 struct Stmt : Node {
     virtual ~Stmt() = default;
-    constexpr NodeType type() const override { return NodeType::Stmt; }
+    constexpr NodeType type() const override {
+        return NodeType::Stmt;
+    }
 };
 using  StmtPtr = std::shared_ptr<Stmt>;
 
 // Expression
 struct Expr : Node {
     virtual ~Expr() = default;
-    constexpr NodeType type() const override { return NodeType::Expr; }
+    constexpr NodeType type() const override {
+        return NodeType::Expr;
+    }
 };
 using  ExprPtr = std::shared_ptr<Expr>;
 ```
@@ -973,12 +986,17 @@ struct FuncHeaderDecl : Decl {
     std::optional<VarTypePtr> retval_type; // 返回类型
 
     FuncHeaderDecl() = default;
-    explicit FuncHeaderDecl(const std::string& n, const std::vector<ArgPtr>& av, const std::optional<VarTypePtr>& rt)
+    explicit FuncHeaderDecl(const std::string& n,
+        const std::vector<ArgPtr>& av,
+        const std::optional<VarTypePtr>& rt)
         : name(n), argv(av), retval_type(rt) {}
-    explicit FuncHeaderDecl(std::string&& n, std::vector<ArgPtr>&& av, std::optional<VarTypePtr>&& rt)
-        : name(std::move(n)), argv(std::move(av)), retval_type(std::move(rt)) {}
+    explicit FuncHeaderDecl(std::string&& n,
+        std::vector<ArgPtr>&& av,
+        std::optional<VarTypePtr>&& rt);
 
-    constexpr NodeType type() const override { return NodeType::FuncHeaderDecl; }
+    constexpr NodeType type() const override {
+        return NodeType::FuncHeaderDecl;
+    }
 };
 using FuncHeaderDeclPtr = std::shared_ptr<FuncHeaderDecl>;
 ```
@@ -1028,15 +1046,14 @@ Node
 │   ├── Array
 │   └── Tuple
 ├── VarDeclBody
-├── AssignElement
-│   ├── Variable
-│   ├── Dereference
-│   ├── ArrayAccess
-│   └── TupleAccess
-└──
-
+└── AssignElement
+    ├── Variable
+    ├── Dereference
+    ├── ArrayAccess
+    └── TupleAccess
 ```
-### 5.3 AST可视化
+
+### 5.3 AST 可视化
 
 #### 5.3.1 AST 转 DOT 格式函数
 
@@ -1096,7 +1113,9 @@ struct DotNodeDecl {
 
     ~DotNodeDecl() = default;
 
-    inline bool initialized() const { return name.length() > 0 && label.length() > 0; }
+    inline bool initialized() const {
+        return name.length() > 0 && label.length() > 0;
+    }
     inline std::string toString() const { return name + label; }
 };
 ```
@@ -1141,10 +1160,10 @@ static DotNodeDecl str2NodeDecl(const std::string& s) {
 template<typename... T> // 变长参数模板
 static std::string nodeDecls2Str(const T&... nd) {
     static_assert((std::is_same_v<T, DotNodeDecl> && ...),
-        "All arguments must be DotNodeDecl"); // 编译期检查，未通过则编译出错
+        "All arguments must be DotNodeDecl");
 
     std::ostringstream oss;
-    ((oss << "    " << nd.toString() << std::endl), ...); // 左折叠展开
+    ((oss << "    " << nd.toString() << std::endl), ...);
 
     return oss.str();
 }
@@ -1155,18 +1174,14 @@ static std::string nodeDecls2Str(const T&... nd) {
 
 ```cpp
 /**
- * @brief  将一系列 DOT 结点声明转换为字符串
- * @param  nd 变长参数
- * @return std::string
+ * @brief  将一条 DOT 边转换为相应 DOT 声明字符串
+ * @param  a 起始节点
+ * @param  b 终止结点
+ * @return std::string DOT 边声明字符串
  */
-template<typename... T> // 变长参数模板
-static std::string nodeDecls2Str(const T&... nd) {
-    static_assert((std::is_same_v<T, DotNodeDecl> && ...),
-        "All arguments must be DotNodeDecl"); // 编译期检查，未通过则编译出错
-
+inline static std::string edge2Str(const DotNodeDecl& a, const DotNodeDecl& b) {
     std::ostringstream oss;
-    ((oss << "    " << nd.toString() << std::endl), ...); // 左折叠展开
-
+    oss << "    " << a.name << " -> " << b.name << std::endl;
     return oss.str();
 }
 ```
@@ -1320,7 +1335,7 @@ static std::tuple<DotNodeDecl, std::string, std::string> stmt2Dot(const StmtPtr 
 
 3. 语句末尾补分号：除控制结构外（if、while），其余语句都统一追加一个分号 ";" 结点并与语句根节点相连，控制结构（if、while）不追加分号，避免语义错误。
 
-通过该设计，AST 中各类语句可以统一接口处理，确保语义结构完整且图形表示清晰。
+通过该设计，AST 中各类语句可以统一接口处理，确保语法结构完整且图形表示清晰。
 
 ##### 函数头 FuncHeaderDecl 转换
 
@@ -1387,9 +1402,9 @@ static auto funcHeaderDecl2Dot(const FuncHeaderDeclPtr& fhd) {
 
 这个函数最终返回一个三元组：根结点、所有结点声明字符串和所有边声明字符串，供 DOT 图构建使用。
 
-从上述示例中可以看出，在创建节点的过程中，不光处理了所有已定义的非终结符节点类型，还添加了所有终结符的节点类型，也就是 5.3.3中的辅助构造函数，**因此打印出的dot树中的叶节点串起来和原始代码完全一致**。
+从上述示例中可以看出，在创建节点的过程中，不光处理了所有已定义的非终结符节点类型，还添加了所有终结符的节点类型，也就是 5.3.3 中的辅助构造函数，**因此打印出的dot树中的叶节点串起来和原始代码完全一致**。
 
-在对所有节点分析结束后，会生成output.dot，下面给出简单的示例：
+在对所有节点分析结束后，会生成 output.dot，下面给出简单的示例：
 
 ```rs
 fn main() {
@@ -1543,7 +1558,7 @@ $ ./build/toy_compiler -t -i test/test_case/1-1_2.rs
 
 - `type`：Token 的类型，如 `FN` 表示关键字 `fn`，`ID` 表示标识符，`LPAREN` 表示左括号等；
 - `value`：Token 的实际文本值；
-- `@(line, col)`：Token 在源文件中的行列位置，有助于后续错误定位。
+- `@(row, col)`：Token 在源文件中的行列位置，有助于后续错误定位。
 
 从上面的输出可以看出，词法分析器成功识别了函数声明结构中的关键词、标识符、括号、分号与代码块边界，说明基本功能已正确实现。
 
@@ -1559,9 +1574,9 @@ $ ./build/toy_compiler -p -i test/test_case/1-1_2.rs
 
 <img src="output_ex/ex_parser_success.png" width=500/>
 
-如图显示 `Parsing success`，同时可以得到 `output.token` 和 `output.dot`。
+如图显示 `Parsing success`，同时可以得到 `output.dot`。
 
-`.dot` 文件并不是语法分析器的直接产物，而是基于语法分析结果（AST）生成的可视化输出。此部分在5.3节中有较为详细的描述，
+`.dot` 文件并不是语法分析器的直接产物，而是基于语法分析结果（AST）生成的可视化输出。此部分在5.3节中有较为详细的描述。
 
 同样地，可以使用 Graphviz 工具将 .dot 文件渲染为图片：
 
@@ -1575,7 +1590,7 @@ $ dot -Tpng output.dot -o output.png
 
 生成的 `png` 直观展示了语法结构的层次与关系，方便开发者进行验证和调试。
 
-下面给出一些基础部分实现的语法树部分截图，基础规则的示例类Rust代码与分析结果和完整实现语法树图，会在文件夹`test_basic_example`中给出
+下面给出一些基础部分实现的语法树部分截图，基础规则的示例类 Rust 代码与分析结果和完整实现语法树图，会在文件夹 `test_basic_example` 中给出
 
 ##### 1.1-1.3 基础语句及函数返回语句
 
@@ -1583,7 +1598,7 @@ $ dot -Tpng output.dot -o output.png
 
 ##### 1.4&5 函数输入与输出
 
-<img src="output_ex/ex3.png" width=500/>
+<img src="output_ex/ex3.png" width=600/>
 
 ##### 2.1 变量声明语句
 
@@ -1591,25 +1606,25 @@ $ dot -Tpng output.dot -o output.png
 
 ##### 2.2 赋值语句 与 3.1&2 表达式部分
 
-<img src="output_ex/ex5.png" width=500/>
+<img src="output_ex/ex5.png" width=400/>
 
 ##### 2.3 变量声明赋值语句 与 3.1&2 表达式部分
 
-<img src="output_ex/ex6.png" width=500/>
+<img src="output_ex/ex6.png" width=400/>
 
 ##### 3.3 函数调用语句 与 3.1&2 表达式部分
 
-<img src="output_ex/ex7.png" width=500/>
+<img src="output_ex/ex7.png" width=400/>
 
 ##### 4.1&2 选择语句
 
-<img src="output_ex/ex8.png" width=500/>
+<img src="output_ex/ex8.png" width=650/>
 
 ##### 5.1 while循环语句
 
 <img src="output_ex/ex9.png" width=500/>
 
-由于我们在语法分析器中的实现到了 **拓展** 部分结束（即9.2），但 AST 到 dot 的转化目前只实现了基础部分。
+我们的语法分析器实现到了 **拓展** 部分（即9.2），但 AST 到 dot 的转化目前只实现了基础部分。
 
 因此，以下列代码为例的规则均可以通过词法与语法分析器的分析，得到 `Parsing success`，但暂时没有 dot 的生成。
 
@@ -1730,18 +1745,18 @@ fn main(){
 
 ### 8.1 网站类资料
 
-| 名称                                   | 链接                                                                                         | 说明                                 |
-|--------------------------------------|--------------------------------------------------------------------------------------------|--------------------------------------|
-| 南京大学编译原理公开课 | [https://space.bilibili.com/479141149/lists/2312309?type=season](https://space.bilibili.com/479141149/lists/2312309?type=season) | 词法分析器的设计                  |
-| 《A Tour of C++》                    | [https://www.stroustrup.com/Tour.html](https://www.stroustrup.com/Tour.html)               | C++ 作者 Stroustrup 的简明教程        |
-| Rust 官方书籍（The Rust Programming Language） | [https://doc.rust-lang.org/book/title-page.html](https://doc.rust-lang.org/book/title-page.html) | Rust 学习权威资料                    |
-| Graphviz DOT 语言参考文档             | [https://graphviz.org/doc/info/lang.html](https://graphviz.org/doc/info/lang.html)         | 用于 AST 可视化的 DOT 图语言文档      |
-| Rust 源码中的词法分析实现             | [https://github.com/rust-lang/rust/blob/master/compiler/rustc_lexer/src/lib.rs](https://github.com/rust-lang/rust/blob/master/compiler/rustc_lexer/src/lib.rs) | Rust 编译器源码中的 lexer 模块参考 |
+| 名称  | 链接 | 说明 |
+|------|-----|------|
+| 南京大学编译原理公开课 | [https://space.bilibili.com/479141149/lists/2312309?type=season](https://space.bilibili.com/479141149/lists/2312309?type=season) | 词法分析器的设计 |
+| Rust 官方书籍（The Rust Programming Language） | [https://doc.rust-lang.org/book/title-page.html](https://doc.rust-lang.org/book/title-page.html) | 了解 Rust 语言，理解词法和语法规则 |
+| Graphviz DOT 语言参考文档 | [https://graphviz.org/doc/info/lang.html](https://graphviz.org/doc/info/lang.html) | 用于 AST 可视化的 DOT 图语言文档 |
+| Rust 源码中的词法分析实现 | [https://github.com/rust-lang/rust/blob/master/compiler/rustc_lexer/src/lib.rs](https://github.com/rust-lang/rust/blob/master/compiler/rustc_lexer/src/lib.rs) | Rust 编译器源码中的 lexer 模块参考 |
 
 ### 8.2 书籍资料
 
 | 书名 | 简要说明 |
 |------|----------|
+| 《A Tour of C++》 | C++ 作者 Stroustrup 的简明教程，覆盖最新的 C++ 语法以及最佳实践。 |
 | 《C++ Templates: The Complete Guide, 2nd Edition》 | 深入理解模板编程，为 AST 与 DOT 输出的泛型模板使用提供理论支持。 |
 | 《正则表达式必知必会（修订版）》 | 协助构建词法分析器中的正则表达式匹配规则。 |
 | 《Effective Modern C++》 | 优化 C++11/14 的语法使用，提升编译器模块的效率与鲁棒性。 |
