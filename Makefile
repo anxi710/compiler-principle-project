@@ -27,7 +27,6 @@ INC_FLAGS := $(addprefix -I, $(INC_DIRS))
 DEPS := $(OBJS:.o=.d)
 CPPFLAGS = $(INC_FLAGS) -MMD -MP
 
-
 # Main target
 $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
 	$(CXX) $(OBJS) -lpthread -ldl -o $@
@@ -40,6 +39,11 @@ $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
 .PHONY: clean
+
+all:
+	make -j
+bear:
+	bear -- make -j
 
 clean:
 	-rm -rf $(BUILD_DIR)
