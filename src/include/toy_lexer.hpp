@@ -1,29 +1,32 @@
 #pragma once
 
-#include "lexer.hpp"
 #include "keyword_table.hpp"
+#include "lexer.hpp"
 
-namespace lexer::impl {
+namespace lexer::impl
+{
 
-class ToyLexer : public base::Lexer {
-public:
+class ToyLexer : public base::Lexer
+{
+   public:
     ToyLexer() = delete;
 
-    template<typename T>
-    explicit ToyLexer(T&& t) : Lexer(std::forward<T>(t)) { // Perfect forwarding
+    template <typename T>
+    explicit ToyLexer(T&& t) : Lexer(std::forward<T>(t))
+    {  // Perfect forwarding
         initKeywordTable();
     }
 
-    ~ToyLexer() = default;
+    ~ToyLexer() override = default;
 
-public: // virtual function
+   public:  // virtual function
     auto nextToken() -> std::expected<token::Token, error::LexError> override;
 
-private:
+   private:
     void initKeywordTable();
 
-private:
-    keyword::KeywordTable keyword_table; // 关键词表
+   private:
+    keyword::KeywordTable keyword_table;  // 关键词表
 };
 
-} // namespace lexer::impl
+}  // namespace lexer::impl

@@ -1,40 +1,49 @@
 #pragma once
 
 #include <string>
-#include "token_type.hpp"
+
 #include "lexer_position.hpp"
+#include "token_type.hpp"
 
-namespace lexer::token {
+namespace lexer::token
+{
 
-enum class Type;
+enum class Type : std::uint8_t;
 
-class Token {
-public:
+class Token
+{
+   public:
     Token() = default;
 
-    explicit Token(const Type& t, const std::string& v, const base::Position& p = base::Position{0, 0})
-        : type(t), value(v), pos(p) {}
+    explicit Token(const Type& t, std::string v, const base::Position& p = base::Position{0, 0})
+        : type(t), value(std::move(v)), pos(p)
+    {
+    }
 
-    Token(const Token& other) : type(other.type), value(other.value), pos(other.pos) {}
+    Token(const Token& other) = default;
 
-    Token(Token&& other) : type(std::move(other.type)),
-        value(std::move(other.value)), pos(std::move(other.pos)) {}
+    Token(Token&& other) noexcept : type(other.type), value(std::move(other.value)), pos(other.pos)
+    {
+    }
 
     ~Token() = default;
 
-    Token& operator=(const Token& rhs) = default;
+    auto operator=(const Token& rhs) -> Token& = default;
 
-    bool operator==(const Token& rhs) {
+    auto operator==(const Token& rhs) -> bool
+    {
         // == 并不考虑位置！
         return this->type == rhs.type && this->value == rhs.value;
     }
 
-public:
+   public:
     /**
      * @brief  获取 token 的值
      * @return token value
      */
-    inline const std::string& getValue() const {
+    [[nodiscard]]
+    auto getValue() const -> const std::string&
+    {
         return this->value;
     }
 
@@ -42,7 +51,9 @@ public:
      * @brief  获取 token 的类型
      * @return token type
      */
-    inline const Type getType() const {
+    [[nodiscard]]
+    auto getType() const -> Type
+    {
         return this->type;
     }
 
@@ -50,7 +61,9 @@ public:
      * @brief  获取 token 的位置
      * @return Position
      */
-    inline const base::Position getPos() const {
+    [[nodiscard]]
+    auto getPos() const -> base::Position
+    {
         return this->pos;
     }
 
@@ -58,26 +71,26 @@ public:
      * @brief 设置 token 所在的文本位置
      * @param p struct Position {row, col}
      */
-    inline void setPos(const base::Position& p) {
-        this->pos = p;
-    }
+    void setPos(const base::Position& p) { this->pos = p; }
 
     /**
      * @brief 设置 token 所在的文本位置
      * @param r row
      * @param c col
      */
-    inline void setPos(std::size_t r, std::size_t c) {
+    void setPos(std::size_t r, std::size_t c)
+    {
         this->pos.row = r;
         this->pos.col = c;
     }
 
-    const std::string toString() const;
+    [[nodiscard]]
+    auto toString() const -> std::string;
 
-private:
-    Type           type;  // token type
-    std::string    value; // 组成 token 的字符串
-    base::Position pos;   // position
+   private:
+    Type type;           // token type
+    std::string value;   // 组成 token 的字符串
+    base::Position pos;  // position
 };
 
-} // namespace lexer::token
+}  // namespace lexer::token

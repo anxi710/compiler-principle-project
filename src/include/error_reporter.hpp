@@ -1,118 +1,152 @@
 #pragma once
 
 #include <list>
-#include <vector>
-#include <string>
-#include <memory>
 #include <source_location>
+#include <string>
+#include <vector>
+
 #include "error_type.hpp"
 
-namespace error {
+namespace error
+{
 
-struct Error {
-    std::string msg; // error message
+struct Error
+{
+    std::string msg;  // error message
 
     Error() = default;
     Error(const std::string& m) : msg(m) {}
     Error(std::string&& m) : msg(std::move(m)) {}
 
-    virtual constexpr ErrorType kind() const = 0;
+    [[nodiscard]]
+    virtual constexpr auto kind() const -> ErrorType = 0;
     virtual ~Error() = default;
 };
 
 // 词法错误
-struct LexError : Error {
+struct LexError : Error
+{
     LexErrorType type;
-    std::size_t  row;
-    std::size_t  col;
-    std::string  token;
+    std::size_t row;
+    std::size_t col;
+    std::string token;
 
     LexError() = delete;
 
-    explicit LexError(LexErrorType type, const std::string& msg,
-        std::size_t r, std::size_t c, const std::string& token)
-        : Error(msg), type(type), row(r), col(c), token(token) {}
+    explicit LexError(LexErrorType type, const std::string& msg, std::size_t r, std::size_t c,
+                      std::string token)
+        : Error(msg), type(type), row(r), col(c), token(std::move(token))
+    {
+    }
 
     ~LexError() override = default;
 
-    constexpr ErrorType kind() const override { return ErrorType::Lex; }
+    [[nodiscard]]
+    constexpr auto kind() const -> ErrorType override
+    {
+        return ErrorType::Lex;
+    }
 };
 
 // 语法错误
-struct ParseError : Error {
+struct ParseError : Error
+{
     ParseErrorType type;
-    std::size_t    row;
-    std::size_t    col;
-    std::string    token;
+    std::size_t row;
+    std::size_t col;
+    std::string token;
 
     ParseError() = delete;
 
-    explicit ParseError(ParseErrorType type, const std::string& msg,
-        std::size_t r, std::size_t c, const std::string& token)
-        : Error(msg), type(type), row(r), col(c), token(token) {}
+    explicit ParseError(ParseErrorType type, const std::string& msg, std::size_t r, std::size_t c,
+                        std::string token)
+        : Error(msg), type(type), row(r), col(c), token(std::move(token))
+    {
+    }
 
     ~ParseError() override = default;
 
-    constexpr ErrorType kind() const override { return ErrorType::Parse; }
+    [[nodiscard]]
+    constexpr auto kind() const -> ErrorType override
+    {
+        return ErrorType::Parse;
+    }
 };
 
 // 内部错误
-struct InternalError : Error {
-    InternalErrorType    type;
+struct InternalError : Error
+{
+    InternalErrorType type;
     std::source_location location;
 
     InternalError() = delete;
 
-    template<typename T>
+    template <typename T>
     explicit InternalError(InternalErrorType t, T&& msg, const std::source_location loc)
-        : Error(std::forward<T>(msg)), type(t), location(loc) {}
+        : Error(std::forward<T>(msg)), type(t), location(loc)
+    {
+    }
 
-    constexpr ErrorType kind() const override { return ErrorType::Internal; }
+    [[nodiscard]]
+    constexpr auto kind() const -> ErrorType override
+    {
+        return ErrorType::Internal;
+    }
 };
 
 // 错误报告器
-class ErrorReporter {
-public:
+class ErrorReporter
+{
+   public:
     ErrorReporter() = delete;
     explicit ErrorReporter(const std::string& t);
 
     ~ErrorReporter() = default;
 
-public:
-    void report(LexErrorType type, const std::string& msg,
-        std::size_t r, std::size_t c, const std::string& token, bool terminate = false);
-    void report(LexError le, bool terminate = false);
+   public:
+    void report(LexErrorType type, const std::string& msg, std::size_t r, std::size_t c,
+                const std::string& token, bool terminate = false);
+    void report(const LexError& le, bool terminate = false);
 
-    void report(ParseErrorType type, const std::string& msg,
-        std::size_t r, std::size_t c, const std::string& token, bool terminate = false);
+    void report(ParseErrorType type, const std::string& msg, std::size_t r, std::size_t c,
+                const std::string& token, bool terminate = false);
 
-    [[noreturn]] // 编译器内部错误必须终止
-    void report(InternalErrorType t, const std::string& msg,
-        const std::source_location loc = std::source_location::current());
+    // 编译器内部错误必须终止
+    [[noreturn]] void report(InternalErrorType t, const std::string& msg,
+                             const std::source_location& loc = std::source_location::current());
 
-    [[noreturn]]
-    void terminateProg();
+    [[noreturn]] void terminateProg();
 
-public:
+   public:
     void displayLexErrs() const;
     void displayParseErrs() const;
     void displayInternalErrs() const;
 
-    inline bool hasLexErr() const { return !lex_errs.empty(); }
-    inline bool hasParseErr() const { return !parse_errs.empty(); }
+    [[nodiscard]]
+    auto hasLexErr() const -> bool
+    {
+        return !lex_errs.empty();
+    }
+    [[nodiscard]]
+    auto hasParseErr() const -> bool
+    {
+        return !parse_errs.empty();
+    }
 
-private:
-    inline bool hasErrs() const {
+   private:
+    [[nodiscard]]
+    auto hasErrs() const -> bool
+    {
         return !(lex_errs.empty() && parse_errs.empty());
     }
 
     void displayLexErr(const LexError& err) const;
     void displayUnknownType(const LexError& err) const;
 
-private:
-    std::vector<std::string> text;          // 输入文件原始文本
-    std::list<LexError>      lex_errs;      // 词法错误列表
-    std::list<ParseError>    parse_errs;    // 语法错误列表
+   private:
+    std::vector<std::string> text;     // 输入文件原始文本
+    std::list<LexError> lex_errs;      // 词法错误列表
+    std::list<ParseError> parse_errs;  // 语法错误列表
 };
 
-} // namespace error
+}  // namespace error

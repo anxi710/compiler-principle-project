@@ -1,47 +1,47 @@
 #pragma once
 
-#include <string>
 #include <cassert>
+#include <memory>
 #include <sstream>
-#include <expected>
+#include <string>
 #include <unordered_map>
-#include "token_type.hpp"
-#include "error_reporter.hpp"
 
-namespace lexer::keyword {
+#include "error_reporter.hpp"
+#include "token_type.hpp"
+
+namespace lexer::keyword
+{
 
 /**
  * @brief   关键字表
  * @details 内置一个存储所有关键字的 hash map，用于查找判断指定 token 是否为关键字
  */
-class KeywordTable {
-public:
-    KeywordTable()  = default;
+class KeywordTable
+{
+   public:
+    KeywordTable() = default;
     ~KeywordTable() = default;
 
-public:
+   public:
     /**
      * @brief  判断给定的输入值是否是一个关键字
      * @param  v token value
      * @return true / false
      */
-    inline bool iskeyword(std::string v) const {
-        return (keywords.find(v) != keywords.end());
-    }
+    auto iskeyword(const std::string& v) const -> bool { return (keywords.contains(v)); }
 
     /**
      * @brief  根据输入值获取对应 token type
      * @param  v token value
      * @return keyword token type
      */
-    token::Type getKeyword(std::string v) const {
+    auto getKeyword(const std::string& v) const -> token::Type
+    {
         std::ostringstream oss;
-        if (keywords.find(v) == keywords.end()) {
+        if (keywords.contains(v))
+        {
             oss << "调用参数（" << v << "）并非关键字";
-            reporter->report(
-                error::InternalErrorType::UnknownKeyword,
-                oss.str()
-            );
+            reporter->report(error::InternalErrorType::UnknownKeyword, oss.str());
         }
         return keywords.find(v)->second;
     }
@@ -51,21 +51,20 @@ public:
      * @param n keyword name
      * @param t keyword token type
      */
-    inline void addKeyword(std::string n, token::Type t) {
-        this->keywords.emplace(n, t);
-    }
+    void addKeyword(std::string n, token::Type t) { this->keywords.emplace(n, t); }
 
     /**
      * @brief 设置错误报告器
      * @param reporter 全局错误报告器
      */
-    inline void setErrReporter(std::shared_ptr<error::ErrorReporter> reporter) {
+    void setErrReporter(std::shared_ptr<error::ErrorReporter> reporter)
+    {
         this->reporter = std::move(reporter);
     }
 
-private:
-    std::shared_ptr<error::ErrorReporter>        reporter; // error reporter
-    std::unordered_map<std::string, token::Type> keywords; // keyword hash map
+   private:
+    std::shared_ptr<error::ErrorReporter> reporter;         // error reporter
+    std::unordered_map<std::string, token::Type> keywords;  // keyword hash map
 };
 
-} // namespace lexer::keyword
+}  // namespace lexer::keyword
