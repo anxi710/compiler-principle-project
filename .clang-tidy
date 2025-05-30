@@ -4,6 +4,8 @@ Checks: >
   performance-*,
   readability-*,
   -performance-avoid-endl,
+  -readability-identifier-length,
+  -readability-redundant-access-specifiers
 
 CheckOptions:
   # 函数名：小驼峰
@@ -30,12 +32,9 @@ CheckOptions:
   # 枚举类型名：大驼峰
   - { key: readability-identifier-naming.EnumCase,           value: CamelCase }
 
-  # 枚举常量：全大写（例如 `ERROR_CODE`)
-  - { key: readability-identifier-naming.EnumConstantCase,   value: UPPER_CASE }
+  - { key: readability-identifier-naming.EnumConstantCase,   value: CamelCase }
 
-  # 禁用变量名长度检测
-  - { key: readability-identifier-naming.VariableMinLength,  value: 0 }
-  - { key: readability-identifier-naming.ParameterMinLength, value: 0 }
+  - { key: readability-identifier-naming.GlobalConstantCase, value: UPPER_CASE }
 
   - {key: modernize-use-nullptr.NullMacros,                  value: 'NULL'}
 
