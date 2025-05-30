@@ -42,8 +42,23 @@ $(BUILD_DIR):
 
 all:
 	make -j
+
 bear:
+	@make clean
 	bear -- make -j
+
+lint:
+	@make bear
+	clang-tidy -header-filter=.* -p=compile_commands.json \
+		-extra-arg=-fdiagnostics-format=msvc \
+		$(shell find src -name '*.cpp' -or -name '*.hpp') > .lint.log 2>&1 || true
+	bat --style=plain --paging=always .lint.log
+
+format:
+	find src -name '*.cpp' -or -name '*.hpp' | xargs clang-format -i
+
+quick-fix:
+	nvim -c 'cfile .lint.log | copen'
 
 clean:
 	-rm -rf $(BUILD_DIR)
