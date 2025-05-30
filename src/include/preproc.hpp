@@ -2,8 +2,9 @@
 
 #include <string>
 
-namespace preproc {
+namespace preproc
+{
 
-std::string removeAnnotations(std::string text);
+auto removeAnnotations(std::string text) -> std::string;
 
-} // namespace preproc
+}  // namespace preproc

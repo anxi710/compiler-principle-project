@@ -1,7 +1,9 @@
-#include <sstream>
 #include "include/token.hpp"
 
-namespace lexer::token {
+#include <sstream>
+
+namespace lexer::token
+{
 
 /* function member definition */
 
@@ -9,8 +11,7 @@ namespace lexer::token {
  * @brief  将 token 格式化为一个 string
  * @return 格式化后的字符串
  */
-const std::string
-Token::toString() const
+auto Token::toString() const -> std::string
 {
     std::ostringstream oss;
     oss << "<type: " << tokenType2str(type) << ", value: \"" << value << "\">@("
@@ -20,4 +21,4 @@ Token::toString() const
 
 /* function member definition */
 
-} // namespace lexer::token
+}  // namespace lexer::token

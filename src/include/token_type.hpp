@@ -1,18 +1,24 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 
-namespace lexer::token {
+namespace lexer::token
+{
 
 // token 类型
-enum class Type {
+enum class Type : std::uint8_t
+{
     // Group 0
-    END, // end of file
+    END,  // end of file
 
     // Group 1
-    ID, INT, // identifier, integer
-    IF, ELSE,
-    WHILE, FOR,
+    ID,
+    INT,  // identifier, integer
+    IF,
+    ELSE,
+    WHILE,
+    FOR,
     I32,
     LET,
     RETURN,
@@ -20,7 +26,8 @@ enum class Type {
     FN,
     IN,
     LOOP,
-    BREAK, CONTINUE,
+    BREAK,
+    CONTINUE,
 
     REF,        //  &
     LPAREN,     //  (
@@ -33,28 +40,28 @@ enum class Type {
     COLON,      //  :
     COMMA,      //  ,
 
-    OP_PLUS,    //  +
+    OP_PLUS,  //  +
 
     // Group 2
-    ASSIGN,     //  =
-    OP_MINUS,   //  -
-    OP_MUL,     //  *
-    OP_DIV,     //  /
-    OP_GT,      //  >
-    OP_LT,      //  <
-    DOT,        //  .
+    ASSIGN,    //  =
+    OP_MINUS,  //  -
+    OP_MUL,    //  *
+    OP_DIV,    //  /
+    OP_GT,     //  >
+    OP_LT,     //  <
+    DOT,       //  .
 
-    OP_EQ,      //  ==
-    OP_NEQ,     //  !=
-    OP_GE,      //  >=
-    OP_LE,      //  <=
-    DOTS,       //  ..
-    ARROW,      //  ->
-    SIN_COM,    //  //
-    LMUL_COM,   //  /*
-    RMUL_COM    //  */
+    OP_EQ,     //  ==
+    OP_NEQ,    //  !=
+    OP_GE,     //  >=
+    OP_LE,     //  <=
+    DOTS,      //  ..
+    ARROW,     //  ->
+    SIN_COM,   //  //
+    LMUL_COM,  //  /*
+    RMUL_COM   //  */
 };
 
-const std::string tokenType2str(Type type);
+auto tokenType2str(Type type) -> std::string;
 
-} // namespace lexer::token
+}  // namespace lexer::token

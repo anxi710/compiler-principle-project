@@ -16,3 +16,6 @@ report/*.pdf
 !.vscode/tasks.json
 !**/Makefile
 !test/test_case/*.rs
+!.clang-format
+!.clang-tidy
+!.editorconfig

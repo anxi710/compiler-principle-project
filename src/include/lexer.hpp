@@ -1,40 +1,45 @@
 #pragma once
 
-#include <string>
-#include <vector>
+#include <expected>
 #include <memory>
 #include <sstream>
-#include <expected>
-#include "token.hpp"
+#include <string>
+#include <vector>
+
 #include "lexer_position.hpp"
+#include "token.hpp"
 
-namespace error {
+namespace error
+{
 
-class LexError;
+struct LexError;
 class ErrorReporter;
 
-} // namespace error
+}  // namespace error
 
-namespace lexer::base {
+namespace lexer::base
+{
 
 // abstract class lexer: define some utilities and data structure.
-class Lexer {
-public:
+class Lexer
+{
+   public:
     Lexer() = delete;
     explicit Lexer(const std::vector<std::string>& t) : text(t) {}
     explicit Lexer(std::vector<std::string>&& t) : text(std::move(t)) {}
     virtual ~Lexer() = default;
 
-public:
+   public:
     virtual auto nextToken() -> std::expected<token::Token, error::LexError> = 0;
 
-public:
+   public:
     /**
      * @brief 重置当前扫描位置
      * @param pos 设置到的位置
      */
-    inline void reset(const Position& p) {
-        this->pos  = p;
+    void reset(const Position& p)
+    {
+        this->pos = p;
         this->peek = this->text[p.row][p.col];
     }
 
@@ -42,16 +47,17 @@ public:
      * @brief 设置错误报告器
      * @param reporter 全局错误报告器
      */
-    inline void setErrReporter(std::shared_ptr<error::ErrorReporter> reporter) {
+    void setErrReporter(std::shared_ptr<error::ErrorReporter> reporter)
+    {
         this->reporter = std::move(reporter);
     }
 
-protected:
-    std::shared_ptr<error::ErrorReporter> reporter; // error reporter
+   protected:
+    std::shared_ptr<error::ErrorReporter> reporter;  // error reporter
 
-    std::vector<std::string>       text; // text to be scanned
-    Position                       pos;  // the next position to be scanned
-    char                           peek; // the next character to be scanned
+    std::vector<std::string> text;  // text to be scanned
+    Position pos;                   // the next position to be scanned
+    char peek;                      // the next character to be scanned
 };
 
-} // namespace lexer::base
+}  // namespace lexer::base
