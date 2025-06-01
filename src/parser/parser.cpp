@@ -1,8 +1,8 @@
-#include "include/parser.hpp"
+#include "parser.hpp"
 
 #include <cassert>
 
-#include "include/error_reporter.hpp"
+#include "../err_report/error_reporter.hpp"
 
 namespace parser::base
 {

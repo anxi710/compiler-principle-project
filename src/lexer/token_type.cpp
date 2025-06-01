@@ -1,4 +1,4 @@
-#include "include/token_type.hpp"
+#include "token_type.hpp"
 
 #include <iostream>
 #include <unordered_map>

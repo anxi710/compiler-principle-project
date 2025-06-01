@@ -1,11 +1,11 @@
-#include "include/toy_lexer.hpp"
+#include "toy_lexer.hpp"
 
 #include <cstdlib>
 #include <regex>
 #include <vector>
 
-#include "include/error_reporter.hpp"
-#include "include/token.hpp"
+#include "../err_report/error_reporter.hpp"
+#include "token.hpp"
 
 namespace lexer::impl
 {

@@ -32,11 +32,9 @@ $(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
 	$(CXX) $(OBJS) -lpthread -ldl -o $@
 
 # C++ source
-$(BUILD_DIR)/%.cpp.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
+$(BUILD_DIR)/%.cpp.o: $(SRC_DIR)/%.cpp
+	@mkdir -p $(dir $@) # 确保目录结构正常创建
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
-
-$(BUILD_DIR):
-	mkdir -p $(BUILD_DIR)
 
 .PHONY: clean
 
@@ -51,7 +49,7 @@ lint:
 	@make bear
 	clang-tidy -header-filter=.* -p=compile_commands.json \
 		-extra-arg=-fdiagnostics-format=msvc \
-		$(shell find src -name '*.cpp' -or -name '*.hpp') > .lint.log 2>&1 || true
+		$(shell find src -name '*.cpp' -or -name '*.hpp') > .lint.log || true
 	bat --style=plain --paging=always .lint.log
 
 format:
@@ -61,6 +59,6 @@ quick-fix:
 	nvim -c 'cfile .lint.log | copen'
 
 clean:
-	-rm -rf $(BUILD_DIR)
+	-rm -rf $(BUILD_DIR) compile_commands.json .lint.log *.token *.dot
 
 -include $(DEPS)

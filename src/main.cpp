@@ -7,11 +7,11 @@
 #include <sstream>
 #include <tuple>
 
-#include "include/ast.hpp"
-#include "include/error_reporter.hpp"
-#include "include/parser.hpp"
-#include "include/preproc.hpp"
-#include "include/toy_lexer.hpp"
+#include "err_report/error_reporter.hpp"
+#include "lexer/toy_lexer.hpp"
+#include "parser/ast.hpp"
+#include "parser/parser.hpp"
+#include "preproc/preproc.hpp"
 
 std::unique_ptr<lexer::base::Lexer> lex{};         // 词法分析器
 std::unique_ptr<parser::base::Parser> pars{};      // 语法分析器

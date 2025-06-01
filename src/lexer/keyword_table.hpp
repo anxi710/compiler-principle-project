@@ -6,7 +6,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "error_reporter.hpp"
+#include "../err_report/error_reporter.hpp"
 #include "token_type.hpp"
 
 namespace lexer::keyword

@@ -1,10 +1,10 @@
-#include "include/ast.hpp"
+#include "ast.hpp"
 
 #include <cassert>
 #include <sstream>
 #include <unordered_map>
 
-#include "include/token_type.hpp"
+#include "../lexer/token_type.hpp"
 
 namespace parser::ast
 {

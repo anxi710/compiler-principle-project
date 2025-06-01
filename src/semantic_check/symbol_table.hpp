@@ -41,17 +41,23 @@ struct Variable : Symbol
     VarType var_type = VarType::Integer;  // 变量类型
 
     Variable() = default;
-    explicit Variable(const std::string& n, const RefType& rt, const VarType& vt)
-        : Symbol(n), ref_type(rt), var_type(vt)
+    explicit Variable(std::string n, bool mut, RefType rt, VarType vt)
+        : Symbol(std::move(n)), mut(mut), ref_type(rt), var_type(vt)
     {
     }
     ~Variable() override = default;
 };
 using VariablePtr = std::shared_ptr<Variable>;
 
-struct Integer
+struct Integer : Variable
 {
     std::optional<std::int32_t> init_value;  // 初始值
+    Integer() = default;
+    Integer(std::string n, bool mut, RefType rt, std::optional<std::int32_t> val)
+        : Variable(std::move(n), mut, rt, VarType::Integer), init_value(val)
+    {
+    }
+    ~Integer() override = default;
 };
 
 struct Function : Symbol
@@ -75,8 +81,11 @@ class SymbolTable
     ~SymbolTable();
 
    public:
-    auto find(std::string name) -> SymbolPtr;
-    // auto addFunc(const std::vector<std::pair<VarType, RefType>> argv)
+    auto find(const std::string& n) -> SymbolPtr;
+    auto inTable(const std::string& n) -> bool;
+    void addFunc(std::string n, std::vector<std::pair<VarType, RefType>> argv,
+                 VarType rvt = VarType::Null);
+    void addInteger(std::string n, bool mut, RefType rt, std::optional<std::int32_t> val);
 
    private:
     std::unordered_map<std::string, FunctionPtr> func_table;  // 函数符号表
