@@ -63,7 +63,7 @@ static auto tokenType2NodeDecl(lexer::token::Type t) -> DotNodeDecl
         {TokenType::OP_EQ, "=="},   {TokenType::OP_NEQ, "!="},   {TokenType::OP_LT, "<"},
         {TokenType::OP_LE, "<="},   {TokenType::OP_GT, ">"},     {TokenType::OP_GE, ">="}};
 
-    if (map.contains(t))
+    if (!map.contains(t))
     {
         throw std::runtime_error{"tokenType2NodeDecl(): Unknown Token Type."};
     }

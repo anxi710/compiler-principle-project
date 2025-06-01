@@ -38,7 +38,7 @@ class KeywordTable
     auto getKeyword(const std::string& v) const -> token::Type
     {
         std::ostringstream oss;
-        if (keywords.contains(v))
+        if (!keywords.contains(v))
         {
             oss << "调用参数（" << v << "）并非关键字";
             reporter->report(error::InternalErrorType::UnknownKeyword, oss.str());

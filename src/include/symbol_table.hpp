@@ -21,6 +21,7 @@ using SymbolPtr = std::shared_ptr<Symbol>;
 
 enum class VarType : std::uint8_t
 {
+    Null,  // 返回值类型可以为空，即代表不返回任何值
     Integer,
     Array,
     Tuple
@@ -75,6 +76,7 @@ class SymbolTable
 
    public:
     auto find(std::string name) -> SymbolPtr;
+    // auto addFunc(const std::vector<std::pair<VarType, RefType>> argv)
 
    private:
     std::unordered_map<std::string, FunctionPtr> func_table;  // 函数符号表

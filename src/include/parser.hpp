@@ -6,6 +6,7 @@
 #include <optional>
 
 #include "ast.hpp"
+#include "symbol_table.hpp"
 #include "token.hpp"
 
 namespace error
@@ -71,7 +72,8 @@ class Parser
         -> ast::ExprPtr;
 
    private:
-    std::shared_ptr<error::ErrorReporter> reporter;  // error reporter
+    std::shared_ptr<error::ErrorReporter> reporter;     // error reporter
+    std::shared_ptr<symbol::SymbolTable> symbol_table;  // symbol table
 
     std::function<std::expected<lexer::token::Token, error::LexError>()>
         nextTokenFunc;  // 获取下一个 token

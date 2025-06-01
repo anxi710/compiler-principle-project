@@ -173,7 +173,7 @@ auto argumentParsing(int argc, char* argv[])
         }  // end switch
     }  // end while
 
-    if (!in_file.empty())
+    if (in_file.empty())
     {
         std::cerr << "缺失命令行参数: -i/--input" << std::endl;
         exit(1);
@@ -244,16 +244,10 @@ auto main(int argc, char* argv[]) -> int
     in.open(in_file);
     checkFileStream(in, std::string{"Failed to open input file."});
 
-    if (out_file.empty())
-    {
-        out_token.open("output.token");
-        out_parse.open("output.dot");
-    }
-    else
-    {
-        out_token.open(out_file + std::string{".token"});
-        out_parse.open(out_file + std::string{".dot"});
-    }
+    std::string base = out_file.empty() ? "output" : out_file;
+    out_token.open(base + std::string{".token"});
+    out_parse.open(base + std::string{".dot"});
+
     checkFileStream(out_token, std::string{"Failed to open output file (token)"});
     checkFileStream(out_parse, std::string{"Failed to open output file (parse)"});
 
@@ -273,7 +267,6 @@ auto main(int argc, char* argv[]) -> int
     out_token.close();
     out_parse.close();
 
-    std::string base = out_file.empty() ? "output" : out_file;
     if (!flag_default)
     {
         if (flag_token && !flag_parse)

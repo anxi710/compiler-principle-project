@@ -27,7 +27,7 @@ auto ToyLexer::nextToken() -> std::expected<token::Token, error::LexError>
         return Token{token::Type::END, "#", this->pos};
     }
 
-    auto shift_pos = [&](std::size_t delta)
+    auto shiftPos = [&](std::size_t delta)
     {
         this->pos.col += delta;
         if (this->pos.col >= this->text[this->pos.row].length())
@@ -40,14 +40,14 @@ auto ToyLexer::nextToken() -> std::expected<token::Token, error::LexError>
     // 忽略所有空白字符
     while (this->pos.row < this->text.size())
     {
-        if (!this->text[this->pos.row].empty())
+        if (this->text[this->pos.row].empty())
         {
             ++this->pos.row;
             this->pos.col = 0;
         }
         else if (static_cast<bool>(std::isspace(this->text[this->pos.row][this->pos.col])))
         {
-            shift_pos(1);
+            shiftPos(1);
         }
         else
         {
@@ -68,7 +68,7 @@ auto ToyLexer::nextToken() -> std::expected<token::Token, error::LexError>
         if (std::regex_search(view, match, expression))
         {
             auto p = this->pos;
-            shift_pos(match.length(0));
+            shiftPos(match.length(0));
             if (type == token::Type::ID && this->keyword_table.iskeyword(match.str(0)))
             {
                 auto keyword_type = this->keyword_table.getKeyword(match.str(0));
@@ -205,12 +205,12 @@ auto ToyLexer::nextToken() -> std::expected<token::Token, error::LexError>
     token.setPos(this->pos);
     if (!token.getValue().empty())
     {
-        shift_pos(token.getValue().length());
+        shiftPos(token.getValue().length());
         return token;
     }
 
     base::Position p = this->pos;
-    shift_pos(1);
+    shiftPos(1);
 
     return std::unexpected(error::LexError{error::LexErrorType::UnknownToken,
                                            "识别到未知的 token: " + view.substr(0, 1), p.row, p.col,
