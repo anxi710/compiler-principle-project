@@ -35,12 +35,12 @@
 - Stmt -> RetStmt
 - RetStmt -> _return_ _;_
 
-**1.4 函数输入（前置规则 0.1, 0.2, 1.1）**
+**1.4 函数输入（前置规则 0.1, 0.2, 1.1）**:
 
 - Args -> Arg (_,_ Arg)*
 - Arg -> VarDeclBody _:_ VarType
 
-**1.5 函数输出（前置规则 0.2, 1.1, 1.3, 3.1）**
+**1.5 函数输出（前置规则 0.2, 1.1, 1.3, 3.1）**:
 
 - FuncHeaderDecl -> _fn_ \<ID\> _(_ Args _)_ _->_ VarType
 - RetStmt -> _return_ Expr _;_
@@ -77,18 +77,18 @@
 - ComparExpr -> ArithExpr ([\< | \<= | \> | \>= | == | !=] ArithExpr)*
 - ArithExpr -> Factor ([+ | - | \* | /] Factor)*
 
-**3.3 函数调用（前置规则 3.1）**
+**3.3 函数调用（前置规则 3.1）**:
 
 - Element -> \<ID\> _(_ Args _)_
 - Args -> Expr (_,_ Expr)* | $\epsilon$
 
-**4.1 选择结构（前置规则 1.2, 3.1）**
+**4.1 选择结构（前置规则 1.2, 3.1）**:
 
 - Stmt -> IfStmt
 - IfStmt -> _if_ Expr BlockStmt ElseClause
 - ElseClause -> _else_ BlockStmt | $\epsilon$
 
-**4.2 增加 else if（前置规则 4.1）**
+**4.2 增加 else if（前置规则 4.1）**:
 
 - ElseClause -> _else_ _if_ Expr BlockStmt ElseClause
 
@@ -153,7 +153,7 @@
 - ArrayElements -> $\epsilon$ | Expr | Expr _,_ ArrayElements
   - Factor 用于展开表达式
 
-**8.2 数组元素（前置规则 8.1）**
+**8.2 数组元素（前置规则 8.1）**:
 
 - AssignElement -> Element _[_ Expr _]_
 - IterativeStructure -> Element
@@ -175,6 +175,34 @@
 
 - Prog -> (FuncDecl)*
 - FuncDecl -> FuncHeaderDecl BlockStmt
+- FuncHeaderDecl -> "fn" "\<ID\>" "(" (Arg ("," Arg)*)? ")" ("->" VarType)?
+- Arg -> VarDeclBody ":" VarType
+- VarDeclBody -> "mut" "\<ID\>"
+- VarType -> Integer
+- Integer -> "i32"
+- BlockStmt -> "{" (Stmt)* "}"
+- Stmt -> VarDeclStmt | RetStmt | CallExpr | AssignStmt | ExprStmt | IfStmt | WhileStmt | NullStmt
+- VarDeclStmt -> "let" "mut" "\<ID\>" (":" VarType)? ";"
+- RetStmt -> "return" (CmpExpr)? ";"
+- CallExpr -> "\<ID\>" "(" (Arg ("," Arg)*)? ")"
+- AssignStmt -> AssignElement "=" Expr ";"
+- AssignElement -> Variable
+- Variable -> "\<ID\>"
+- ExprStmt -> Expr ";"
+- IfStmt -> "if" CmpExpr BlockStmt (ElseClause)*
+- ElseClause -> "else" BlockStmt
+- WhileStmt -> "while" CmpExpr BlockStmt
+- NullStmt -> ";"
+- Expr -> CmpExpr
+- CmpExpr -> AddExpr ([\< | \<= | \> | \>= | == | !=] AddExpr)*
+- AddExpr -> MulExpr ([+ | -] MulExpr)*
+- MulExpr -> Factor ([\* | /] Factor)*
+- Factor -> Element | ParenthesisExpr
+- Element -> ParenthesisExpr | "\<INT\>" | AssignElement | CallExpr | Variable
+- ParenthesisExpr -> "(" CmpExpr ")"
+
+- Prog -> (FuncDecl)*
+- FuncDecl -> FuncHeaderDecl BlockStmt
 - BlockStmt -> FuncExprBlockStmt
 - FuncHeaderDecl -> "fn" "\<ID\>" "(" (arg ("," arg)*)? ")" ("->" VarType)?
 - arg -> VarDeclBody ":" VarType
@@ -190,8 +218,8 @@
 - RetStmt -> "return" (CmpExpr)? ";"
 - CallExpr -> "\<ID\>" "(" (arg ("," arg)*)? ")"
 - AssignStmt -> AssignElement "=" Expr ";"
-- AssignElement -> Deference | ArrayAccess | TupleAccess | Variable
-- Deference -> "*" "\<ID\>"
+- AssignElement -> Dereference | ArrayAccess | TupleAccess | Variable
+- Dereference -> "*" "\<ID\>"
 - ArrayAccess -> "\<ID\>" "[" Expr "]"
 - TupleAccess -> "\<ID\>" "." "\<INT\>"
 - Variable -> "\<ID\>"
