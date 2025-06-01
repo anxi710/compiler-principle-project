@@ -2,8 +2,10 @@
 
 echo "Running pre-commit hook: Compiling project..."
 
+find src test -name '*.cpp' -or -name '*.hpp' | xargs clang-format -i
+
 # 运行 make
-if ! make; then
+if ! make all; then
     echo "Error: Compilation failed. Commit aborted!"
     exit 1
 fi
