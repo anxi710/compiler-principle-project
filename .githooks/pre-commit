@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Running pre-commit hook: Compiling project..."
+echo "Running pre-commit hook: Autoforamt and Compile project"
 
 find src test -name '*.cpp' -or -name '*.hpp' | xargs clang-format -i
 
