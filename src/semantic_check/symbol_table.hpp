@@ -1,10 +1,10 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
 #include <unordered_map>
-#include <vector>
 
 namespace symbol
 {
@@ -22,53 +22,51 @@ using SymbolPtr = std::shared_ptr<Symbol>;
 enum class VarType : std::uint8_t
 {
     Null,  // 返回值类型可以为空，即代表不返回任何值
-    Integer,
-    Array,
-    Tuple
+    Bool,
+    I32,
+    // Array,
+    // Tuple
 };
 
-enum class RefType : std::uint8_t
-{
-    Normal,    // 普通变量
-    Mutable,   // 可变引用
-    Immutable  // 不可变引用
-};
+// enum class RefType : std::uint8_t
+// {
+//     Normal,    // 普通变量
+//     Mutable,   // 可变引用
+//     Immutable  // 不可变引用
+// };
 
 struct Variable : Symbol
 {
-    bool mut = true;                      // 变量本身是否可变
-    RefType ref_type = RefType::Normal;   // 若为引用变量，是否允许改变引用对象
-    VarType var_type = VarType::Integer;  // 变量类型
+    // bool mut = true;                      // 变量本身是否可变
+    // RefType ref_type = RefType::Normal;   // 若为引用变量，是否允许改变引用对象
+    VarType var_type = VarType::I32;  // 变量类型
 
     Variable() = default;
-    explicit Variable(std::string n, bool mut, RefType rt, VarType vt)
-        : Symbol(std::move(n)), mut(mut), ref_type(rt), var_type(vt)
-    {
-    }
+    explicit Variable(std::string n, VarType vt) : Symbol(std::move(n)), var_type(vt) {}
     ~Variable() override = default;
 };
 using VariablePtr = std::shared_ptr<Variable>;
 
 struct Integer : Variable
 {
-    std::optional<std::int32_t> init_value;  // 初始值
+    std::optional<std::int32_t> init_val;  // 初值
     Integer() = default;
-    Integer(std::string n, bool mut, RefType rt, std::optional<std::int32_t> val)
-        : Variable(std::move(n), mut, rt, VarType::Integer), init_value(val)
+    Integer(std::string n, std::optional<std::int32_t> val)
+        : Variable(std::move(n), VarType::I32), init_val(val)
     {
     }
     ~Integer() override = default;
 };
+using IntegerPtr = std::shared_ptr<Integer>;
 
 struct Function : Symbol
 {
-    std::vector<std::pair<VarType, RefType>> argv;
+    int argc;  // 参数个数 -- 基本规则中，不涉及到不可变参数及非 i32 类型变量，因此只需记录参数个数
     VarType retval_type;
 
-    Function() : argv({}), retval_type(VarType::Integer) {}
-    template <typename T>
-    Function(std::string name, T&& argv, VarType retval_type)
-        : Symbol(name), argv(std::forward<T>(argv)), retval_type(retval_type)
+    Function() : argc(0), retval_type(VarType::Null) {}
+    Function(std::string n, int argc, VarType rvt)
+        : Symbol(std::move(n)), argc(argc), retval_type(rvt)
     {
     }
 };
@@ -81,15 +79,27 @@ class SymbolTable
     ~SymbolTable();
 
    public:
-    auto find(const std::string& n) -> SymbolPtr;
-    auto inTable(const std::string& n) -> bool;
-    void addFunc(std::string n, std::vector<std::pair<VarType, RefType>> argv,
-                 VarType rvt = VarType::Null);
-    void addInteger(std::string n, bool mut, RefType rt, std::optional<std::int32_t> val);
+    void enterScope(const std::string& name);
+    void exitScope();
+
+    void declareFunc(const std::string& fname, FunctionPtr p_func);
+    void declareVar(const std::string& vname, VariablePtr p_var);
+
+    // 允许函数和变量同名，因此分成两部分处理
+    [[nodiscard]]
+    auto lookupFunc(const std::string& name) const -> std::optional<FunctionPtr>;
+
+    [[nodiscard]]
+    auto lookupVar(const std::string& name) const -> std::optional<VariablePtr>;
 
    private:
-    std::unordered_map<std::string, FunctionPtr> func_table;  // 函数符号表
-    std::unordered_map<std::string, VariablePtr> var_table;   // 变量符号表
+    using Scope = std::unordered_map<std::string, VariablePtr>;
+    using ScopePtr = std::shared_ptr<Scope>;
+    ScopePtr p_cscope;                   // pointer (current scope)
+    std::string cscope_name = "global";  // 作用域限定符
+
+    std::unordered_map<std::string, ScopePtr> scopes;
+    std::unordered_map<std::string, FunctionPtr> funcs;
 };
 
 }  // namespace symbol
