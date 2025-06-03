@@ -12,10 +12,14 @@
 #include "parser/ast.hpp"
 #include "parser/parser.hpp"
 #include "preproc/preproc.hpp"
+#include "semantic_check/semantic_checker.hpp"
+#include "semantic_check/symbol_table.hpp"
 
-std::unique_ptr<lexer::base::Lexer> lex{};         // 词法分析器
-std::unique_ptr<parser::base::Parser> pars{};      // 语法分析器
-std::shared_ptr<error::ErrorReporter> reporter{};  // 错误报告器
+std::unique_ptr<lexer::base::Lexer> lex{};              // 词法分析器
+std::unique_ptr<parser::base::Parser> pars{};           // 语法分析器
+std::shared_ptr<symbol::SymbolTable> stab{};            // 符号表
+std::unique_ptr<semantic::SemanticChecker> schecker{};  // 语义检查器
+std::shared_ptr<error::ErrorReporter> reporter{};       // 错误报告器
 
 /**
  * @brief 检查文件流是否正常打开
