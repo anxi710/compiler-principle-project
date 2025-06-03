@@ -99,19 +99,18 @@
 - VarType -> Integer
 - Integer -> "i32"
 - BlockStmt -> "{" (Stmt)* "}"
-- Stmt -> VarDeclStmt | RetStmt | CallExpr | AssignStmt | ExprStmt | IfStmt | WhileStmt | NullStmt
+- Stmt -> VarDeclStmt | RetStmt | ExprStmt | AssignStmt | IfStmt | WhileStmt | NullStmt
+- ExprStmt -> CallExpr ";" | CmpExpr ";"
 - VarDeclStmt -> "let" "mut" "\<ID\>" (":" VarType)? ";"
 - RetStmt -> "return" (CmpExpr)? ";"
 - CallExpr -> "\<ID\>" "(" (Arg ("," Arg)*)? ")"
 - AssignStmt -> AssignElement "=" Expr ";"
 - AssignElement -> Variable
 - Variable -> "\<ID\>"
-- ExprStmt -> Expr ";"
 - IfStmt -> "if" CmpExpr BlockStmt (ElseClause)*
 - ElseClause -> "else" BlockStmt
 - WhileStmt -> "while" CmpExpr BlockStmt
 - NullStmt -> ";"
-- Expr -> CmpExpr
 - CmpExpr -> AddExpr ([\< | \<= | \> | \>= | == | !=] AddExpr)*
 - AddExpr -> MulExpr ([+ | -] MulExpr)*
 - MulExpr -> Factor ([\* | /] Factor)*
