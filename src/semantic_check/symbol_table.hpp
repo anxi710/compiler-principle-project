@@ -39,10 +39,14 @@ struct Variable : Symbol
 {
     // bool mut = true;                      // 变量本身是否可变
     // RefType ref_type = RefType::Normal;   // 若为引用变量，是否允许改变引用对象
+    bool formal = false;
     VarType var_type = VarType::I32;  // 变量类型
 
     Variable() = default;
-    explicit Variable(std::string n, VarType vt) : Symbol(std::move(n)), var_type(vt) {}
+    explicit Variable(std::string n, bool formal, VarType vt)
+        : Symbol(std::move(n)), formal(formal), var_type(vt)
+    {
+    }
     ~Variable() override = default;
 };
 using VariablePtr = std::shared_ptr<Variable>;
@@ -51,8 +55,8 @@ struct Integer : Variable
 {
     std::optional<std::int32_t> init_val;  // 初值
     Integer() = default;
-    Integer(std::string n, std::optional<std::int32_t> val)
-        : Variable(std::move(n), VarType::I32), init_val(val)
+    Integer(std::string n, bool formal, std::optional<std::int32_t> val)
+        : Variable(std::move(n), formal, VarType::I32), init_val(val)
     {
     }
     ~Integer() override = default;
