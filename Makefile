@@ -10,7 +10,7 @@ CXXFLAGS += -g -O0
 endif
 
 # Compilers
-CXX := g++
+CXX := clang++
 
 # Directories
 TARGET_EXEC := toy_compiler
