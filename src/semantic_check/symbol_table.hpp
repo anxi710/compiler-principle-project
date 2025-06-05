@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <fstream>
 #include <memory>
 #include <optional>
 #include <string>
@@ -39,6 +40,7 @@ struct Variable : Symbol
 {
     // bool mut = true;                      // 变量本身是否可变
     // RefType ref_type = RefType::Normal;   // 若为引用变量，是否允许改变引用对象
+    bool first_use = true;
     bool formal = false;
     VarType var_type = VarType::I32;  // 变量类型
 
@@ -66,21 +68,29 @@ using IntegerPtr = std::shared_ptr<Integer>;
 struct Function : Symbol
 {
     int argc;  // 参数个数 -- 基本规则中，不涉及到不可变参数及非 i32 类型变量，因此只需记录参数个数
+    bool auto_deduce;
     VarType retval_type;
 
-    Function() : argc(0), retval_type(VarType::Null) {}
-    Function(std::string n, int argc, VarType rvt)
-        : Symbol(std::move(n)), argc(argc), retval_type(rvt)
+    Function() : argc(0), auto_deduce(false), retval_type(VarType::Null) {}
+    Function(std::string n, int argc, bool ad, VarType rvt)
+        : Symbol(std::move(n)), argc(argc), auto_deduce(ad), retval_type(rvt)
     {
     }
+
+    void setRetvalType(VarType rvt) { retval_type = rvt; }
 };
 using FunctionPtr = std::shared_ptr<Function>;
 
 class SymbolTable
 {
    public:
-    SymbolTable() = default;
-    ~SymbolTable();
+    SymbolTable()
+    {
+        p_cscope = std::make_shared<Scope>();
+        cscope_name = "global";
+        scopes[cscope_name] = p_cscope;
+    }
+    ~SymbolTable() = default;
 
    public:
     void enterScope(const std::string& name);
@@ -96,11 +106,13 @@ class SymbolTable
     [[nodiscard]]
     auto lookupVar(const std::string& name) const -> std::optional<VariablePtr>;
 
+    void printSymbol(std::ofstream& out);
+
    private:
     using Scope = std::unordered_map<std::string, VariablePtr>;
     using ScopePtr = std::shared_ptr<Scope>;
-    ScopePtr p_cscope;                   // pointer (current scope)
-    std::string cscope_name = "global";  // 作用域限定符
+    ScopePtr p_cscope;        // pointer (current scope)
+    std::string cscope_name;  // 作用域限定符
 
     std::unordered_map<std::string, ScopePtr> scopes;
     std::unordered_map<std::string, FunctionPtr> funcs;

@@ -17,7 +17,7 @@
 
 std::unique_ptr<lexer::base::Lexer> lex{};              // 词法分析器
 std::unique_ptr<parser::base::Parser> pars{};           // 语法分析器
-std::shared_ptr<symbol::SymbolTable> stab{};            // 符号表
+std::shared_ptr<symbol::SymbolTable> stable{};          // 符号表
 std::unique_ptr<semantic::SemanticChecker> schecker{};  // 语义检查器
 std::shared_ptr<error::ErrorReporter> reporter{};       // 错误报告器
 
@@ -62,8 +62,6 @@ void printHelp(const char* const exec)
     std::cout << "Usage: " << exec << " [options]" << std::endl
               << std::endl
               << "This is a Rust-like programming language compiler." << std::endl
-              << R"(By default, the '-t' and '-p' options have been configured.)" << std::endl
-              << R"(The output is stored in "output.token" and "output.dot".)" << std::endl
               << std::endl
               << "Options:" << std::endl
               << "  -h, --help             show help" << std::endl
@@ -73,12 +71,13 @@ void printHelp(const char* const exec)
               << "  -o, --output filename  set output file (without suffix)" << std::endl
               << "  -t, --token            output the segmented token only" << std::endl
               << "  -p, --parse            output the abstract syntax tree (AST) only" << std::endl
+              << "  -s, --semantic         check the semantics only" << std::endl
               << std::endl
               << "Examples:" << std::endl
               << "  $ path/to/toy_compiler -t -i test.txt" << std::endl
               << "  $ path/to/toy_compiler -p -i test.txt" << std::endl
               << "  $ path/to/toy_compiler -t -p -i test.txt" << std::endl
-              << "  $ path/to/toy_compiler -i test.txt -o output" << std::endl
+              << "  $ path/to/toy_compiler -t -i test.txt -o output" << std::endl
               << std::endl
               << "Tips:" << std::endl
               << "  Upon completion of the program execution, you can run this command" << std::endl
@@ -113,6 +112,12 @@ void initialize(std::ifstream& in)
 
     lex = std::make_unique<lexer::impl::ToyLexer>(std::move(text));
     lex->setErrReporter(reporter);
+
+    schecker = std::make_unique<semantic::SemanticChecker>();
+    schecker->setErrorReporter(reporter);
+
+    stable = std::make_shared<symbol::SymbolTable>();
+    schecker->setSymbolTable(stable);
 }
 
 /**
@@ -131,21 +136,22 @@ auto argumentParsing(int argc, char* argv[])
         {.name = "output", .has_arg = required_argument, .flag = nullptr, .val = 'o'},
         {.name = "token", .has_arg = no_argument, .flag = nullptr, .val = 't'},
         {.name = "parse", .has_arg = no_argument, .flag = nullptr, .val = 'p'},
+        {.name = "semantic", .has_arg = no_argument, .flag = nullptr, .val = 's'},
         {.name = nullptr, .has_arg = 0, .flag = nullptr, .val = 0}  // 结束标志
     };
 
     int opt{};  // option
     int option_index{0};
 
-    bool flag_default{true};  // 默认情况
-    bool flag_token{false};   // 输出 token
-    bool flag_parse{false};   // 输出 AST
+    bool flag_token{false};  // 输出 token
+    bool flag_parse{false};  // 输出 AST
+    bool flag_semantic{false};
 
     std::string in_file{};   // 输入文件名
     std::string out_file{};  // 输出文件名
 
     // 参数解析
-    while ((opt = getopt_long(argc, argv, "hvVi:o:tp", long_options, &option_index)) != -1)
+    while ((opt = getopt_long(argc, argv, "hvVi:o:tps", long_options, &option_index)) != -1)
     {
         switch (opt)
         {
@@ -164,11 +170,12 @@ auto argumentParsing(int argc, char* argv[])
                 break;
             case 't':  // token
                 flag_token = true;
-                flag_default = false;
                 break;
             case 'p':  // parse
                 flag_parse = true;
-                flag_default = false;
+                break;
+            case 's':
+                flag_semantic = true;
                 break;
             case '?':  // 无效选项
                 std::cerr << "解析到未知参数" << std::endl
@@ -183,7 +190,7 @@ auto argumentParsing(int argc, char* argv[])
         exit(1);
     }
 
-    return std::make_tuple(flag_default, flag_token, flag_parse, in_file, out_file);
+    return std::make_tuple(flag_token, flag_parse, flag_semantic, in_file, out_file);
 }
 
 /**
@@ -233,17 +240,32 @@ void printAST(std::ofstream& out)
     parser::ast::ast2Dot(out, ast_prog_node);
 }
 
+void checkSemantic(std::ofstream& out)
+{
+    auto nextTokenFunc = []()
+    {
+        return lex->nextToken();  // 封装 nextToken() 方法
+    };
+    pars = std::make_unique<parser::base::Parser>(nextTokenFunc);
+
+    auto ast_prog_node = pars->parseProgram();
+    schecker->checkProg(ast_prog_node);
+
+    stable->printSymbol(out);
+}
+
 /**
  * @brief   toy compiler 主函数
  * @details 拼装各组件
  */
 auto main(int argc, char* argv[]) -> int
 {
-    auto [flag_default, flag_token, flag_parse, in_file, out_file] = argumentParsing(argc, argv);
+    auto [flag_token, flag_parse, flag_semantic, in_file, out_file] = argumentParsing(argc, argv);
 
     std::ifstream in{};
     std::ofstream out_token{};
     std::ofstream out_parse{};
+    std::ofstream out_semantic{};
 
     in.open(in_file);
     checkFileStream(in, std::string{"Failed to open input file."});
@@ -251,36 +273,44 @@ auto main(int argc, char* argv[]) -> int
     std::string base = out_file.empty() ? "output" : out_file;
     out_token.open(base + std::string{".token"});
     out_parse.open(base + std::string{".dot"});
+    out_semantic.open(base + std::string{".symbol"});
 
     checkFileStream(out_token, std::string{"Failed to open output file (token)"});
     checkFileStream(out_parse, std::string{"Failed to open output file (parse)"});
+    checkFileStream(out_semantic, std::string{"Failed to open output file (semantic)"});
 
     initialize(in);
 
-    if (flag_default || flag_token)
+    if (flag_token)
     {
         printToken(out_token);
     }
-    if (flag_default || flag_parse)
+    if (flag_parse)
     {
         lex->reset(lexer::base::Position(0, 0));
         printAST(out_parse);
+    }
+    if (flag_semantic)
+    {
+        lex->reset(lexer::base::Position(0, 0));
+        checkSemantic(out_semantic);
     }
 
     in.close();
     out_token.close();
     out_parse.close();
 
-    if (!flag_default)
+    if (!flag_token)
     {
-        if (flag_token && !flag_parse)
-        {
-            std::filesystem::remove(base + ".dot");
-        }
-        else if (flag_parse && !flag_token)
-        {
-            std::filesystem::remove(base + ".token");
-        }
+        std::filesystem::remove(base + ".token");
+    }
+    if (!flag_parse)
+    {
+        std::filesystem::remove(base + ".dot");
+    }
+    if (!flag_semantic)
+    {
+        std::filesystem::remove(base + ".symbol");
     }
 
     return 0;

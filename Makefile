@@ -59,6 +59,6 @@ quick-fix:
 	nvim -c 'cfile .lint.log | copen'
 
 clean:
-	-rm -rf $(BUILD_DIR) compile_commands.json .lint.log *.token *.dot
+	-rm -rf $(BUILD_DIR) compile_commands.json .lint.log *.token *.dot *.symbol
 
 -include $(DEPS)

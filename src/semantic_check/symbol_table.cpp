@@ -125,4 +125,47 @@ auto SymbolTable::lookupVar(const std::string& name) const -> std::optional<Vari
     return flag ? std::optional<VariablePtr>{p_var} : std::nullopt;
 }
 
+static auto varType2Str(VarType vt) -> std::string
+{
+    switch (vt)
+    {
+        case VarType::Null:
+            return std::string{"Null"};
+            break;
+        case VarType::Bool:
+            return std::string{"Bool"};
+            break;
+        case VarType::I32:
+            return std::string{"I32"};
+            break;
+    }
+
+    throw std::runtime_error{"varType2Str(): error return."};
+}
+
+void SymbolTable::printSymbol(std::ofstream& out)
+{
+    out << "搜集到如下函数符号：" << std::endl;
+
+    for (const auto& func : funcs)
+    {
+        out << "函数名：" << func.first << "，参数个数：" << func.second->argc << "，返回值类型："
+            << varType2Str(func.second->retval_type) << std::endl;
+    }
+
+    out << "搜集到如下变量符号：" << std::endl;
+
+    for (const auto& scope : scopes)
+    {
+        auto scope_name = scope.first;
+        auto p_scope = scope.second;
+
+        for (const auto& var : *p_scope)
+        {
+            out << "变量名：" << scope_name << "::" << var.first << "，类型：" << "i32"
+                << std::endl;
+        }
+    }
+}
+
 }  // namespace symbol
