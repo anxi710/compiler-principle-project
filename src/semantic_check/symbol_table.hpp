@@ -68,12 +68,11 @@ using IntegerPtr = std::shared_ptr<Integer>;
 struct Function : Symbol
 {
     int argc;  // 参数个数 -- 基本规则中，不涉及到不可变参数及非 i32 类型变量，因此只需记录参数个数
-    bool auto_deduce;
     VarType retval_type;
 
-    Function() : argc(0), auto_deduce(false), retval_type(VarType::Null) {}
-    Function(std::string n, int argc, bool ad, VarType rvt)
-        : Symbol(std::move(n)), argc(argc), auto_deduce(ad), retval_type(rvt)
+    Function() : argc(0), retval_type(VarType::Null) {}
+    Function(std::string n, int argc, VarType rvt)
+        : Symbol(std::move(n)), argc(argc), retval_type(rvt)
     {
     }
 

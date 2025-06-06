@@ -53,10 +53,9 @@ void SemanticChecker::checkFuncHeaderDecl(const FuncHeaderDeclPtr& p_fhdecl)
     {
     }
 
-    auto [ad, rt] = p_fhdecl->retval_type.has_value() ? std::tuple{false, symbol::VarType::I32}
-                                                      : std::tuple{true, symbol::VarType::Null};
+    auto rt = p_fhdecl->retval_type.has_value() ? symbol::VarType::I32 : symbol::VarType::Null;
 
-    auto p_func = std::make_shared<symbol::Function>(p_fhdecl->name, argc, ad, rt);
+    auto p_func = std::make_shared<symbol::Function>(p_fhdecl->name, argc, rt);
 
     try
     {
