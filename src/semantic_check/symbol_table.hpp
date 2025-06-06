@@ -108,6 +108,8 @@ class SymbolTable
 
     void printSymbol(std::ofstream& out);
 
+    auto getCurScope() const -> const std::string&;
+
    private:
     using Scope = std::unordered_map<std::string, VariablePtr>;
     using ScopePtr = std::shared_ptr<Scope>;

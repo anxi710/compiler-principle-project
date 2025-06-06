@@ -168,4 +168,9 @@ void SymbolTable::printSymbol(std::ofstream& out)
     }
 }
 
+auto SymbolTable::getCurScope() const -> const std::string&
+{
+    return cscope_name;
+}
+
 }  // namespace symbol
