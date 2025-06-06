@@ -93,7 +93,7 @@ class SymbolTable
     ~SymbolTable() = default;
 
    public:
-    void enterScope(const std::string& name);
+    void enterScope(const std::string& name, bool create_scope = true);
     void exitScope();
 
     void declareFunc(const std::string& fname, FunctionPtr p_func);

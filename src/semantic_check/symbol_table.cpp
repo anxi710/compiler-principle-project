@@ -1,5 +1,6 @@
 #include "symbol_table.hpp"
 
+#include <cassert>
 #include <sstream>
 #include <stdexcept>
 
@@ -10,15 +11,24 @@ namespace symbol
  * @brief 进入作用域
  * @param name 作用域限定符
  */
-void SymbolTable::enterScope(const std::string& name)
+void SymbolTable::enterScope(const std::string& name, bool create_scope)
 {
+    std::ostringstream oss;
+    oss << cscope_name << "::" << name;
+
+    if (!create_scope)
+    {
+        assert(scopes.contains(oss.str()));
+        cscope_name = oss.str();
+        p_cscope = scopes[cscope_name];
+        return;
+    }
+
     if (scopes.contains(name))
     {
         throw std::runtime_error{"scope already exists"};
     }
 
-    std::ostringstream oss;
-    oss << cscope_name << "::" << name;
     cscope_name = oss.str();
     p_cscope = std::make_shared<Scope>();
     scopes[cscope_name] = p_cscope;
