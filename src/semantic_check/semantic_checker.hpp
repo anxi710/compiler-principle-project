@@ -27,9 +27,12 @@ class SemanticChecker
     void checkBlockStmt(const parser::ast::BlockStmtPtr& p_bstmt);
     void checkVarDeclStmt(const parser::ast::VarDeclStmtPtr& p_vdstmt);
     void checkRetStmt(const parser::ast::RetStmtPtr& p_rstmt);
-    void checkExprStmt(const parser::ast::ExprStmtPtr& p_estmt);
+    auto checkExprStmt(const parser::ast::ExprStmtPtr& p_estmt) -> symbol::VarType;
     void checkCallExpr(const parser::ast::CallExprPtr& p_caexpr);
     void checkComparExpr(const parser::ast::ComparExprPtr& p_coexpr);
+    void checkArithExpr(const parser::ast::ArithExprPtr& p_arexpr);
+    void checkFactor(const parser::ast::FactorPtr& p_fa);
+    void checkVariable(const parser::ast::VariablePtr& p_var_expr);
     void checkAssignStmt(const parser::ast::AssignStmtPtr& p_astmt);
     void checkIfStmt(const parser::ast::IfStmtPtr& p_istmt);
     void checkWhileStmt(const parser::ast::WhileStmtPtr& p_wstmt);

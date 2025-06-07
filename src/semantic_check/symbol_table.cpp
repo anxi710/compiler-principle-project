@@ -29,7 +29,6 @@ void SymbolTable::enterScope(const std::string& name, bool create_scope)
         throw std::runtime_error{"scope already exists"};
     }
 
-    tv_cnt = 1;  // 进入作用域时，重置临时变量计数器
     cscope_name = oss.str();
     p_cscope = std::make_shared<Scope>();
     scopes[cscope_name] = p_cscope;
@@ -76,10 +75,10 @@ void SymbolTable::declareFunc(const std::string& fname, FunctionPtr p_func)
  */
 void SymbolTable::declareVar(const std::string& vname, VariablePtr p_var)
 {
-    if (p_cscope->contains(vname))
-    {
-        throw std::runtime_error{"variable name already exists"};
-    }
+    // if (p_cscope->contains(vname))
+    // {
+    //     throw std::runtime_error{"variable name already exists"};
+    // }
 
     (*p_cscope)[vname] = std::move(p_var);
 }
@@ -182,11 +181,6 @@ void SymbolTable::printSymbol(std::ofstream& out)
 auto SymbolTable::getCurScope() const -> const std::string&
 {
     return cscope_name;
-}
-
-auto SymbolTable::getTempValName() -> std::string
-{
-    return std::format("t{}", tv_cnt++);
 }
 
 }  // namespace symbol
