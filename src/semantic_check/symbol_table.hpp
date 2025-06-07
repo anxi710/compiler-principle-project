@@ -109,11 +109,15 @@ class SymbolTable
 
     auto getCurScope() const -> const std::string&;
 
+    auto getTempValName() -> std::string;
+
    private:
     using Scope = std::unordered_map<std::string, VariablePtr>;
     using ScopePtr = std::shared_ptr<Scope>;
     ScopePtr p_cscope;        // pointer (current scope)
     std::string cscope_name;  // 作用域限定符
+
+    int tv_cnt;  // temp value counter
 
     std::unordered_map<std::string, ScopePtr> scopes;
     std::unordered_map<std::string, FunctionPtr> funcs;
