@@ -75,10 +75,17 @@ void SymbolTable::declareFunc(const std::string& fname, FunctionPtr p_func)
  */
 void SymbolTable::declareVar(const std::string& vname, VariablePtr p_var)
 {
+<<<<<<< HEAD
     if (p_cscope->contains(vname))
     {
         throw std::runtime_error{"variable name already exists"};
     }
+=======
+    // if (p_cscope->contains(vname))
+    // {
+    //     throw std::runtime_error{"variable name already exists"};
+    // }
+>>>>>>> 1b4a347 (Finish SemanticChecker)
 
     (*p_cscope)[vname] = std::move(p_var);
 }
