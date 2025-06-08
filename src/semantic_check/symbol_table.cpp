@@ -184,6 +184,11 @@ auto SymbolTable::getCurScope() const -> const std::string&
     return cscope_name;
 }
 
+auto SymbolTable::getTempValName() -> std::string
+{
+    return std::format("t{}", tv_cnt++);
+}
+
 auto SymbolTable::getFuncName() -> std::string
 {
     std::regex re{R"(^global::(\w+))"};
