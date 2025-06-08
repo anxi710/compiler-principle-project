@@ -1,6 +1,7 @@
 #include "symbol_table.hpp"
 
 #include <cassert>
+#include <regex>
 #include <sstream>
 #include <stdexcept>
 
@@ -29,7 +30,6 @@ void SymbolTable::enterScope(const std::string& name, bool create_scope)
         throw std::runtime_error{"scope already exists"};
     }
 
-    tv_cnt = 1;  // 进入作用域时，重置临时变量计数器
     cscope_name = oss.str();
     p_cscope = std::make_shared<Scope>();
     scopes[cscope_name] = p_cscope;
@@ -76,10 +76,10 @@ void SymbolTable::declareFunc(const std::string& fname, FunctionPtr p_func)
  */
 void SymbolTable::declareVar(const std::string& vname, VariablePtr p_var)
 {
-    if (p_cscope->contains(vname))
-    {
-        throw std::runtime_error{"variable name already exists"};
-    }
+    // if (p_cscope->contains(vname))
+    // {
+    //     throw std::runtime_error{"variable name already exists"};
+    // }
 
     (*p_cscope)[vname] = std::move(p_var);
 }
@@ -143,9 +143,9 @@ static auto varType2Str(VarType vt) -> std::string
         case VarType::Null:
             return std::string{"Null"};
             break;
-        case VarType::Bool:
-            return std::string{"Bool"};
-            break;
+        // case VarType::Bool:
+        //     return std::string{"Bool"};
+        //     break;
         case VarType::I32:
             return std::string{"I32"};
             break;
@@ -184,9 +184,12 @@ auto SymbolTable::getCurScope() const -> const std::string&
     return cscope_name;
 }
 
-auto SymbolTable::getTempValName() -> std::string
+auto SymbolTable::getFuncName() -> std::string
 {
-    return std::format("t{}", tv_cnt++);
+    std::regex re{R"(^global::(\w+))"};
+    std::smatch match;
+    std::regex_search(cscope_name, match, re);
+    return match[1];
 }
 
 }  // namespace symbol
