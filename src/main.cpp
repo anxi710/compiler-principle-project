@@ -8,6 +8,7 @@
 #include <tuple>
 
 #include "err_report/error_reporter.hpp"
+#include "ir_generate/ir_generator.hpp"
 #include "lexer/toy_lexer.hpp"
 #include "parser/ast.hpp"
 #include "parser/parser.hpp"
@@ -19,6 +20,7 @@ std::unique_ptr<lexer::base::Lexer> lex{};              // 词法分析器
 std::unique_ptr<parser::base::Parser> pars{};           // 语法分析器
 std::shared_ptr<symbol::SymbolTable> stable{};          // 符号表
 std::unique_ptr<semantic::SemanticChecker> schecker{};  // 语义检查器
+std::unique_ptr<ir::IrGenerator> generator{};           // 中间代码生成器
 std::shared_ptr<error::ErrorReporter> reporter{};       // 错误报告器
 
 /**
@@ -48,7 +50,7 @@ void printVersion()
      * 使用语义版本控制 (SemVer) 原则设置版本号
      * major.minor.patch
      */
-    std::cout << "Toy compiler: version 0.5.2" << std::endl
+    std::cout << "Toy compiler: version 0.6.1" << std::endl
               << "This is a toy compiler developed by xh, csx and qsw." << std::endl
               << "Have fun with it!" << std::endl;
 }
@@ -72,6 +74,7 @@ void printHelp(const char* const exec)
               << "  -t, --token            output the segmented token only" << std::endl
               << "  -p, --parse            output the abstract syntax tree (AST) only" << std::endl
               << "  -s, --semantic         check the semantics only" << std::endl
+              << "  -g, --generate         generate IR only" << std::endl
               << std::endl
               << "Examples:" << std::endl
               << "  $ path/to/toy_compiler -t -i test.txt" << std::endl
@@ -118,6 +121,9 @@ void initialize(std::ifstream& in)
 
     stable = std::make_shared<symbol::SymbolTable>();
     schecker->setSymbolTable(stable);
+
+    generator = std::make_unique<ir::IrGenerator>();
+    generator->setSymbolTable(stable);
 }
 
 /**
@@ -137,6 +143,7 @@ auto argumentParsing(int argc, char* argv[])
         {.name = "token", .has_arg = no_argument, .flag = nullptr, .val = 't'},
         {.name = "parse", .has_arg = no_argument, .flag = nullptr, .val = 'p'},
         {.name = "semantic", .has_arg = no_argument, .flag = nullptr, .val = 's'},
+        {.name = "generate", .has_arg = no_argument, .flag = nullptr, .val = 'g'},
         {.name = nullptr, .has_arg = 0, .flag = nullptr, .val = 0}  // 结束标志
     };
 
@@ -146,12 +153,13 @@ auto argumentParsing(int argc, char* argv[])
     bool flag_token{false};  // 输出 token
     bool flag_parse{false};  // 输出 AST
     bool flag_semantic{false};
+    bool flag_generate{false};
 
     std::string in_file{};   // 输入文件名
     std::string out_file{};  // 输出文件名
 
     // 参数解析
-    while ((opt = getopt_long(argc, argv, "hvVi:o:tps", long_options, &option_index)) != -1)
+    while ((opt = getopt_long(argc, argv, "hvVi:o:tpsg", long_options, &option_index)) != -1)
     {
         switch (opt)
         {
@@ -177,6 +185,9 @@ auto argumentParsing(int argc, char* argv[])
             case 's':
                 flag_semantic = true;
                 break;
+            case 'g':
+                flag_generate = true;
+                break;
             case '?':  // 无效选项
                 std::cerr << "解析到未知参数" << std::endl
                           << "尝试运行 \'./toy_compiler --help\' 获取更多信息" << std::endl;
@@ -190,7 +201,7 @@ auto argumentParsing(int argc, char* argv[])
         exit(1);
     }
 
-    return std::make_tuple(flag_token, flag_parse, flag_semantic, in_file, out_file);
+    return std::make_tuple(flag_token, flag_parse, flag_semantic, flag_generate, in_file, out_file);
 }
 
 /**
@@ -254,18 +265,35 @@ void checkSemantic(std::ofstream& out)
     stable->printSymbol(out);
 }
 
+void generateIr(std::ofstream& out)
+{
+    auto nextTokenFunc = []()
+    {
+        return lex->nextToken();  // 封装 nextToken() 方法
+    };
+    pars = std::make_unique<parser::base::Parser>(nextTokenFunc);
+
+    auto ast_prog_node = pars->parseProgram();
+    schecker->checkProg(ast_prog_node);
+    generator->generateProg(ast_prog_node);
+
+    generator->printQuads(out);
+}
+
 /**
  * @brief   toy compiler 主函数
  * @details 拼装各组件
  */
 auto main(int argc, char* argv[]) -> int
 {
-    auto [flag_token, flag_parse, flag_semantic, in_file, out_file] = argumentParsing(argc, argv);
+    auto [flag_token, flag_parse, flag_semantic, flag_generate, in_file, out_file] =
+        argumentParsing(argc, argv);
 
     std::ifstream in{};
     std::ofstream out_token{};
     std::ofstream out_parse{};
     std::ofstream out_semantic{};
+    std::ofstream out_generate{};
 
     in.open(in_file);
     checkFileStream(in, std::string{"Failed to open input file."});
@@ -274,10 +302,12 @@ auto main(int argc, char* argv[]) -> int
     out_token.open(base + std::string{".token"});
     out_parse.open(base + std::string{".dot"});
     out_semantic.open(base + std::string{".symbol"});
+    out_generate.open(base + std::string{".ir"});
 
     checkFileStream(out_token, std::string{"Failed to open output file (token)"});
     checkFileStream(out_parse, std::string{"Failed to open output file (parse)"});
     checkFileStream(out_semantic, std::string{"Failed to open output file (semantic)"});
+    checkFileStream(out_generate, std::string{"Failed to open output file (ir generate)"});
 
     initialize(in);
 
@@ -295,10 +325,17 @@ auto main(int argc, char* argv[]) -> int
         lex->reset(lexer::base::Position(0, 0));
         checkSemantic(out_semantic);
     }
+    if (flag_generate)
+    {
+        lex->reset(lexer::base::Position(0, 0));
+        generateIr(out_generate);
+    }
 
     in.close();
     out_token.close();
     out_parse.close();
+    out_semantic.close();
+    out_generate.close();
 
     if (!flag_token)
     {
@@ -311,6 +348,10 @@ auto main(int argc, char* argv[]) -> int
     if (!flag_semantic)
     {
         std::filesystem::remove(base + ".symbol");
+    }
+    if (!flag_generate)
+    {
+        std::filesystem::remove(base + ".ir");
     }
 
     return 0;
