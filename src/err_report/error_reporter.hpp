@@ -73,6 +73,27 @@ struct ParseError : Error
     }
 };
 
+// 语义错误
+struct SemanticError : Error
+{
+    SemanticErrorType type;
+    std::string scope_name;
+
+    SemanticError() = delete;
+
+    explicit SemanticError(SemanticErrorType type, const std::string& msg, std::string scope_name)
+        : Error(msg), type(type), scope_name(std::move(scope_name))
+    {
+    }
+    ~SemanticError() override = default;
+
+    [[nodiscard]]
+    constexpr auto kind() const -> ErrorType override
+    {
+        return ErrorType::Semantic;
+    }
+};
+
 // 内部错误
 struct InternalError : Error
 {
@@ -110,6 +131,8 @@ class ErrorReporter
 
     void report(ParseErrorType type, const std::string& msg, std::size_t r, std::size_t c,
                 const std::string& token, bool terminate = false);
+    void report(SemanticErrorType type, const std::string& msg, const std::string& scope_name,
+                bool terminate = false);
 
     // 编译器内部错误必须终止
     [[noreturn]] void report(InternalErrorType t, const std::string& msg,
@@ -121,6 +144,7 @@ class ErrorReporter
     void displayLexErrs() const;
     void displayParseErrs() const;
     void displayInternalErrs() const;
+    void displaySemanticErrs() const;
 
     [[nodiscard]]
     auto hasLexErr() const -> bool
@@ -132,21 +156,35 @@ class ErrorReporter
     {
         return !parse_errs.empty();
     }
+    [[nodiscard]]
+    auto hasSemanticErr() const -> bool
+    {
+        return !semantic_errs.empty();
+    }
 
    private:
     [[nodiscard]]
     auto hasErrs() const -> bool
     {
-        return !(lex_errs.empty() && parse_errs.empty());
+        return !(lex_errs.empty() && parse_errs.empty() && parse_errs.empty());
     }
 
     void displayLexErr(const LexError& err) const;
     void displayUnknownType(const LexError& err) const;
 
+    void displaySemanticErr(const SemanticError& err) const;
+    void displayFuncReturnMismatch(const SemanticError& err) const;
+    void displayUndefinedFunctionCall(const SemanticError& err) const;
+    void displayArgCountMismatch(const SemanticError& err) const;
+    void displayUndeclaredVariable(const SemanticError& err) const;
+    void displayUninitializedVariable(const SemanticError& err) const;
+    void displayInvalidAssignment(const SemanticError& err) const;
+
    private:
-    std::vector<std::string> text;     // 输入文件原始文本
-    std::list<LexError> lex_errs;      // 词法错误列表
-    std::list<ParseError> parse_errs;  // 语法错误列表
+    std::vector<std::string> text;           // 输入文件原始文本
+    std::list<LexError> lex_errs;            // 词法错误列表
+    std::list<ParseError> parse_errs;        // 语法错误列表
+    std::list<SemanticError> semantic_errs;  // 语义错误列表
 };
 
 }  // namespace error

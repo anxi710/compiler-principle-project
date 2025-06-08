@@ -20,6 +20,7 @@ class SemanticChecker
 
    public:
     void checkProg(const parser::ast::ProgPtr& p_prog);
+    auto getErrorReporter() { return p_ereporter; }
 
    private:
     void checkFuncDecl(const parser::ast::FuncDeclPtr& p_fdecl);

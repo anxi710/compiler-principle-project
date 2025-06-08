@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+#include "../err_report/error_type.hpp"
+
 using namespace parser::ast;
 
 namespace semantic
@@ -125,10 +127,12 @@ void SemanticChecker::checkRetStmt(const RetStmtPtr& p_rstmt)
         if (p_func->retval_type != symbol::VarType::Null)
         {  // 函数有明确返回类型
             if (p_func->retval_type != ret_type)
-            {  // 返回类型与表达式类型不符
-                throw std::runtime_error{
-                    std::format("函数 '{}' return 语句返回类型错误", cfunc_name)};
+            {
             }
+            // 返回值表达式类型与函数返回类型不符
+            //{ throw std::runtime_error{
+            //         std::format("函数 '{}' return 语句返回类型错误", cfunc_name)};
+            // }
         }
         else
         {  // 函数不需要返回值，却有返回值表达式

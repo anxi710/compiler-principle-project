@@ -8,9 +8,10 @@ namespace error
 // 错误类型
 enum class ErrorType : std::uint8_t
 {
-    Lex,      // 词法错误
-    Parse,    // 语法错误
-    Internal  // 内部代码错误
+    Lex,       // 词法错误
+    Parse,     // 语法错误
+    Semantic,  // 语义错误
+    Internal   // 内部代码错误
 };
 
 // 词法错误码
@@ -23,6 +24,20 @@ enum class LexErrorType : std::uint8_t
 enum class ParseErrorType : std::uint8_t
 {
     UnexpectToken,  // 并非期望 token
+};
+
+// 语义错误码
+enum class SemanticErrorType : std::uint8_t
+{
+    FuncReturnTypeMismatch,  // 函数返回值类型错误
+    VoidFuncReturnValue,     // void函数返回了值
+    MissingReturnValue,      // 非void函数未返回值
+    UndefinedFunctionCall,   // 调用未定义函数
+    ArgCountMismatch,        // 参数数量不匹配
+    UndeclaredVariable,      // 变量未声明
+    UninitializedVariable,   // 变量未初始化
+    AssignToNonVariable,     // 赋值左侧非变量
+    AssignToUndeclaredVar,   // 赋值给未声明变量
 };
 
 // 编译器内部错误码
