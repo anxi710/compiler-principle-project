@@ -7,7 +7,7 @@ fn foo(mut a: i32,mut b:i32)->i32
 fn foo2(mut c: i32)
 {
     let mut x;
-    
+
     if c > 1 {
         x=c;
         c=c*2;
@@ -30,7 +30,7 @@ fn main(mut a :i32)
 {
     let mut b : i32;
     a=1;
-    
+
     b=666+999*(2<4);
     1;
     (((a)));

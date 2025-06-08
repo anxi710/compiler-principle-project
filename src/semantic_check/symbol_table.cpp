@@ -1,6 +1,7 @@
 #include "symbol_table.hpp"
 
 #include <cassert>
+#include <regex>
 #include <sstream>
 #include <stdexcept>
 
@@ -142,9 +143,9 @@ static auto varType2Str(VarType vt) -> std::string
         case VarType::Null:
             return std::string{"Null"};
             break;
-        case VarType::Bool:
-            return std::string{"Bool"};
-            break;
+        // case VarType::Bool:
+        //     return std::string{"Bool"};
+        //     break;
         case VarType::I32:
             return std::string{"I32"};
             break;
@@ -181,6 +182,14 @@ void SymbolTable::printSymbol(std::ofstream& out)
 auto SymbolTable::getCurScope() const -> const std::string&
 {
     return cscope_name;
+}
+
+auto SymbolTable::getFuncName() -> std::string
+{
+    std::regex re{R"(^global::(\w+))"};
+    std::smatch match;
+    std::regex_search(cscope_name, match, re);
+    return match[1];
 }
 
 }  // namespace symbol
