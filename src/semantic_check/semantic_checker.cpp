@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+#include "../err_report/error_type.hpp"
+
 using namespace parser::ast;
 
 namespace semantic
@@ -39,31 +41,19 @@ void SemanticChecker::checkFuncDecl(const FuncDeclPtr& p_fdecl)
 void SemanticChecker::checkFuncHeaderDecl(const FuncHeaderDeclPtr& p_fhdecl)
 {
     int argc = p_fhdecl->argv.size();
-    try
+    for (const auto& arg : p_fhdecl->argv)
     {
-        for (const auto& arg : p_fhdecl->argv)
-        {
-            std::string name = arg->variable->name;
-            auto p_fparam = std::make_shared<symbol::Integer>(
-                name, true, std::nullopt);  // 形参的初始值在函数调用时才会被赋予
-            p_stable->declareVar(name, p_fparam);
-        }
-    }
-    catch (const std::exception& err)
-    {
+        std::string name = arg->variable->name;
+        // 形参的初始值在函数调用时才会被赋予
+        auto p_fparam = std::make_shared<symbol::Integer>(name, true, std::nullopt);
+        p_stable->declareVar(name, p_fparam);
     }
 
     auto rt = p_fhdecl->retval_type.has_value() ? symbol::VarType::I32 : symbol::VarType::Null;
 
     auto p_func = std::make_shared<symbol::Function>(p_fhdecl->name, argc, rt);
 
-    try
-    {
-        p_stable->declareFunc(p_fhdecl->name, p_func);
-    }
-    catch (const std::exception& err)
-    {
-    }
+    p_stable->declareFunc(p_fhdecl->name, p_func);
 }
 
 void SemanticChecker::checkBlockStmt(const BlockStmtPtr& p_bstmt)
@@ -105,7 +95,7 @@ void SemanticChecker::checkBlockStmt(const BlockStmtPtr& p_bstmt)
     }
 }
 
-void SemanticChecker::checkVarDeclStmt(const parser::ast::VarDeclStmtPtr& p_vdstmt)
+void SemanticChecker::checkVarDeclStmt(const VarDeclStmtPtr& p_vdstmt)
 {
     // 需要实现的产生式中，所有变量声明语句声明的变量只有两种情况
     // 1. let mut a : i32;
@@ -115,271 +105,238 @@ void SemanticChecker::checkVarDeclStmt(const parser::ast::VarDeclStmtPtr& p_vdst
     // 符号，而不能直接声明一个 Variable 的子类
     // 简单起见，这里将所有变量声明为一个 i32 的变量
 
-<<<<<<< HEAD
-    // TODO: 这里需要补充对变量二次声明的检查
-=======
     // 变量二次声明时,直接将原变量覆盖
->>>>>>> 1b4a347 (Finish SemanticChecker)
     auto p_var = std::make_shared<symbol::Integer>(p_vdstmt->variable->name, false, std::nullopt);
     p_stable->declareVar(p_var->name, p_var);
 }
 
-void SemanticChecker::checkRetStmt(const parser::ast::RetStmtPtr& p_rstmt)
+void SemanticChecker::checkRetStmt(const RetStmtPtr& p_rstmt)
 {
     // 由于存在函数返回值类型的自动推导，因此需要在 RetStmt
     // 中判断所处函数是否指定了返回值类型，如果指定了与当前 RetStmt 的类型是否一致；
     // 如果未指定，则设置相应函数符号的返回值类型为 RetStmt 中返回值类型
-<<<<<<< HEAD
-}
+    std::string cfunc_name = p_stable->getFuncName();
+    auto opt_func = p_stable->lookupFunc(cfunc_name);
+    assert(opt_func.has_value());
 
-void SemanticChecker::checkExprStmt(const parser::ast::ExprStmtPtr& p_estmt)
-=======
-    std::string cur_cscope = p_stable->getCurScope();
-
-    std::string cur_func_name;
-
-    // 提取函数名
-    if (cur_cscope.starts_with("global::"))
-    {
-        cur_cscope = cur_cscope.substr(std::string("global::").length());
-    }
-    
-    size_t pos = cur_cscope.find("::");
-
-    if (pos == std::string::npos)
-    {
-        cur_func_name = cur_cscope;
-    }
-    else
-    {
-        cur_func_name = cur_cscope.substr(0, pos);
-    }
-
-    auto opt_func = p_stable->lookupFunc(cur_func_name);
-
-    if (!opt_func.has_value())
-    {
-        throw std::runtime_error("未找到当前函数符号: " + cur_func_name);
-    }
-
-    auto p_func = opt_func.value();
-
-    if (p_rstmt->ret_val)
+    const auto& p_func = opt_func.value();
+    if (p_rstmt->ret_val.has_value())
     {  // 有返回值表达式
-        auto ret_expr_stmt = std::make_shared<ExprStmt>(p_rstmt->ret_val.value());
-        symbol::VarType ret_type = checkExprStmt(ret_expr_stmt);
+        symbol::VarType ret_type = checkExpr(p_rstmt->ret_val.value());
 
         if (p_func->retval_type != symbol::VarType::Null)
         {  // 函数有明确返回类型
             if (p_func->retval_type != ret_type)
-            {  // 返回类型与表达式类型不符
-                throw std::runtime_error{
-                    std::format("函数 '{}' return 语句返回类型错误", cur_func_name)};
+            {  // 返回值表达式类型与函数返回类型不符
+                p_ereporter->report(error::SemanticErrorType::FuncReturnTypeMismatch,
+                                    std::format("函数 '{}' return 语句返回类型错误", cfunc_name),
+                                    p_stable->getCurScope());
             }
         }
         else
         {  // 函数不需要返回值，却有返回值表达式
-            throw std::runtime_error{
-                std::format("函数 '{}' 不需要返回值，return语句却有返回值", cur_func_name)};
+            p_ereporter->report(
+                error::SemanticErrorType::VoidFuncReturnValue,
+                std::format("函数 '{}' 不需要返回值，return语句却有返回值", cfunc_name),
+                p_stable->getCurScope());
         }
     }
     else
     {  // return;
         if (p_func->retval_type != symbol::VarType::Null)
         {  // 有返回类型但无返回值表达式
-            throw std::runtime_error{
-                std::format("函数 '{}' 需要返回值，return语句没有返回值", cur_func_name)};
+            p_ereporter->report(
+                error::SemanticErrorType::MissingReturnValue,
+                std::format("函数 '{}' 不需要返回值，return语句却有返回值", cfunc_name),
+                p_stable->getCurScope());
         }
     }
 }
 
-symbol::VarType SemanticChecker::checkExprStmt(const parser::ast::ExprStmtPtr& p_estmt)
->>>>>>> 1b4a347 (Finish SemanticChecker)
+auto SemanticChecker::checkExprStmt(const ExprStmtPtr& p_estmt) -> symbol::VarType
 {
     switch (p_estmt->expr->type())
     {
         default:
-            throw std::runtime_error{"检查到不支持的表达式类型"};
-<<<<<<< HEAD
-=======
-        case NodeType::ParenthesisExpr:
-        {
-            auto paren_expr = std::dynamic_pointer_cast<ParenthesisExpr>(p_estmt->expr);
-            return checkExprStmt(std::make_shared<ExprStmt>(paren_expr->expr));
-        }
->>>>>>> 1b4a347 (Finish SemanticChecker)
+            return checkExpr(p_estmt->expr);
         case NodeType::CallExpr:
-            checkCallExpr(std::dynamic_pointer_cast<CallExpr>(p_estmt->expr));
-            break;
-        case NodeType::ComparExpr:
-            checkComparExpr(std::dynamic_pointer_cast<ComparExpr>(p_estmt->expr));
-            break;
-<<<<<<< HEAD
+            return checkCallExpr(std::dynamic_pointer_cast<CallExpr>(p_estmt->expr));
     }
-=======
-        case NodeType::ArithExpr:
-            checkArithExpr(std::dynamic_pointer_cast<ArithExpr>(p_estmt->expr));
-            break;
-        case NodeType::Factor:
-            checkFactor(std::dynamic_pointer_cast<Factor>(p_estmt->expr));
-            break;
-        case NodeType::Variable:
-            checkVariable(std::dynamic_pointer_cast<Variable>(p_estmt->expr));
-            break;
-        case NodeType::Number:
-            break;
-    }
-
-    return symbol::VarType::I32;  // 现有所有表达式均应为I32类型
->>>>>>> 1b4a347 (Finish SemanticChecker)
 }
 
-void SemanticChecker::checkCallExpr(const parser::ast::CallExprPtr& p_caexpr)
+auto SemanticChecker::checkExpr(const ExprPtr& p_expr) -> symbol::VarType
+{
+    switch (p_expr->type())
+    {
+        default:
+            throw std::runtime_error{"检查到不支持的表达式类型"};
+        case NodeType::ParenthesisExpr:
+        {
+            auto paren_expr = std::dynamic_pointer_cast<ParenthesisExpr>(p_expr);
+            return checkExpr(paren_expr->expr);
+        }
+        case NodeType::CallExpr:
+            return checkCallExpr(std::dynamic_pointer_cast<CallExpr>(p_expr));
+        case NodeType::ComparExpr:
+            return checkComparExpr(std::dynamic_pointer_cast<ComparExpr>(p_expr));
+        case NodeType::ArithExpr:
+            return checkArithExpr(std::dynamic_pointer_cast<ArithExpr>(p_expr));
+        case NodeType::Factor:
+            return checkFactor(std::dynamic_pointer_cast<Factor>(p_expr));
+        case NodeType::Variable:
+            return checkVariable(std::dynamic_pointer_cast<Variable>(p_expr));
+        case NodeType::Number:
+            return checkNumber(std::dynamic_pointer_cast<Number>(p_expr));
+    }
+}
+
+auto SemanticChecker::checkCallExpr(const CallExprPtr& p_caexpr) -> symbol::VarType
 {
     // 检查调用表达式的实参和形参是否一致
-<<<<<<< HEAD
-=======
     auto opt_func = p_stable->lookupFunc(p_caexpr->callee);
 
     if (!opt_func.has_value())
     {
-        throw std::runtime_error(std::format("调用了未定义的函数 '{}'", p_caexpr->callee));
+        p_ereporter->report(error::SemanticErrorType::UndefinedFunctionCall,
+                            std::format("调用了未定义的函数 '{}'", p_caexpr->callee),
+                            p_stable->getCurScope());
+        return symbol::VarType::Null;
     }
 
-    auto p_func = opt_func.value();
+    const auto& p_func = opt_func.value();
 
     if (static_cast<int>(p_caexpr->argv.size()) != p_func->argc)
     {
-        throw std::runtime_error(std::format("函数 '{}' 期望 {} 个参数，但调用提供了 {} 个",
-                                             p_caexpr->callee, p_func->argc,
-                                             p_caexpr->argv.size()));
+        p_ereporter->report(error::SemanticErrorType::ArgCountMismatch,
+                            std::format("函数 '{}' 期望 {} 个参数，但调用提供了 {} 个",
+                                        p_caexpr->callee, p_func->argc, p_caexpr->argv.size()),
+                            p_stable->getCurScope());
     }
 
     // 遍历所有实参与进行表达式语义检查
-    for (size_t i = 0; i < p_caexpr->argv.size(); ++i)
+    for (const auto& arg : p_caexpr->argv)
     {
-        const auto& arg = p_caexpr->argv[i];
-        if (!arg)
+        assert(arg);
+        auto rv_type = checkExpr(arg);
+        if (rv_type != symbol::VarType::I32)
         {
-            throw std::runtime_error(
-                std::format("函数调用 '{}' 的第 {} 个实参为空", p_caexpr->callee, i));
+            // error report
         }
-
-        auto expr_stmt = std::make_shared<parser::ast::ExprStmt>(arg);
-        checkExprStmt(expr_stmt);
     }
->>>>>>> 1b4a347 (Finish SemanticChecker)
+
+    return p_func->retval_type;
 }
 
-void SemanticChecker::checkComparExpr(const parser::ast::ComparExprPtr& p_coexpr)
+auto SemanticChecker::checkComparExpr(const ComparExprPtr& p_coexpr) -> symbol::VarType
 {
     // 递归检查子树中所涉及的符号是否类型匹配，是否有值能够使用
     // 在这里我们只需要简单的检查，变量是否是第一次使用，如果是第一次使用，其是否有初值
-<<<<<<< HEAD
-=======
     checkExprStmt(std::make_shared<ExprStmt>(p_coexpr->lhs));
     checkExprStmt(std::make_shared<ExprStmt>(p_coexpr->rhs));
+
+    // 这里只是一个简化的实现，理论上应该是一个 Bool 类型的值
+    return symbol::VarType::I32;
 }
 
-void SemanticChecker::checkArithExpr(const parser::ast::ArithExprPtr& p_arexpr)
+auto SemanticChecker::checkArithExpr(const ArithExprPtr& p_aexpr) -> symbol::VarType
 {
-    checkExprStmt(std::make_shared<ExprStmt>(p_arexpr->lhs));
-    checkExprStmt(std::make_shared<ExprStmt>(p_arexpr->rhs));
+    checkExprStmt(std::make_shared<ExprStmt>(p_aexpr->lhs));
+    checkExprStmt(std::make_shared<ExprStmt>(p_aexpr->rhs));
+
+    return symbol::VarType::I32;
 }
 
-void SemanticChecker::checkFactor(const parser::ast::FactorPtr& p_fa)
+auto SemanticChecker::checkFactor(const FactorPtr& p_factor) -> symbol::VarType
 {
-    using parser::ast::NodeType;
-
-    auto expr = p_fa->element;
+    auto expr = p_factor->element;
 
     switch (expr->type())
     {
-        case NodeType::Number:
-            break;
-        case NodeType::Variable:
-            checkVariable(std::dynamic_pointer_cast<parser::ast::Variable>(p_fa->element));
-            break;
-        case NodeType::CallExpr:
-            checkCallExpr(std::dynamic_pointer_cast<parser::ast::CallExpr>(p_fa->element));
-            break;
-
         default:
             throw std::runtime_error{"不支持的因子类型"};
+        case NodeType::Number:
+            return checkNumber(std::dynamic_pointer_cast<Number>(p_factor->element));
+        case NodeType::Variable:
+            return checkVariable(std::dynamic_pointer_cast<Variable>(p_factor->element));
+        case NodeType::CallExpr:
+            return checkCallExpr(std::dynamic_pointer_cast<CallExpr>(p_factor->element));
     }
 }
 
-void SemanticChecker::checkVariable(const parser::ast::VariablePtr& p_var_expr)
+auto SemanticChecker::checkVariable(const VariablePtr& p_variable) -> symbol::VarType
 {
-    auto opt_var = p_stable->lookupVar(p_var_expr->name);
+    auto opt_var = p_stable->lookupVar(p_variable->name);
 
     if (!opt_var.has_value())
     {
-        throw std::runtime_error(std::format("变量 '{}' 未声明", p_var_expr->name));
+        p_ereporter->report(error::SemanticErrorType::UndeclaredVariable,
+                            std::format("变量 '{}' 未声明", p_variable->name),
+                            p_stable->getCurScope());
+        return symbol::VarType::Null;
     }
 
-    auto p_var = opt_var.value();
+    const auto& p_var = opt_var.value();
 
-    if (p_var->first_use && !p_var->formal)
+    if (!p_var->initialized && !p_var->formal)
     {
-        throw std::runtime_error(std::format("变量 '{}' 在第一次使用前未初始化", p_var_expr->name));
+        p_ereporter->report(error::SemanticErrorType::UninitializedVariable,
+                            std::format("变量 '{}' 在第一次使用前未初始化", p_variable->name),
+                            p_stable->getCurScope());
     }
->>>>>>> 1b4a347 (Finish SemanticChecker)
+
+    return p_var->var_type;
 }
 
-void SemanticChecker::checkAssignStmt(const parser::ast::AssignStmtPtr& p_astmt)
+auto SemanticChecker::checkNumber(const NumberPtr& p_number) -> symbol::VarType
 {
-<<<<<<< HEAD
-    // 这里可以简化一点，只检查变量是否有初值
-=======
-    auto lhs_var = std::dynamic_pointer_cast<parser::ast::Variable>(p_astmt->lvalue);
+    return symbol::VarType::I32;  // 异常简化的实现
+}
+
+void SemanticChecker::checkAssignStmt(const AssignStmtPtr& p_astmt)
+{
+    auto lhs_var = std::dynamic_pointer_cast<Variable>(p_astmt->lvalue);
 
     if (!lhs_var)
     {
-        throw std::runtime_error("赋值语句左侧不是变量");
+        p_ereporter->report(error::SemanticErrorType::AssignToNonVariable,
+                            std::format("赋值语句左侧不是变量"), p_stable->getCurScope());
     }
 
     auto opt_var = p_stable->lookupVar(lhs_var->name);
 
     if (!opt_var.has_value())
     {
-        throw std::runtime_error(std::format("赋值语句左侧变量 '{}' 未声明", lhs_var->name));
+        p_ereporter->report(error::SemanticErrorType::AssignToUndeclaredVar,
+                            std::format("赋值语句左侧变量 '{}' 未声明", lhs_var->name),
+                            p_stable->getCurScope());
     }
 
-    auto p_var = opt_var.value();
+    const auto& p_var = opt_var.value();
 
     // 先检查右侧表达式是否合法
-    auto expr_stmt = std::make_shared<parser::ast::ExprStmt>(p_astmt->expr);
+    auto expr_stmt = std::make_shared<ExprStmt>(p_astmt->expr);
     checkExprStmt(expr_stmt);
 
     // 右侧合法后，标记左侧变量为“已初始化”
-    p_var->first_use = false;
->>>>>>> 1b4a347 (Finish SemanticChecker)
+    p_var->initialized = true;
 }
 
-void SemanticChecker::checkIfStmt(const parser::ast::IfStmtPtr& p_istmt)
+void SemanticChecker::checkIfStmt(const IfStmtPtr& p_istmt)
 {
-<<<<<<< HEAD
-=======
-    checkExprStmt(std::make_shared<parser::ast::ExprStmt>(p_istmt->expr));
-
+    checkExprStmt(std::make_shared<ExprStmt>(p_istmt->expr));
     checkBlockStmt(p_istmt->if_branch);
 
-    for (const auto& else_clause : p_istmt->else_clauses)
+    assert(p_istmt->else_clauses.size() <= 1);
+    if (p_istmt->else_clauses.size() == 1)
     {
-        checkBlockStmt(else_clause->block);
+        checkBlockStmt(p_istmt->else_clauses[0]->block);
     }
->>>>>>> 1b4a347 (Finish SemanticChecker)
 }
 
-void SemanticChecker::checkWhileStmt(const parser::ast::WhileStmtPtr& p_wstmt)
+void SemanticChecker::checkWhileStmt(const WhileStmtPtr& p_wstmt)
 {
-<<<<<<< HEAD
-=======
-    checkExprStmt(std::make_shared<parser::ast::ExprStmt>(p_wstmt->expr));
-
+    checkExprStmt(std::make_shared<ExprStmt>(p_wstmt->expr));
     checkBlockStmt(p_wstmt->block);
->>>>>>> 1b4a347 (Finish SemanticChecker)
 }
 
 }  // namespace semantic

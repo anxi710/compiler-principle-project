@@ -1,6 +1,7 @@
 #include "symbol_table.hpp"
 
 #include <cassert>
+#include <regex>
 #include <sstream>
 #include <stdexcept>
 
@@ -75,17 +76,10 @@ void SymbolTable::declareFunc(const std::string& fname, FunctionPtr p_func)
  */
 void SymbolTable::declareVar(const std::string& vname, VariablePtr p_var)
 {
-<<<<<<< HEAD
-    if (p_cscope->contains(vname))
-    {
-        throw std::runtime_error{"variable name already exists"};
-    }
-=======
     // if (p_cscope->contains(vname))
     // {
     //     throw std::runtime_error{"variable name already exists"};
     // }
->>>>>>> 1b4a347 (Finish SemanticChecker)
 
     (*p_cscope)[vname] = std::move(p_var);
 }
@@ -149,9 +143,9 @@ static auto varType2Str(VarType vt) -> std::string
         case VarType::Null:
             return std::string{"Null"};
             break;
-        case VarType::Bool:
-            return std::string{"Bool"};
-            break;
+        // case VarType::Bool:
+        //     return std::string{"Bool"};
+        //     break;
         case VarType::I32:
             return std::string{"I32"};
             break;
@@ -188,6 +182,19 @@ void SymbolTable::printSymbol(std::ofstream& out)
 auto SymbolTable::getCurScope() const -> const std::string&
 {
     return cscope_name;
+}
+
+auto SymbolTable::getTempValName() -> std::string
+{
+    return std::format("t{}", tv_cnt++);
+}
+
+auto SymbolTable::getFuncName() -> std::string
+{
+    std::regex re{R"(^global::(\w+))"};
+    std::smatch match;
+    std::regex_search(cscope_name, match, re);
+    return match[1];
 }
 
 }  // namespace symbol

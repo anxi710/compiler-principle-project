@@ -23,7 +23,7 @@ using SymbolPtr = std::shared_ptr<Symbol>;
 enum class VarType : std::uint8_t
 {
     Null,  // 返回值类型可以为空，即代表不返回任何值
-    Bool,
+    // Bool,
     I32,
     // Array,
     // Tuple
@@ -40,7 +40,7 @@ struct Variable : Symbol
 {
     // bool mut = true;                      // 变量本身是否可变
     // RefType ref_type = RefType::Normal;   // 若为引用变量，是否允许改变引用对象
-    bool first_use = true;
+    bool initialized = false;  // 是否已经初始化
     bool formal = false;
     VarType var_type = VarType::I32;  // 变量类型
 
@@ -109,11 +109,17 @@ class SymbolTable
 
     auto getCurScope() const -> const std::string&;
 
+    auto getTempValName() -> std::string;
+
+    auto getFuncName() -> std::string;
+
    private:
     using Scope = std::unordered_map<std::string, VariablePtr>;
     using ScopePtr = std::shared_ptr<Scope>;
     ScopePtr p_cscope;        // pointer (current scope)
     std::string cscope_name;  // 作用域限定符
+
+    int tv_cnt;  // temp value counter
 
     std::unordered_map<std::string, ScopePtr> scopes;
     std::unordered_map<std::string, FunctionPtr> funcs;

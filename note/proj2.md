@@ -100,7 +100,7 @@
 - Integer -> "i32"
 - BlockStmt -> "{" (Stmt)* "}"
 - Stmt -> VarDeclStmt | RetStmt | ExprStmt | AssignStmt | IfStmt | WhileStmt | NullStmt
-- ExprStmt -> CallExpr ";" | CmpExpr ";"
+- ExprStmt -> CallExpr ";" | Expr ";"
 - VarDeclStmt -> "let" "mut" "\<ID\>" (":" VarType)? ";"
 - RetStmt -> "return" (CmpExpr)? ";"
 - CallExpr -> "\<ID\>" "(" (Arg ("," Arg)*)? ")"
@@ -111,10 +111,11 @@
 - ElseClause -> "else" BlockStmt
 - WhileStmt -> "while" CmpExpr BlockStmt
 - NullStmt -> ";"
+- Expr -> CmpExpr | AddExpr | MulExpr | Factor
 - CmpExpr -> AddExpr ([\< | \<= | \> | \>= | == | !=] AddExpr)*
 - AddExpr -> MulExpr ([+ | -] MulExpr)*
 - MulExpr -> Factor ([\* | /] Factor)*
-- Factor -> Element | ParenthesisExpr
+- Factor -> Element
 - Element -> ParenthesisExpr | "\<INT\>" | AssignElement | CallExpr | Variable
 - ParenthesisExpr -> "(" CmpExpr ")"
 
