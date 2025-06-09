@@ -6,6 +6,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace symbol
 {
@@ -27,6 +28,7 @@ enum class VarType : std::uint8_t
     I32,
     // Array,
     // Tuple
+    Unknown,
 };
 
 // enum class RefType : std::uint8_t
@@ -112,6 +114,8 @@ class SymbolTable
     auto getTempValName() -> std::string;
 
     auto getFuncName() -> std::string;
+
+    std::vector<std::string> checkAutoTypeInference() const;
 
    private:
     using Scope = std::unordered_map<std::string, VariablePtr>;

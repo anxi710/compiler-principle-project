@@ -108,6 +108,24 @@ void ErrorReporter::displayInvalidAssignment(const SemanticError& err) const
     std::cerr << "    Details: " << err.msg << std::endl << std::endl;
 }
 
+void ErrorReporter::displayTypeInferenceFailure(const SemanticError& err) const
+{
+    std::cerr << BOLD << RED << "ERROR[TypeInferenceFailure] " << RESET << BOLD
+              << "变量无法通过自动类型推导确定类型" << RESET << std::endl;
+
+    std::cerr << BLUE << "--> " << RESET << "scope: " << err.scope_name << std::endl;
+    std::cerr << "    Details: " << err.msg << std::endl << std::endl;
+}
+
+void ErrorReporter::displayTypeMismatch(const SemanticError& err) const
+{
+    std::cerr << BOLD << RED << "ERROR[TypeMismatch] " << RESET << BOLD << "变量类型不匹配" << RESET
+              << std::endl;
+
+    std::cerr << BLUE << "--> " << RESET << "scope: " << err.scope_name << std::endl;
+    std::cerr << "    Details: " << err.msg << std::endl << std::endl;
+}
+
 void ErrorReporter::displaySemanticErr(const SemanticError& err) const
 {
     switch (err.type)
@@ -140,6 +158,12 @@ void ErrorReporter::displaySemanticErr(const SemanticError& err) const
             break;
         case error::SemanticErrorType::AssignToNonVariable:
             displayInvalidAssignment(err);
+            break;
+        case error::SemanticErrorType::TypeInferenceFailure:
+            displayTypeInferenceFailure(err);
+            break;
+        case error::SemanticErrorType::TypeMismatch:
+            displayTypeMismatch(err);
             break;
     }
 }

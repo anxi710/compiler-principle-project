@@ -142,13 +142,12 @@ static auto varType2Str(VarType vt) -> std::string
     {
         case VarType::Null:
             return std::string{"Null"};
-            break;
         // case VarType::Bool:
         //     return std::string{"Bool"};
-        //     break;
         case VarType::I32:
             return std::string{"I32"};
-            break;
+        case VarType::Unknown:
+            return std::string{"Unknown"};
     }
 
     throw std::runtime_error{"varType2Str(): error return."};
@@ -173,8 +172,8 @@ void SymbolTable::printSymbol(std::ofstream& out)
 
         for (const auto& var : *p_scope)
         {
-            out << "变量名：" << scope_name << "::" << var.first << "，类型：" << "i32"
-                << std::endl;
+            out << "变量名：" << scope_name << "::" << var.first << "，类型："
+                << varType2Str(var.second->var_type) << std::endl;
         }
     }
 }
@@ -195,6 +194,21 @@ auto SymbolTable::getFuncName() -> std::string
     std::smatch match;
     std::regex_search(cscope_name, match, re);
     return match[1];
+}
+
+auto SymbolTable::checkAutoTypeInference() const -> std::vector<std::string>
+{
+    std::vector<std::string> failed_vars;
+
+    for (const auto& [name, p_var] : *p_cscope)
+    {
+        if (p_var->var_type == VarType::Unknown)
+        {
+            failed_vars.push_back(name);
+        }
+    }
+
+    return failed_vars;
 }
 
 }  // namespace symbol

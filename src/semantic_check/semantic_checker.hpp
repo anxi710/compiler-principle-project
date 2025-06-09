@@ -24,7 +24,7 @@ class SemanticChecker
    private:
     void checkFuncDecl(const parser::ast::FuncDeclPtr& p_fdecl);
     void checkFuncHeaderDecl(const parser::ast::FuncHeaderDeclPtr& p_fhdecl);
-    void checkBlockStmt(const parser::ast::BlockStmtPtr& p_bstmt);
+    bool checkBlockStmt(const parser::ast::BlockStmtPtr& p_bstmt);
     void checkVarDeclStmt(const parser::ast::VarDeclStmtPtr& p_vdstmt);
     void checkRetStmt(const parser::ast::RetStmtPtr& p_rstmt);
     auto checkExprStmt(const parser::ast::ExprStmtPtr& p_estmt) -> symbol::VarType;

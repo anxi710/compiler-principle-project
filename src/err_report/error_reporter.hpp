@@ -179,6 +179,8 @@ class ErrorReporter
     void displayUndeclaredVariable(const SemanticError& err) const;
     void displayUninitializedVariable(const SemanticError& err) const;
     void displayInvalidAssignment(const SemanticError& err) const;
+    void displayTypeInferenceFailure(const SemanticError& err) const;
+    void displayTypeMismatch(const SemanticError& err) const;
 
    private:
     std::vector<std::string> text;           // 输入文件原始文本
