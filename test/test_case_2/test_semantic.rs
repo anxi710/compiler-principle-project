@@ -20,11 +20,12 @@ fn foo2(mut c: i32)
             //c=x;
         }
         else{
+            let mut xx;
             c=c+1;
         }
     }
     // return ;
-    return a+foo(a,b);
+    //return a+foo(a,b);
 }
 fn main(mut a :i32)
 {
@@ -38,7 +39,7 @@ fn main(mut a :i32)
     //c;
     b=a*2;
     a=foo(0,0);
-    function();
+    //function();
     foo(0,0);
     foo2(foo(a,b));
 }

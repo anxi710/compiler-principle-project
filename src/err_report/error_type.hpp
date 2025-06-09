@@ -38,6 +38,9 @@ enum class SemanticErrorType : std::uint8_t
     UninitializedVariable,   // 变量未初始化
     AssignToNonVariable,     // 赋值左侧非变量
     AssignToUndeclaredVar,   // 赋值给未声明变量
+    TypeInferenceFailure,    // 变量无法通过自动类型推导确定类型
+    TypeMismatch,            // 变量类型不匹配
+
 };
 
 // 编译器内部错误码
