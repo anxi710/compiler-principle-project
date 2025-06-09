@@ -263,6 +263,11 @@ void checkSemantic(std::ofstream& out)
     schecker->checkProg(ast_prog_node);
 
     stable->printSymbol(out);
+
+    if (reporter->hasSemanticErr())
+    {
+        reporter->displaySemanticErrs();
+    }
 }
 
 void generateIr(std::ofstream& out)

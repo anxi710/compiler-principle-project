@@ -2,7 +2,7 @@ fn foo(mut a: i32,mut b:i32)->i32
 {
     let mut a;
     a=b;
-    return a+foo(a,b);
+    return ;
 }
 fn foo2(mut c: i32)
 {
@@ -23,22 +23,22 @@ fn foo2(mut c: i32)
             c=c+1;
         }
     }
-    // return ;
-    return a+foo(a,b);
+    return ;
+    //return a+foo(a,b);
 }
 fn main(mut a :i32)
 {
     let mut b : i32;
-    a=1;
-
+    a=b;
+    
     b=666+999*(2<4);
-    b=c;
+    //b=c;
     1;
     (((a)));
     //c;
     b=a*2;
-    a=foo(0,0);
     function();
+    a=foo(0);
     foo(0,0);
-    foo2(foo(a,b));
+    foo2(foo(a));
 }
