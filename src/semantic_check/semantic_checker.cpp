@@ -127,25 +127,28 @@ void SemanticChecker::checkRetStmt(const RetStmtPtr& p_rstmt)
         if (p_func->retval_type != symbol::VarType::Null)
         {  // 函数有明确返回类型
             if (p_func->retval_type != ret_type)
-            {
+            {  // 返回值表达式类型与函数返回类型不符
+                p_ereporter->report(error::SemanticErrorType::FuncReturnTypeMismatch,
+                                    std::format("函数 '{}' return 语句返回类型错误", cfunc_name),
+                                    p_stable->getCurScope());
             }
-            // 返回值表达式类型与函数返回类型不符
-            //{ throw std::runtime_error{
-            //         std::format("函数 '{}' return 语句返回类型错误", cfunc_name)};
-            // }
         }
         else
         {  // 函数不需要返回值，却有返回值表达式
-            throw std::runtime_error{
-                std::format("函数 '{}' 不需要返回值，return语句却有返回值", cfunc_name)};
+            p_ereporter->report(
+                error::SemanticErrorType::VoidFuncReturnValue,
+                std::format("函数 '{}' 不需要返回值，return语句却有返回值", cfunc_name),
+                p_stable->getCurScope());
         }
     }
     else
     {  // return;
         if (p_func->retval_type != symbol::VarType::Null)
         {  // 有返回类型但无返回值表达式
-            throw std::runtime_error{
-                std::format("函数 '{}' 需要返回值，return语句没有返回值", cfunc_name)};
+            p_ereporter->report(
+                error::SemanticErrorType::MissingReturnValue,
+                std::format("函数 '{}' 不需要返回值，return语句却有返回值", cfunc_name),
+                p_stable->getCurScope());
         }
     }
 }
@@ -194,16 +197,19 @@ auto SemanticChecker::checkCallExpr(const CallExprPtr& p_caexpr) -> symbol::VarT
 
     if (!opt_func.has_value())
     {
-        throw std::runtime_error(std::format("调用了未定义的函数 '{}'", p_caexpr->callee));
+        p_ereporter->report(error::SemanticErrorType::UndefinedFunctionCall,
+                            std::format("调用了未定义的函数 '{}'", p_caexpr->callee),
+                            p_stable->getCurScope());
     }
 
     const auto& p_func = opt_func.value();
 
     if (static_cast<int>(p_caexpr->argv.size()) != p_func->argc)
     {
-        throw std::runtime_error(std::format("函数 '{}' 期望 {} 个参数，但调用提供了 {} 个",
-                                             p_caexpr->callee, p_func->argc,
-                                             p_caexpr->argv.size()));
+        p_ereporter->report(error::SemanticErrorType::ArgCountMismatch,
+                            std::format("函数 '{}' 期望 {} 个参数，但调用提供了 {} 个",
+                                        p_caexpr->callee, p_func->argc, p_caexpr->argv.size()),
+                            p_stable->getCurScope());
     }
 
     // 遍历所有实参与进行表达式语义检查
@@ -262,14 +268,18 @@ auto SemanticChecker::checkVariable(const VariablePtr& p_variable) -> symbol::Va
 
     if (!opt_var.has_value())
     {
-        throw std::runtime_error(std::format("变量 '{}' 未声明", p_variable->name));
+        p_ereporter->report(error::SemanticErrorType::UndeclaredVariable,
+                            std::format("变量 '{}' 未声明", p_variable->name),
+                            p_stable->getCurScope());
     }
 
     const auto& p_var = opt_var.value();
 
     if (!p_var->initialized && !p_var->formal)
     {
-        throw std::runtime_error(std::format("变量 '{}' 在第一次使用前未初始化", p_variable->name));
+        p_ereporter->report(error::SemanticErrorType::UninitializedVariable,
+                            std::format("变量 '{}' 在第一次使用前未初始化", p_variable->name),
+                            p_stable->getCurScope());
     }
 
     return p_var->var_type;
@@ -286,14 +296,17 @@ void SemanticChecker::checkAssignStmt(const AssignStmtPtr& p_astmt)
 
     if (!lhs_var)
     {
-        throw std::runtime_error("赋值语句左侧不是变量");
+        p_ereporter->report(error::SemanticErrorType::AssignToNonVariable,
+                            std::format("赋值语句左侧不是变量"), p_stable->getCurScope());
     }
 
     auto opt_var = p_stable->lookupVar(lhs_var->name);
 
     if (!opt_var.has_value())
     {
-        throw std::runtime_error(std::format("赋值语句左侧变量 '{}' 未声明", lhs_var->name));
+        p_ereporter->report(error::SemanticErrorType::AssignToUndeclaredVar,
+                            std::format("赋值语句左侧变量 '{}' 未声明", lhs_var->name),
+                            p_stable->getCurScope());
     }
 
     const auto& p_var = opt_var.value();

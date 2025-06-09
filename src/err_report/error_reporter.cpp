@@ -59,7 +59,7 @@ void ErrorReporter::displayArgCountMismatch(const SemanticError& err) const
               << RESET << std::endl;
 
     std::cerr << BLUE << "-->" << RESET << "scope: " << err.scope_name << std::endl;
-    std::cerr << "Details:" << err.msg << std::endl;
+    std::cerr << "    Details: " << err.msg << std::endl << std::endl;
 }
 
 void ErrorReporter::displayFuncReturnMismatch(const SemanticError& err) const
@@ -68,7 +68,7 @@ void ErrorReporter::displayFuncReturnMismatch(const SemanticError& err) const
               << RESET << std::endl;
 
     std::cerr << BLUE << "-->" << RESET << "scope: " << err.scope_name << std::endl;
-    std::cerr << "Details:" << err.msg << std::endl;
+    std::cerr << "    Details: " << err.msg << std::endl << std::endl;
 }
 
 void ErrorReporter::displayUndefinedFunctionCall(const SemanticError& err) const
@@ -77,7 +77,7 @@ void ErrorReporter::displayUndefinedFunctionCall(const SemanticError& err) const
               << std::endl;
 
     std::cerr << BLUE << "-->" << RESET << "scope: " << err.scope_name << std::endl;
-    std::cerr << "Details:" << err.msg << std::endl;
+    std::cerr << "    Details: " << err.msg << std::endl << std::endl;
 }
 
 void ErrorReporter::displayUndeclaredVariable(const SemanticError& err) const
@@ -86,7 +86,7 @@ void ErrorReporter::displayUndeclaredVariable(const SemanticError& err) const
               << RESET << std::endl;
 
     std::cerr << BLUE << "-->" << RESET << "scope: " << err.scope_name << std::endl;
-    std::cerr << "Details:" << err.msg << std::endl;
+    std::cerr << "    Details: " << err.msg << std::endl << std::endl;
 }
 
 void ErrorReporter::displayUninitializedVariable(const SemanticError& err) const
@@ -96,7 +96,7 @@ void ErrorReporter::displayUninitializedVariable(const SemanticError& err) const
               << RESET << std::endl;
 
     std::cerr << BLUE << "-->" << RESET << "scope: " << err.scope_name << std::endl;
-    std::cerr << "Details:" << err.msg << std::endl;
+    std::cerr << "    Details: " << err.msg << std::endl << std::endl;
 }
 
 void ErrorReporter::displayInvalidAssignment(const SemanticError& err) const
@@ -105,7 +105,7 @@ void ErrorReporter::displayInvalidAssignment(const SemanticError& err) const
               << RESET << std::endl;
 
     std::cerr << BLUE << "-->" << RESET << "scope: " << err.scope_name << std::endl;
-    std::cerr << "Details:" << err.msg << std::endl;
+    std::cerr << "    Details: " << err.msg << std::endl << std::endl;
 }
 
 void ErrorReporter::displaySemanticErr(const SemanticError& err) const
