@@ -200,6 +200,7 @@ auto SemanticChecker::checkCallExpr(const CallExprPtr& p_caexpr) -> symbol::VarT
         p_ereporter->report(error::SemanticErrorType::UndefinedFunctionCall,
                             std::format("调用了未定义的函数 '{}'", p_caexpr->callee),
                             p_stable->getCurScope());
+        return symbol::VarType::Null;
     }
 
     const auto& p_func = opt_func.value();
@@ -271,6 +272,7 @@ auto SemanticChecker::checkVariable(const VariablePtr& p_variable) -> symbol::Va
         p_ereporter->report(error::SemanticErrorType::UndeclaredVariable,
                             std::format("变量 '{}' 未声明", p_variable->name),
                             p_stable->getCurScope());
+        return symbol::VarType::Null;
     }
 
     const auto& p_var = opt_var.value();

@@ -253,9 +253,9 @@ void checkSemantic(std::ofstream& out)
 
     stable->printSymbol(out);
 
-    if (schecker->getErrorReporter()->hasSemanticErr())
+    if (reporter->hasSemanticErr())
     {
-        schecker->getErrorReporter()->displaySemanticErrs();
+        reporter->displaySemanticErrs();
     }
 }
 

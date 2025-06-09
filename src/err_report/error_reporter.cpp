@@ -55,56 +55,56 @@ void ErrorReporter::displayLexErr(const LexError& err) const
 
 void ErrorReporter::displayArgCountMismatch(const SemanticError& err) const
 {
-    std::cerr << BOLD << RED << "ERROR[ArgMismatch]" << RESET << BOLD << "函数参数个数不匹配"
+    std::cerr << BOLD << RED << "ERROR[ArgMismatch] " << RESET << BOLD << "函数参数个数不匹配"
               << RESET << std::endl;
 
-    std::cerr << BLUE << "-->" << RESET << "scope: " << err.scope_name << std::endl;
+    std::cerr << BLUE << "--> " << RESET << "scope: " << err.scope_name << std::endl;
     std::cerr << "    Details: " << err.msg << std::endl << std::endl;
 }
 
 void ErrorReporter::displayFuncReturnMismatch(const SemanticError& err) const
 {
-    std::cerr << BOLD << RED << "ERROR[FuncReturnMismatch]" << RESET << BOLD << "函数与返回值不匹配"
-              << RESET << std::endl;
+    std::cerr << BOLD << RED << "ERROR[FuncReturnMismatch] " << RESET << BOLD
+              << "函数与返回值不匹配" << RESET << std::endl;
 
-    std::cerr << BLUE << "-->" << RESET << "scope: " << err.scope_name << std::endl;
+    std::cerr << BLUE << "--> " << RESET << "scope: " << err.scope_name << std::endl;
     std::cerr << "    Details: " << err.msg << std::endl << std::endl;
 }
 
 void ErrorReporter::displayUndefinedFunctionCall(const SemanticError& err) const
 {
-    std::cerr << BOLD << RED << "ERROR[UndefinedFunction]" << RESET << BOLD << "函数未定义" << RESET
-              << std::endl;
+    std::cerr << BOLD << RED << "ERROR[UndefinedFunction] " << RESET << BOLD << "函数未定义"
+              << RESET << std::endl;
 
-    std::cerr << BLUE << "-->" << RESET << "scope: " << err.scope_name << std::endl;
+    std::cerr << BLUE << "--> " << RESET << "scope: " << err.scope_name << std::endl;
     std::cerr << "    Details: " << err.msg << std::endl << std::endl;
 }
 
 void ErrorReporter::displayUndeclaredVariable(const SemanticError& err) const
 {
-    std::cerr << BOLD << RED << "ERROR[UndeclaredVariable]" << RESET << BOLD << "变量未声明"
+    std::cerr << BOLD << RED << "ERROR[UndeclaredVariable] " << RESET << BOLD << "变量未声明"
               << RESET << std::endl;
 
-    std::cerr << BLUE << "-->" << RESET << "scope: " << err.scope_name << std::endl;
+    std::cerr << BLUE << "--> " << RESET << "scope: " << err.scope_name << std::endl;
     std::cerr << "    Details: " << err.msg << std::endl << std::endl;
 }
 
 void ErrorReporter::displayUninitializedVariable(const SemanticError& err) const
 
 {
-    std::cerr << BOLD << RED << "ERROR[UninitializedVariable]" << RESET << BOLD << "变量未初始化"
+    std::cerr << BOLD << RED << "ERROR[UninitializedVariable] " << RESET << BOLD << "变量未初始化"
               << RESET << std::endl;
 
-    std::cerr << BLUE << "-->" << RESET << "scope: " << err.scope_name << std::endl;
+    std::cerr << BLUE << "--> " << RESET << "scope: " << err.scope_name << std::endl;
     std::cerr << "    Details: " << err.msg << std::endl << std::endl;
 }
 
 void ErrorReporter::displayInvalidAssignment(const SemanticError& err) const
 {
-    std::cerr << BOLD << RED << "ERROR[InvalidAssignment]" << RESET << BOLD << "无效赋值语句"
+    std::cerr << BOLD << RED << "ERROR[InvalidAssignment] " << RESET << BOLD << "无效赋值语句"
               << RESET << std::endl;
 
-    std::cerr << BLUE << "-->" << RESET << "scope: " << err.scope_name << std::endl;
+    std::cerr << BLUE << "--> " << RESET << "scope: " << err.scope_name << std::endl;
     std::cerr << "    Details: " << err.msg << std::endl << std::endl;
 }
 
