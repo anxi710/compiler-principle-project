@@ -1438,9 +1438,639 @@ digraph AST {
 
 ## 6 符号表详细设计
 
+在编译器的构建过程中，语义分析是继词法分析和语法分析之后的关键阶段。其主要任务是对抽象语法树（AST）进行语义层面的检查，确保源程序不仅在结构上合法，更在语义上正确。本项目作为编译原理课程的实验内容，目标是实现一个简化语言的语义检查模块，识别出诸如未声明变量、变量重复声明、未初始化使用、函数调用不匹配等常见语义错误，具体会在下面给出。
+
+语义检查的实现依赖于`符号表（Symbol Table）`维护程序中的变量、函数等标识符的信息，并通过遍历抽象语法树逐个检查各类语句与表达式是否满足语言的语义规则。本模块与前期的语法分析器相衔接，作为后续中间代码生成和优化的前置保障，其准确性和鲁棒性直接影响整个编译流程的可靠性。
+
+### 6.1 符号表结构
+
+本项目中的符号表模块由命名空间 `symbol` 下的多个结构体与类构成，主要包括 `Symbol、Variable、Function` 以及核心管理类 `SymbolTable`，实现了对变量与函数的统一管理和作用域支持。 
+
+
+```cpp
+struct Symbol
+{
+    std::string name;
+};
+using SymbolPtr = std::shared_ptr<Symbol>;
+
+enum class VarType : std::uint8_t
+{
+    Null,  // 返回值类型可以为空，即代表不返回任何值
+    I32,
+    Unknown,
+};
+
+struct Variable : Symbol
+{
+    bool initialized = false;  // 是否已经初始化
+    bool formal = false;
+    VarType var_type = VarType::I32;  // 变量类型
+};
+using VariablePtr = std::shared_ptr<Variable>;
+
+struct Integer : Variable
+{
+    std::optional<std::int32_t> init_val;  // 初值
+};
+using IntegerPtr = std::shared_ptr<Integer>;
+
+struct Function : Symbol
+{
+    int argc;  // 参数个数 -- 基本规则中，不涉及到不可变参数及非 i32 类型变量，因此只需记录参数个数
+    VarType retval_type;
+    void setRetvalType(VarType rvt) { retval_type = rvt; }
+};
+using FunctionPtr = std::shared_ptr<Function>;
+```
+
+- Symbol 为所有符号的抽象基类，仅包含符号名称；
+
+- Variable 继承自 Symbol，表示一个变量，包含以下核心属性：
+
+    - initialized：指示变量是否已经初始化；
+
+    - formal：是否为函数形参；
+
+    - var_type：变量的类型，当前仅完成基础规则，当前默认`I32`；
+
+- Integer 继承自 Variable，进一步扩展支持整数初值 init_val，用于后续中间代码生成；
+
+- Function 表示一个函数符号，包含函数名、参数个数 argc 与返回值类型 retval_type。
+
+### 6.2 作用域支持
+
+SymbolTable 类采用嵌套作用域管理的方式设计，使用 `std::unordered_map<std::string, ScopePtr>` 存储多个作用域（Scope），每个作用域本质上是一个从变量名到变量指针的哈希表。作用域通过名称 `cscope_name` 进行区分，进入或退出作用域时会修改当前作用域指针 `p_cscope`。
+
+```cpp
+class SymbolTable
+{
+   public:
+    SymbolTable()
+    {
+        p_cscope = std::make_shared<Scope>();
+        cscope_name = "global";
+        scopes[cscope_name] = p_cscope;
+    }
+    ~SymbolTable() = default;
+
+   public:
+    void enterScope(const std::string& name, bool create_scope = true);
+    void exitScope();
+
+    void declareFunc(const std::string& fname, FunctionPtr p_func);
+    void declareVar(const std::string& vname, VariablePtr p_var);
+    // 允许函数和变量同名，因此分成两部分处理
+    [[nodiscard]]
+    auto lookupFunc(const std::string& name) const -> std::optional<FunctionPtr>;
+    [[nodiscard]]
+    auto lookupVar(const std::string& name) const -> std::optional<VariablePtr>;
+    void printSymbol(std::ofstream& out);
+    auto getCurScope() const -> const std::string&;
+    auto getTempValName() -> std::string;
+    auto getFuncName() -> std::string;
+    std::vector<std::string> checkAutoTypeInference() const;
+   private:
+    using Scope = std::unordered_map<std::string, VariablePtr>;
+    using ScopePtr = std::shared_ptr<Scope>;
+    ScopePtr p_cscope;        // pointer (current scope)
+    std::string cscope_name;  // 作用域限定符
+    int tv_cnt;  // temp value counter
+    std::unordered_map<std::string, ScopePtr> scopes;
+    std::unordered_map<std::string, FunctionPtr> funcs;
+};
+```
+
+这种设计允许灵活支持局部变量与变量屏蔽机制，为后续实现作用域嵌套与函数体内变量管理提供良好支持。
+
+### 6.3 查询与声明机制
+
+为了支持变量与函数同名，SymbolTable **分别对变量与函数使用不同哈希表**管理：
+
+- lookupVar(name)：按当前作用域名查找变量；
+```cpp
+/**
+ * @brief  查找变量符号
+ * @param  name 变量名
+ * @return std::optional<VariablePtr> 需要检查是否能查到
+ */
+[[nodiscard]]
+auto SymbolTable::lookupVar(const std::string& name) const -> std::optional<VariablePtr>
+{
+    auto exit_scope = [](std::string& scope_name) -> bool
+    {
+        std::size_t idx = scope_name.find_last_of(':');
+        if (idx >= scope_name.length())
+        {
+            return false;
+        }
+        scope_name = scope_name.substr(0, idx - 1);
+        return true;
+    };
+
+    auto scope_name = cscope_name;
+
+    bool flag = false;
+    VariablePtr p_var;
+    do
+    {
+        auto p_scope = scopes.find(scope_name)->second;
+        if (p_scope->contains(name))
+        {
+            flag = true;
+            p_var = p_scope->find(name)->second;
+            break;
+        }
+    } while (exit_scope(scope_name));
+
+    return flag ? std::optional<VariablePtr>{p_var} : std::nullopt;
+}
+```
+
+- lookupFunc(name)：全局查找函数；
+```cpp
+/**
+ * @brief  查找函数符号
+ * @param  name 函数名
+ * @return std::optional<FunctionPtr> 需要检查是否能查到
+ */
+[[nodiscard]]
+auto SymbolTable::lookupFunc(const std::string& name) const -> std::optional<FunctionPtr>
+{
+    if (funcs.contains(name))
+    {
+        return funcs.find(name)->second;
+    }
+    return std::nullopt;
+}
+```
+- declareVar() 与 declareFunc() 方法则用于声明符号，若重复声明则会在语义分析阶段报错。
+
+此外还提供临时值命名 getTempValName()、当前函数名获取 getFuncName()、类型自动推导检查 checkAutoTypeInference() 等辅助功能，便于后续的语义检查和中间代码生成与分析。
+
+### 6.4 符号表输出
+
+以如下代码为例：
+```rs
+fn foo(mut a : i32, mut b : i32) -> i32
+{
+    let mut a;
+    a=b;
+    return a+foo(a,b);
+}
+fn foo2(mut c: i32)
+{
+    let mut x;
+    if c > 1 {
+        x=c;
+        c=c*2;
+    }
+    while c>1{
+        let mut c;
+        c=5;
+        if c>10{
+        }
+        else{
+            c=c+1;
+        }
+    }
+}
+fn main(mut a :i32)
+{
+    let mut b : i32;
+    a=1;
+    b=666+999*(2<4);
+    1;
+    (((a)));
+    b=a*2;
+    a=foo(0,0);
+    foo(0,0);
+    foo2(foo(a,b));
+}
+```
+检查正确后，可以得到以下的符号表 **output.symbol**：
+
+<img src="ex_symboltable.png" width=500/>
+
 ## 7 语义检查详细设计
 
+语义检查阶段是编译器前端的重要环节，主要用于对词法与语法分析通过的抽象语法树（AST）进行更深层次的分析，以确保程序符号使用合理、类型匹配、作用域合法等语义规范。本项目语义检查的核心实现集中在 `SemanticChecker` 类中。
+
+### 7.1 设计原则
+
+- 确保变量作用域正确，避免使用未声明变量
+
+- 检查变量是否初始化后使用
+
+- 检查函数调用是否合法：是否存在，参数是否匹配
+
+- 检查函数返回是否合法：是否有返回类型，是否有返回表达式
+
+- 保证表达式类型一致性
+
+- 支持作用域嵌套与遮蔽：`变量重影`
+
+### 7.2 类结构概览
+
+**SemanticChecker** 是本项目中负责整个语义分析流程的核心类，提供了统一的入口与多个私有子程序，用于检查不同类型的语句与表达式：
+
+```cpp
+class SemanticChecker
+{
+   public:
+    SemanticChecker() = default;
+    ~SemanticChecker() = default;
+
+    void setErrorReporter(std::shared_ptr<error::ErrorReporter> p_ereporter);
+    void setSymbolTable(std::shared_ptr<symbol::SymbolTable> p_stable);
+
+   public:
+    void checkProg(const parser::ast::ProgPtr& p_prog);
+
+   private:
+    void checkFuncDecl(const parser::ast::FuncDeclPtr& p_fdecl);
+    void checkFuncHeaderDecl(const parser::ast::FuncHeaderDeclPtr& p_fhdecl);
+    bool checkBlockStmt(const parser::ast::BlockStmtPtr& p_bstmt);
+    void checkVarDeclStmt(const parser::ast::VarDeclStmtPtr& p_vdstmt);
+    void checkRetStmt(const parser::ast::RetStmtPtr& p_rstmt);
+    auto checkExprStmt(const parser::ast::ExprStmtPtr& p_estmt) -> symbol::VarType;
+    auto checkExpr(const parser::ast::ExprPtr& p_expr) -> symbol::VarType;
+    auto checkCallExpr(const parser::ast::CallExprPtr& p_caexpr) -> symbol::VarType;
+    auto checkComparExpr(const parser::ast::ComparExprPtr& p_coexpr) -> symbol::VarType;
+    auto checkArithExpr(const parser::ast::ArithExprPtr& p_aexpr) -> symbol::VarType;
+    auto checkFactor(const parser::ast::FactorPtr& p_factor) -> symbol::VarType;
+    auto checkVariable(const parser::ast::VariablePtr& p_variable) -> symbol::VarType;
+    auto checkNumber(const parser::ast::NumberPtr& p_number) -> symbol::VarType;
+    void checkAssignStmt(const parser::ast::AssignStmtPtr& p_astmt);
+    void checkIfStmt(const parser::ast::IfStmtPtr& p_istmt);
+    void checkWhileStmt(const parser::ast::WhileStmtPtr& p_wstmt);
+
+   private:
+    std::shared_ptr<symbol::SymbolTable> p_stable;
+    std::shared_ptr<error::ErrorReporter> p_ereporter;
+};
+```
+该类通过 **setSymbolTable** 和 **setErrorReporter** 方法与符号表和错误报告器进行联动，形成语义检查三大组件之一。
+
+### 7.3 检查流程说明
+
+#### 7.3.1 程序级检查
+```cpp
+void SemanticChecker::checkProg(const ProgPtr& p_prog)
+{
+    for (const auto& p_decl : p_prog->decls)
+    {
+        // 最顶层的产生式为 Prog -> (FuncDecl)*
+        auto p_fdecl = std::dynamic_pointer_cast<FuncDecl>(p_decl);
+        assert(p_fdecl);  // 在 parser 的实现中，只能解析 FuncDecl，碰到非函数声明会直接终止解析！
+        checkFuncDecl(p_fdecl);
+    }
+}
+```
+作为整个语义分析的入口，**checkProg** 接收语法分析生成的程序树，依次遍历所有函数定义与语句块，进行全面检查。
+
+#### 7.3.2 函数与作用域
+```cpp
+void SemanticChecker::checkFuncDecl(const FuncDeclPtr& p_fdecl)
+{
+    p_stable->enterScope(p_fdecl->header->name);  // 注意不要在没进入作用域时就开始声明变量！
+    checkFuncHeaderDecl(p_fdecl->header);
+    if (!checkBlockStmt(p_fdecl->body))
+    {
+        // 函数内无return语句
+        std::string cfunc_name = p_stable->getFuncName();
+        auto opt_func = p_stable->lookupFunc(cfunc_name);
+        assert(opt_func.has_value());
+
+        const auto& p_func = opt_func.value();
+        if (p_func->retval_type != symbol::VarType::Null)
+        {  // 有返回类型但无返回值表达式
+            p_ereporter->report(
+                error::SemanticErrorType::MissingReturnValue,
+                std::format("函数 '{}' 需要返回值，函数内没有return语句", cfunc_name),
+                p_stable->getCurScope());
+        }
+    }
+
+    p_stable->exitScope();
+}
+
+void SemanticChecker::checkFuncHeaderDecl(const FuncHeaderDeclPtr& p_fhdecl)
+{
+    int argc = p_fhdecl->argv.size();
+    for (const auto& arg : p_fhdecl->argv)
+    {
+        std::string name = arg->variable->name;
+        // 形参的初始值在函数调用时才会被赋予
+        auto p_fparam = std::make_shared<symbol::Integer>(name, true, std::nullopt);
+        p_stable->declareVar(name, p_fparam);
+    }
+
+    auto rt = p_fhdecl->retval_type.has_value() ? symbol::VarType::I32 : symbol::VarType::Null;
+
+    auto p_func = std::make_shared<symbol::Function>(p_fhdecl->name, argc, rt);
+
+    p_stable->declareFunc(p_fhdecl->name, p_func);
+}
+```
+对于每一个函数声明，先声明函数头并注册到符号表，再进入函数体对应作用域检查局部变量声明与语句合法性。
+
+#### 7.3.3 变量与表达式检查
+
+1. 在变量声明阶段，若未提供类型，则将类型标记为 **Unknown**，若在其作用域内没有自动类型推导，则会在退出作用域调用 **checkAutoTypeInference()** 时报错；
+
+```cpp
+void SemanticChecker::checkVarDeclStmt(const VarDeclStmtPtr& p_vdstmt)
+{
+    // 需要实现的产生式中，所有变量声明语句声明的变量只有两种情况
+    // 1. let mut a : i32;
+    // 2. let mut a;
+    // 因此，我们这里简单的记录变量
+    // 需要注意的是，由于存在自动类型推导，如果没有指定类型，理论上只能声明一个 Variable
+    // 符号，而不能直接声明一个 Variable 的子类
+    // 简单起见，这里将所有变量声明为一个 i32 的变量
+
+    const std::string& name = p_vdstmt->variable->name;
+
+    if (p_vdstmt->var_type.has_value())
+    {
+        // 1: let mut a : i32; 明确类型，直接构造变量
+        auto p_var = std::make_shared<symbol::Integer>(name, false, std::nullopt);
+        p_var->initialized = false;
+        p_stable->declareVar(name, p_var);
+    }
+    else
+    {
+        // 2: let mut a; 自动类型推导 —— 类型未知
+        auto p_var = std::make_shared<symbol::Variable>(name, false, symbol::VarType::Unknown);
+        p_var->initialized = false;
+        p_stable->declareVar(name, p_var);
+    }
+}
+```
+在每个block结束后，会对作用域下所有变量进行检查：
+```cpp
+auto SymbolTable::checkAutoTypeInference() const -> std::vector<VariablePtr>
+{
+    std::vector<VariablePtr> failed_vars;
+
+    for (const auto& [name, p_var] : *p_cscope)
+    {
+        if (p_var->var_type == VarType::Unknown)
+        {
+            failed_vars.push_back(p_var);
+        }
+    }
+
+    return failed_vars;
+}
+```
+如果返回有值，也就是**有未确定类型的变量**，需要报错：
+```cpp
+auto SemanticChecker::checkBlockStmt(const BlockStmtPtr& p_bstmt) -> bool
+{
+    int if_cnt = 1;
+    int while_cnt = 1;
+    bool has_retstmt = false;
+
+    for (const auto& p_stmt : p_bstmt->stmts)
+    {
+        switch (p_stmt->type())
+        {
+            default:
+                throw std::runtime_error{"检查到不支持的语句类型"};
+            case NodeType::VarDeclStmt:
+                checkVarDeclStmt(std::dynamic_pointer_cast<VarDeclStmt>(p_stmt));
+                break;
+            case NodeType::RetStmt:
+                checkRetStmt(std::dynamic_pointer_cast<RetStmt>(p_stmt));
+                has_retstmt = true;
+                break;
+            case NodeType::ExprStmt:
+                checkExprStmt(std::dynamic_pointer_cast<ExprStmt>(p_stmt));
+                break;
+            case NodeType::AssignStmt:
+                checkAssignStmt(std::dynamic_pointer_cast<AssignStmt>(p_stmt));
+                break;
+            case NodeType::IfStmt:
+                p_stable->enterScope(std::format("if{}", if_cnt++));
+                checkIfStmt(std::dynamic_pointer_cast<IfStmt>(p_stmt));
+                p_stable->exitScope();
+                break;
+            case NodeType::WhileStmt:
+                p_stable->enterScope(std::format("while{}", while_cnt++));
+                checkWhileStmt(std::dynamic_pointer_cast<WhileStmt>(p_stmt));
+                p_stable->exitScope();
+                break;
+            case NodeType::NullStmt:
+                break;
+        }
+    }
+
+    auto failed_vars = p_stable->checkAutoTypeInference();  // 语句块后检查变量是否有类型
+    for (const auto& p_var : failed_vars)
+    {
+        p_ereporter->report(error::SemanticErrorType::TypeInferenceFailure,
+                            std::format("变量 '{}' 无法通过自动类型推导确定类型", p_var->name),
+                            p_var->pos.row, p_var->pos.col, p_stable->getCurScope());
+    }
+
+    return has_retstmt;
+}
+```
+
+2. 在变量使用阶段，若变量未初始化即使用，则抛出语义错误；
+```cpp
+auto SemanticChecker::checkVariable(const VariablePtr& p_variable) -> symbol::VarType
+{
+    auto opt_var = p_stable->lookupVar(p_variable->name);
+
+    if (!opt_var.has_value())
+    {
+        p_ereporter->report(error::SemanticErrorType::UndeclaredVariable,
+                            std::format("变量 '{}' 未声明", p_variable->name),
+                            p_stable->getCurScope());
+        return symbol::VarType::Null;
+    }
+
+    const auto& p_var = opt_var.value();
+
+    if (!p_var->initialized && !p_var->formal)
+    {
+        p_ereporter->report(error::SemanticErrorType::UninitializedVariable,
+                            std::format("变量 '{}' 在第一次使用前未初始化", p_variable->name),
+                            p_stable->getCurScope());
+    }
+
+    return p_var->var_type;
+}
+```
+
+3. 表达式检查会递归分析子表达式，并返回类型用于后续推导判断。顶层函数会对不同表达式进行分发：
+```cpp
+auto SemanticChecker::checkExpr(const ExprPtr& p_expr) -> symbol::VarType
+{
+    switch (p_expr->type())
+    {
+        default:
+            throw std::runtime_error{"检查到不支持的表达式类型"};
+        case NodeType::ParenthesisExpr:...
+        case NodeType::CallExpr:...
+        case NodeType::ComparExpr:...
+        case NodeType::ArithExpr:...
+        case NodeType::Factor:...
+        case NodeType::Variable:...
+        case NodeType::Number:...
+    }
+}
+```
+#### 7.3.4 函数调用与返回检查
+
+1. 函数调用检查
+```cpp
+auto SemanticChecker::checkCallExpr(const CallExprPtr& p_caexpr) -> symbol::VarType
+{
+    // 检查调用表达式的实参和形参是否一致
+    auto opt_func = p_stable->lookupFunc(p_caexpr->callee);
+
+    if (!opt_func.has_value())
+    {
+        p_ereporter->report(error::SemanticErrorType::UndefinedFunctionCall,
+                            std::format("调用了未定义的函数 '{}'", p_caexpr->callee),
+                            p_stable->getCurScope());
+        return symbol::VarType::Null;
+    }
+
+    const auto& p_func = opt_func.value();
+
+    if (static_cast<int>(p_caexpr->argv.size()) != p_func->argc)
+    {
+        p_ereporter->report(error::SemanticErrorType::ArgCountMismatch,
+                            std::format("函数 '{}' 期望 {} 个参数，但调用提供了 {} 个",
+                                        p_caexpr->callee, p_func->argc, p_caexpr->argv.size()),
+                            p_stable->getCurScope());
+    }
+
+    // 遍历所有实参与进行表达式语义检查
+    for (const auto& arg : p_caexpr->argv)
+    {
+        assert(arg);
+        auto rv_type = checkExpr(arg);
+        if (rv_type != symbol::VarType::I32)
+        {
+            // error report
+        }
+    }
+
+    return p_func->retval_type;
+}
+```
+按照顺序依次检查函数是否，然后检查实参与形参的个数是否匹配，最后检查所有实参的表达式。
+
+2. 函数返回检查
+```cpp
+void SemanticChecker::checkRetStmt(const RetStmtPtr& p_rstmt)
+{
+    // 由于存在函数返回值类型的自动推导，因此需要在 RetStmt
+    // 中判断所处函数是否指定了返回值类型，如果指定了与当前 RetStmt 的类型是否一致；
+    // 如果未指定，则设置相应函数符号的返回值类型为 RetStmt 中返回值类型
+    std::string cfunc_name = p_stable->getFuncName();
+    auto opt_func = p_stable->lookupFunc(cfunc_name);
+    assert(opt_func.has_value());
+
+    const auto& p_func = opt_func.value();
+    if (p_rstmt->ret_val.has_value())
+    {  // 有返回值表达式
+        symbol::VarType ret_type = checkExpr(p_rstmt->ret_val.value());
+
+        if (p_func->retval_type != symbol::VarType::Null)
+        {  // 函数有明确返回类型
+            if (p_func->retval_type != ret_type)
+            {  // 返回值表达式类型与函数返回类型不符
+                p_ereporter->report(error::SemanticErrorType::FuncReturnTypeMismatch,
+                                    std::format("函数 '{}' return 语句返回类型错误", cfunc_name),
+                                    p_stable->getCurScope());
+            }
+        }
+        else
+        {  // 函数不需要返回值，却有返回值表达式
+            p_ereporter->report(
+                error::SemanticErrorType::VoidFuncReturnValue,
+                std::format("函数 '{}' 不需要返回值，return语句却有返回值", cfunc_name),
+                p_stable->getCurScope());
+        }
+    }
+    else
+    {  // return;
+        if (p_func->retval_type != symbol::VarType::Null)
+        {  // 有返回类型但无返回值表达式
+            p_ereporter->report(
+                error::SemanticErrorType::MissingReturnValue,
+                std::format("函数 '{}' 需要返回值，return语句却没有返回值", cfunc_name),
+                p_stable->getCurScope());
+        }
+    }
+}
+```
+区分 return 语句是否有返回值表达式
+
+- 若 return 携带返回值，则进一步检查表达式类型，并与函数返回类型比对；
+
+- 若 return 无返回值，仅为 return;，则视函数是否应返回值判断合法性。
+
+需要注意的是，如果函数没有返回语句，在block调用时会有一个bool型的变量**has_retstmt**作为记录，若无返回语句，视为 **return ;** ，因此如果此函数有返回类型，则需要报错：
+```cpp
+        if (p_func->retval_type != symbol::VarType::Null)
+        {  // 有返回类型但无返回值表达式
+            p_ereporter->report(
+                error::SemanticErrorType::MissingReturnValue,
+                std::format("函数 '{}' 需要返回值，函数内没有return语句", cfunc_name),
+                p_stable->getCurScope());
+        }
+```
+
+#### 7.3.5 选择循环语句检查
+
+根据基础规则，对**IF-ELSE**和**WHILE**语句进行检查，简化检查逻辑，仅判断表达式是否合法，由于I32可以自动推导为Bool，因此只判断为I32即可。
+```cpp
+void SemanticChecker::checkIfStmt(const IfStmtPtr& p_istmt)
+{
+    checkExprStmt(std::make_shared<ExprStmt>(p_istmt->expr));
+    checkBlockStmt(p_istmt->if_branch);
+
+    assert(p_istmt->else_clauses.size() <= 1);
+    if (p_istmt->else_clauses.size() == 1)
+    {
+        p_stable->enterScope("else");
+        checkBlockStmt(p_istmt->else_clauses[0]->block);
+        p_stable->exitScope();
+    }
+}
+```
+
+```cpp
+void SemanticChecker::checkWhileStmt(const WhileStmtPtr& p_wstmt)
+{
+    checkExprStmt(std::make_shared<ExprStmt>(p_wstmt->expr));
+    checkBlockStmt(p_wstmt->block);
+}
+```
+### 7.4 错误处理机制
+
+语义分析阶段发现的错误，统一通过 **ErrorReporter** 报告，并结合当前作用域提供精确定位信息。部分辅助错误信息使用 std::format 格式化输出，增强可读性。
+
+### 7.5 模块特点总结
+
+- 模块化设计良好，支持快速定位每类语义问题；
+
+- 表达式与语句检查相互独立，递归结构清晰；
+
+- 结合符号表实现变量作用域管理；
+
+- 具备错误容忍能力，可在发现错误后继续分析后续节点，增强体验。
+
 ## 8 中间代码生成详细设计
+
 
 ## 9 错误报告器详细设计
 
