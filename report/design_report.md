@@ -4,7 +4,7 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 
-# Compiler Principle Project 1
+# Compiler Principle Project
 
 ## 1 总述
 
@@ -53,7 +53,7 @@
 
 ### 1.4 小组成员及分工
 
-- 2251881 徐  宏：负责代码框架搭建，方法调研，全链条参与全过程，包括命令行参数、文件流、词法语法分析、AST、语义检查、中间代码生成和错误处理。
+- 2251881 徐  宏：负责代码框架搭建，方法调研，全链条参与全过程，包括文件流、词法语法分析、AST、语义检查、中间代码生成和错误处理。
 - 2253299 戚澍闻：负责词法和语法分析部分模块，实现AST可视化、语义检查。
 - 2253691 陈书煊：负责词法和语法分析部分模块，实现错误处理部分模块，负责文档和 ppt 撰写。
 
@@ -107,7 +107,7 @@
 
 #### 3.1.1 Token 数据结构设计
 
-`Token` 数据结构如下，数据成员有 `type`, `value` 和 `pos`，包含若干构造函数和运算符重载.
+`Token` 数据结构如下，数据成员有 `type`,`value` 和 `pos`，包含若干构造函数和运算符重载。
 
 ```cpp
 class Token {
@@ -430,16 +430,6 @@ return std::unexpected(error::LexError{
 #### 3.2.4 位置信息跟踪
 
 在 `lexer` 中定义了数据成员 `pos` 记录当前分析到的代码位置，从而获取位置信息并对每个 token 赋予位置信息。
-
-### 3.3 词法错误处理
-
-在我们的设计中，词法分析只有识别到未知 token 错误。在实现上，会在分析完代码后，统一报告 UnknownToken 错误。
-
-效果如下图所示：
-
-<img src="./lex_err.png" width=500/>
-
-<br>
 
 ## 4 语法分析详细设计
 
@@ -785,10 +775,6 @@ ast::NodePtr Parser::parseStmtOrExpr() {
 ```
 
 `Parser::parseStmtOrExpr()` 是整个语法分析器中非常重要的函数，因为单个Statement是程序中最复杂的单位，需要充分的前向搜索来确定下一步调用的是哪个解析函数，而这里就使用了 checkAhead 来实现 LL(2)。
-
-### 4.3 语法错误处理
-
-时间原因，语法错误并没有如词法错误一样实现健全的错误报告机制。而是使用了 `C++` 的标准异常处理机制，即使用 `throw` 抛出 `std::runtime_error` 的方式来进行。因此语法错误会导致程序异常退出。
 
 ## 5 AST详细设计
 
@@ -1457,6 +1443,373 @@ digraph AST {
 ## 8 中间代码生成详细设计
 
 ## 9 错误报告器详细设计
+
+### 9.1 错误类型体系设计
+
+本项目的错误报告器采用分层分类的设计理念，根据编译过程将错误为以下三大类：
+
+```cpp
+enum class ErrorType : std::uint8_t
+{
+    Lex,       // 词法错误
+    Parse,     // 语法错误
+    Semantic,  // 语义错误
+};
+```
+
+错误的基类Error主要包含msg，来记录实际错误发生的实际信息。
+
+```cpp
+struct Error
+{
+    std::string msg;  // error message
+
+    Error() = default;
+    Error(const std::string& m) : msg(m) {}
+    Error(std::string&& m) : msg(std::move(m)) {}
+
+    [[nodiscard]]
+    virtual constexpr auto kind() const -> ErrorType = 0;
+    virtual ~Error() = default;
+};
+```
+
+#### 9.1.1 词法错误(LexError)
+
+词法分析主要识别未知token:
+
+```cpp
+enum class LexErrorType : std::uint8_t
+{
+    UnknownToken,  // 未知的 token
+};
+```
+
+词法错误数据结构包括错误类型、位置信息和相关token:
+
+```cpp
+struct LexError : Error
+{
+    LexErrorType type;
+    std::size_t row;
+    std::size_t col;
+    std::string token;
+
+    explicit LexError(LexErrorType type, const std::string& msg, std::size_t r, std::size_t c,
+                      std::string token)
+        : Error(msg), type(type), row(r), col(c), token(std::move(token))
+    {
+    }
+};
+```
+
+#### 9.1.2 语法错误(ParseError)
+
+语法分析主要识别是否是期待Token：
+
+```cpp
+enum class ParseErrorType : std::uint8_t
+{
+    UnexpectToken,  // 并非期望 token
+};
+```
+
+语法错误数据结构与词法错误类似：
+
+```cpp:
+
+struct ParseError : Error
+{
+    ParseErrorType type;
+    std::size_t row;
+    std::size_t col;
+    std::string token;
+
+    ParseError() = delete;
+
+    explicit ParseError(ParseErrorType type, const std::string& msg, std::size_t r, std::size_t c,
+                        std::string token)
+        : Error(msg), type(type), row(r), col(c), token(std::move(token))
+    {
+    }
+};
+```
+
+#### 9.1.3 语义错误(SemanticError)
+
+语义分析阶段识别更丰富的错误类型：
+
+```cpp
+enum class SemanticErrorType : std::uint8_t
+{
+    FuncReturnTypeMismatch,  // 函数返回值类型错误
+    VoidFuncReturnValue,     // void函数返回了值
+    MissingReturnValue,      // 非void函数未返回值
+    UndefinedFunctionCall,   // 调用未定义函数
+    ArgCountMismatch,        // 参数数量不匹配
+    UndeclaredVariable,      // 变量未声明
+    UninitializedVariable,   // 变量未初始化
+    AssignToNonVariable,     // 赋值左侧非变量
+    AssignToUndeclaredVar,   // 赋值给未声明变量
+    TypeInferenceFailure,    // 变量无法通过自动类型推导确定类型
+    TypeMismatch,            // 变量类型不匹配
+
+};
+```
+
+语义错误数据结构增加了作用域信息：
+
+```cpp
+struct SemanticError : Error {
+    SemanticErrorType type;
+    std::size_t row;
+    std::size_t col;
+    std::string scope_name;  // 错误发生的作用域
+
+    explicit SemanticError(SemanticErrorType type, const std::string& msg,
+                          std::size_t r, std::size_t c, std::string scope_name)
+        : Error(msg), type(type), row(r), col(c), scope_name(std::move(scope_name)) {}
+};
+```
+
+### 9.2 错误收集与报告机制
+
+#### 9.2.1 错误报告器核心设计
+
+错误报告器`ErrorReporter`采用观察者模式，以全局身份作为编译过程中各阶段的错误收集中心：
+
+```cpp
+class ErrorReporter {
+public:
+    explicit ErrorReporter(const std::string& t);  // 传入源代码文本
+    
+    // 错误报告接口
+    void report(LexErrorType type, const std::string& msg, 
+                std::size_t r, std::size_t c, const std::string& token, bool terminate = false);
+    void report(const LexError& le, bool terminate = false);
+    void report(ParseErrorType type, const std::string& msg,
+                std::size_t r, std::size_t c, const std::string& token);
+    void report(SemanticErrorType type, const std::string& msg,
+                std::size_t r, std::size_t c, const std::string& scope_name);
+
+    // 错误显示接口
+    void displayLexErrs() const;
+    void displayParseErrs() const;
+    void displaySemanticErrs() const;
+
+    // 错误存在性检查
+    bool hasLexErr() const;
+    bool hasParseErr() const;
+    bool hasSemanticErr() const;
+
+private:
+    std::vector<std::string> text;           // 源代码按行存储
+    std::list<LexError> lex_errs;            // 词法错误列表
+    std::list<ParseError> parse_errs;        // 语法错误列表
+    std::list<SemanticError> semantic_errs;  // 语义错误列表
+};
+```
+
+#### 9.2.2 错误收集流程
+
+- **词法分析阶段**：
+  - 当词法分析器遇到无法识别的token，在函数的末尾return一个`UnknownToken`错误
+  - 调用`report()`接口报告`UnknownToken`错误
+  - 错误信息包含token内容和位置
+
+```cpp
+// 在ToyLexer::nextToken()中的错误处理
+return std::unexpected(error::LexError{
+    error::LexErrorType::UnknownToken,
+    "识别到未知token: " + view.substr(0, 1),
+    p.row, p.col,
+    view.substr(0, 1)
+});
+```
+
+```cpp
+auto printToken(std::ofstream& out) -> bool
+{
+    while (true)
+    {
+        if (auto token = lex->nextToken(); token.has_value())
+        {
+            if (token->getType() == lexer::token::Type::END)
+            {
+                break;
+            }
+        }
+        else
+        {  // 未正确识别 token
+            reporter->report(token.error());
+        }
+    }
+}
+```
+
+- **语法分析阶段**:
+  - report内置于Paser::expect函数中
+  - 遇到非期望的token时，通过`expect()`函数报告`UnexpectToken`错误
+  - 错误信息包含期望的token类型和实际遇到的token
+
+```cpp
+// 在Parser::expect()中的错误处理
+void Parser::expect(lexer::token::Type type, const std::string& msg) {
+    if (!match(type)) {
+        reporter->report(
+            error::ParseErrorType::UnexpectToken,
+            msg,
+            current.getPos().row,
+            current.getPos().col,
+            current.getValue()
+        );
+    }
+}
+```
+
+- **语义分析阶段**:
+  - report会在语义分析出现错误时调用
+  - 错误信息包含错误类型、位置和相关符号信息
+  - 特别地，除了Token，我们将pos的概念延伸至AST树的Node中，便于确定错误位置
+
+```cpp
+//Node结构更新
+struct Node
+{
+    util::Position pos{0, 0};
+
+    Node() = default;
+    virtual ~Node() = default;
+
+    void setPos(std::size_t row, std::size_t col) { pos = util::Position{row, col}; }
+    void setPos(util::Position pos) { this->pos = pos; };
+    [[nodiscard]] virtual auto type() const -> NodeType = 0;
+};
+```
+
+```cpp
+// 在SemanticChecker中的错误处理示例
+void SemanticChecker::checkRetStmt(const RetStmtPtr& p_rstmt)
+{
+    // 由于存在函数返回值类型的自动推导，因此需要在 RetStmt
+    // 中判断所处函数是否指定了返回值类型，如果指定了与当前 RetStmt 的类型是否一致；
+    // 如果未指定，则设置相应函数符号的返回值类型为 RetStmt 中返回值类型
+    std::string cfunc_name = p_stable->getFuncName();
+    auto opt_func = p_stable->lookupFunc(cfunc_name);
+    assert(opt_func.has_value());
+
+    const auto& p_func = opt_func.value();
+    if (p_rstmt->ret_val.has_value())
+    {  // 有返回值表达式
+        symbol::VarType ret_type = checkExpr(p_rstmt->ret_val.value());
+
+        if (p_func->retval_type != symbol::VarType::Null)
+        {  // 函数有明确返回类型
+            if (p_func->retval_type != ret_type)
+            {  // 返回值表达式类型与函数返回类型不符
+                p_ereporter->report(error::SemanticErrorType::FuncReturnTypeMismatch,
+                                    std::format("函数 '{}' return 语句返回类型错误", cfunc_name),
+                                    p_rstmt->pos.row, p_rstmt->pos.col, p_stable->getCurScope());
+            }
+        }
+        else
+        {  // 函数不需要返回值，却有返回值表达式
+            p_ereporter->report(
+                error::SemanticErrorType::VoidFuncReturnValue,
+                std::format("函数 '{}' 不需要返回值，return 语句却有返回值", cfunc_name),
+                p_rstmt->pos.row, p_rstmt->pos.col, p_stable->getCurScope());
+        }
+    }
+    else
+    {  // return;
+        if (p_func->retval_type != symbol::VarType::Null)
+        {  // 有返回类型但无返回值表达式
+            p_ereporter->report(
+                error::SemanticErrorType::MissingReturnValue,
+                std::format("函数 '{}' 需要返回值，return语句却没有返回值", cfunc_name),
+                p_rstmt->pos.row, p_rstmt->pos.col, p_stable->getCurScope());
+        }
+    }
+}
+```
+
+### 9.3 错误可视化
+
+错误报告器提供统一错误显示接口，采用彩色终端输出增强可读性：
+
+```cpp
+// 控制字符
+static inline const std::string RESET = "\033[0m";
+static inline const std::string RED = "\033[1;31m";
+static inline const std::string YELLOW = "\033[1;33m";
+static inline const std::string BLUE = "\033[1;34m";
+static inline const std::string BOLD = "\033[1m";
+```
+
+#### 9.3.1 词法错误展示
+
+```cpp
+void ErrorReporter::displayUnknownType(const LexError& err) const {
+    std::cerr << BOLD << YELLOW << "warning[UnknownToken]" << RESET << BOLD
+              << ": 识别到未知 token '" << err.token << "'" << RESET << std::endl;
+
+    // 显示错误位置
+    std::cerr << BLUE << " --> " << RESET << "<row: " << err.row + 1 
+              << ", col: " << err.col + 1 << ">" << std::endl;
+
+    // 显示错误行内容
+    std::cerr << BLUE << "  |  " << std::endl
+              << BLUE << " " << err.row + 1 << " | " << RESET 
+              << this->text[err.row] << std::endl;
+
+    // 显示错误位置标记
+    std::ostringstream oss;
+    oss << " " << err.row + 1 << " | ";
+    int delta = oss.str().length() + err.col - 3;
+    std::cerr << BLUE << "  |" << std::string(delta, ' ') 
+              << "^" << RESET << std::endl << std::endl;
+}
+```
+
+<img src="./lex_err.png" width=500/>
+
+<br>
+
+#### 9.3.2 语义错误展示
+
+```cpp
+void ErrorReporter::displaySemanticErr(const SemanticError& err) const {
+    auto pair = displaySemanticErrorType(err.type);
+    std::cerr << BOLD << RED << "Error[" << pair.first << "]" << RESET << BOLD 
+              << ": " << pair.second << RESET << std::endl;
+
+    // 显示错误位置和作用域
+    std::cerr << BLUE << "--> " << RESET << "scope: " << err.scope_name 
+              << " <row: " << err.row + 1 << ", col: " << err.col + 1 << ">" << std::endl;
+
+    // 显示错误行内容
+    std::cerr << BLUE << "  |  " << std::endl
+              << BLUE << " " << err.row + 1 << " | " << RESET 
+              << this->text[err.row] << std::endl;
+
+    // 显示错误位置标记
+    std::ostringstream oss;
+    oss << " " << err.row + 1 << " | ";
+    int delta = oss.str().length() + err.col - 3;
+    std::cerr << BLUE << "  |" << std::string(delta, ' ') 
+              << "^" << RESET << std::endl << std::endl;
+
+    // 显示详细错误信息
+    std::cerr << "    Details: " << err.msg << std::endl << std::endl;
+}
+```
+
+效果展示：
+
+<img src="./semantic_err.png" width=500/>
+
+<br>
+
 
 ## 10 测试与验证
 

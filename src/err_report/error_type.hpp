@@ -11,7 +11,6 @@ enum class ErrorType : std::uint8_t
     Lex,       // 词法错误
     Parse,     // 语法错误
     Semantic,  // 语义错误
-    Internal   // 内部代码错误
 };
 
 // 词法错误码

@@ -168,10 +168,12 @@ void ErrorReporter::report(ParseErrorType type, const std::string& msg, std::siz
 
 /**
  * @brief 报告语义错误
- * @param type
- * @param msg
- * @param scope_name
- * @param terminate
+ * @param type       语义错误类型
+ * @param msg        错误信息
+ * @param r          错误发生的行数
+ * @param c          错误发生的列数
+ * @param scope_name 作用域
+ * @param terminate  是否终止
  */
 void ErrorReporter::report(SemanticErrorType type, const std::string& msg, std::size_t r,
                            std::size_t c, const std::string& scope_name)
