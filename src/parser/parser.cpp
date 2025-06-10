@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-#include "../err_report/error_reporter.hpp"
+#include "err_report/error_reporter.hpp"
 
 namespace parser::base
 {
@@ -126,9 +126,14 @@ auto Parser::parseProgram() -> ast::ProgPtr
 auto Parser::parseFuncDecl() -> ast::FuncDeclPtr
 {
     // FuncDecl -> FuncHeaderDecl BlockStmt
+
+    util::Position pos = current.getPos();
     auto header = parseFuncHeaderDecl();
     auto body = parseBlockStmt();
-    return std::make_shared<ast::FuncDecl>(std::move(header), std::move(body));
+
+    auto p_fdecl = std::make_shared<ast::FuncDecl>(std::move(header), std::move(body));
+    p_fdecl->setPos(pos);
+    return p_fdecl;
 }
 
 /**
@@ -140,6 +145,7 @@ auto Parser::parseFuncHeaderDecl() -> ast::FuncHeaderDeclPtr
     // FuncHeaderDecl -> fn <ID> ( (arg)* ) (-> VarType)?
     using TokenType = lexer::token::Type;
 
+    util::Position pos = current.getPos();
     expect(TokenType::FN, "此处期望有一个 'fn'");
 
     std::string name = current.getValue();  // function name
@@ -167,7 +173,11 @@ auto Parser::parseFuncHeaderDecl() -> ast::FuncHeaderDeclPtr
         return std::make_shared<ast::FuncHeaderDecl>(std::move(name), std::move(argv),
                                                      std::move(type));
     }
-    return std::make_shared<ast::FuncHeaderDecl>(std::move(name), std::move(argv), std::nullopt);
+
+    auto p_fhdecl =
+        std::make_shared<ast::FuncHeaderDecl>(std::move(name), std::move(argv), std::nullopt);
+    p_fhdecl->setPos(pos);
+    return p_fhdecl;
 }
 
 /**
@@ -177,6 +187,8 @@ auto Parser::parseFuncHeaderDecl() -> ast::FuncHeaderDeclPtr
 auto Parser::parseBlockStmt() -> ast::BlockStmtPtr
 {  // BlockStmt -> { (Stmt)* }; FuncExprBlockStmt -> { (Stmt)* Expr }
     using TokenType = lexer::token::Type;
+
+    util::Position pos = current.getPos();
     expect(TokenType::LBRACE, "Expected '{' for block");
 
     std::vector<ast::StmtPtr> stmts{};
@@ -209,7 +221,10 @@ auto Parser::parseBlockStmt() -> ast::BlockStmtPtr
     {
         return std::make_shared<ast::FuncExprBlockStmt>(std::move(stmts), std::move(expr));
     }
-    return std::make_shared<ast::BlockStmt>(std::move(stmts));
+
+    auto p_bstmt = std::make_shared<ast::BlockStmt>(std::move(stmts));
+    p_bstmt->setPos(pos);
+    return p_bstmt;
 }
 
 /**
@@ -275,12 +290,14 @@ auto Parser::parseStmtOrExpr() -> ast::NodePtr
     else if (check(TokenType::CONTINUE))
     {
         stmt = std::make_shared<ast::ContinueStmt>();
+        stmt->setPos(current.getPos());
         advance();
         expect(TokenType::SEMICOLON, "Expected ';' after Continue");
     }
     else if (check(TokenType::SEMICOLON))
     {
         stmt = std::make_shared<ast::NullStmt>();
+        stmt->setPos(current.getPos());
         advance();
     }
 
@@ -295,6 +312,7 @@ auto Parser::parseRetStmt() -> ast::RetStmtPtr
 {
     using TokenType = lexer::token::Type;
 
+    util::Position pos = current.getPos();
     expect(TokenType::RETURN, "Expected 'return'");
 
     if (check(TokenType::SEMICOLON))
@@ -305,7 +323,10 @@ auto Parser::parseRetStmt() -> ast::RetStmtPtr
 
     ast::ExprPtr ret = Parser::parseCmpExpr();
     expect(TokenType::SEMICOLON, "Expected ';'");
-    return std::make_shared<ast::RetStmt>(std::move(ret));
+
+    auto p_rstmt = std::make_shared<ast::RetStmt>(std::move(ret));
+    p_rstmt->setPos(pos);
+    return p_rstmt;
 }
 
 /**
@@ -315,6 +336,8 @@ auto Parser::parseRetStmt() -> ast::RetStmtPtr
 auto Parser::parseArg() -> ast::ArgPtr
 {
     using TokenType = lexer::token::Type;
+
+    util::Position pos = current.getPos();
 
     bool mut = false;
     if (check(TokenType::MUT))
@@ -329,7 +352,9 @@ auto Parser::parseArg() -> ast::ArgPtr
     expect(TokenType::COLON, "Expected ':'");
     auto type = parseVarType();
 
-    return std::make_shared<ast::Arg>(std::move(var), std::move(type));
+    auto p_arg = std::make_shared<ast::Arg>(std::move(var), std::move(type));
+    p_arg->setPos(pos);
+    return p_arg;
 }
 
 /**
@@ -348,6 +373,8 @@ auto Parser::parseVarDeclStmt() -> ast::VarDeclStmtPtr
         mut = true;
         advance();
     }
+    util::Position pos = current.getPos();
+
     auto identifier = std::make_shared<ast::VarDeclBody>(mut, current.getValue());
     expect(TokenType::ID, "Expected '<ID>'");
 
@@ -377,8 +404,11 @@ auto Parser::parseVarDeclStmt() -> ast::VarDeclStmtPtr
             std::move(identifier), (has_type ? std::optional<ast::VarTypePtr>{type} : std::nullopt),
             std::move(expr));
     }
-    return std::make_shared<ast::VarDeclStmt>(
+
+    auto p_vdstmt = std::make_shared<ast::VarDeclStmt>(
         std::move(identifier), (has_type ? std::optional<ast::VarTypePtr>{type} : std::nullopt));
+    p_vdstmt->setPos(pos);
+    return p_vdstmt;
 }
 
 /**
@@ -389,12 +419,15 @@ auto Parser::parseAssignStmt(ast::AssignElementPtr&& lvalue) -> ast::AssignStmtP
 {
     using TokenType = lexer::token::Type;
 
+    util::Position pos = current.getPos();
     expect(TokenType::ASSIGN, "Expected '='");
     ast::ExprPtr expr = Parser::parseExpr();
 
     expect(TokenType::SEMICOLON, "Expected ';'");
 
-    return std::make_shared<ast::AssignStmt>(std::move(lvalue), std::move(expr));
+    auto p_astmt = std::make_shared<ast::AssignStmt>(std::move(lvalue), std::move(expr));
+    p_astmt->setPos(pos);
+    return p_astmt;
 }
 
 /**
@@ -405,12 +438,16 @@ auto Parser::parseAssignElement() -> ast::AssignElementPtr
 {
     using TokenType = lexer::token::Type;
 
+    util::Position pos = current.getPos();
     if (check(TokenType::OP_MUL))
     {
         advance();
         std::string var = current.getValue();
         expect(TokenType::ID, "Expected '<ID>'");
-        return std::make_shared<ast::Dereference>(std::move(var));
+
+        auto p_deref = std::make_shared<ast::Dereference>(std::move(var));
+        p_deref->setPos(pos);
+        return p_deref;
     }
 
     std::string var = current.getValue();
@@ -420,7 +457,10 @@ auto Parser::parseAssignElement() -> ast::AssignElementPtr
         advance();
         auto expr = parseExpr();
         expect(TokenType::RBRACK, "Expected ']'");
-        return std::make_shared<ast::ArrayAccess>(std::move(var), std::move(expr));
+
+        auto p_aacc = std::make_shared<ast::ArrayAccess>(std::move(var), std::move(expr));
+        p_aacc->setPos(pos);
+        return p_aacc;
     }
 
     if (check(TokenType::DOT))
@@ -428,10 +468,15 @@ auto Parser::parseAssignElement() -> ast::AssignElementPtr
         advance();
         int value = std::stoi(current.getValue());
         expect(TokenType::INT, "Expected <NUM> for Tuple");
-        return std::make_shared<ast::TupleAccess>(std::move(var), value);
+
+        auto p_tacc = std::make_shared<ast::TupleAccess>(std::move(var), value);
+        p_tacc->setPos(pos);
+        return p_tacc;
     }
 
-    return std::make_shared<ast::Variable>(std::move(var));
+    auto p_var = std::make_shared<ast::Variable>(std::move(var));
+    p_var->setPos(pos);
+    return p_var;
 }
 
 /**
@@ -513,13 +558,17 @@ auto Parser::parseCmpExpr(std::optional<ast::AssignElementPtr> elem) -> ast::Exp
     while (check(TokenType::OP_LT) || check(TokenType::OP_LE) || check(TokenType::OP_GT) ||
            check(TokenType::OP_GE) || check(TokenType::OP_EQ) || check(TokenType::OP_NEQ))
     {
+        util::Position pos = current.getPos();
+
         TokenType op = current.getType();
         advance();
 
         ast::ExprPtr right = Parser::parseAddExpr();
 
-        left = std::make_shared<ast::ComparExpr>(std::move(left), tokenType2ComparOper(op),
-                                                 std::move(right));
+        auto p_cmp = std::make_shared<ast::ComparExpr>(std::move(left), tokenType2ComparOper(op),
+                                                       std::move(right));
+        p_cmp->setPos(pos);
+        left = p_cmp;
     }  // end while
 
     return left;
@@ -536,13 +585,17 @@ auto Parser::parseAddExpr(std::optional<ast::AssignElementPtr> elem) -> ast::Exp
     ast::ExprPtr left = Parser::parseMulExpr(std::move(elem));
     while (check(TokenType::OP_PLUS) || check(TokenType::OP_MINUS))
     {
+        util::Position pos = current.getPos();
+
         TokenType op = current.getType();
         advance();
 
         ast::ExprPtr right = Parser::parseMulExpr();
 
-        left = std::make_shared<ast::ArithExpr>(std::move(left), tokenType2ArithOper(op),
-                                                std::move(right));
+        auto p_ari = std::make_shared<ast::ArithExpr>(std::move(left), tokenType2ArithOper(op),
+                                                      std::move(right));
+        p_ari->setPos(pos);
+        left = p_ari;
     }  // end while
 
     return left;
@@ -559,13 +612,17 @@ auto Parser::parseMulExpr(std::optional<ast::AssignElementPtr> elem) -> ast::Exp
     ast::ExprPtr left = parseFactor(std::move(elem));
     while (check(TokenType::OP_MUL) || check(TokenType::OP_DIV))
     {
+        util::Position pos = current.getPos();
+
         TokenType op = current.getType();
         advance();
 
         ast::ExprPtr right = Parser::parseFactor();
 
-        left = std::make_shared<ast::ArithExpr>(std::move(left), tokenType2ArithOper(op),
-                                                std::move(right));
+        auto p_ari = std::make_shared<ast::ArithExpr>(std::move(left), tokenType2ArithOper(op),
+                                                      std::move(right));
+        p_ari->setPos(pos);
+        left = p_ari;
     }  // end while
 
     return left;
@@ -579,6 +636,7 @@ auto Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) -> ast::Expr
 {
     using TokenType = lexer::token::Type;
 
+    util::Position pos = current.getPos();
     // ArrayElements
     if (check(TokenType::LBRACK))
     {
@@ -594,7 +652,10 @@ auto Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) -> ast::Expr
             advance();
         }
         advance();
-        return std::make_shared<ast::ArrayElements>(elements);
+
+        auto p_aelem = std::make_shared<ast::ArrayElements>(elements);
+        p_aelem->setPos(pos);
+        return p_aelem;
     }
 
     // TupleElements
@@ -622,9 +683,13 @@ auto Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) -> ast::Expr
         if (1 == cnt)
         {
             // 单个表达式没有逗号不是元组，而是普通括号表达式
-            return std::make_shared<ast::ParenthesisExpr>(std::move(elems[0]));
+            auto p_par = std::make_shared<ast::ParenthesisExpr>(std::move(elems[0]));
+            p_par->setPos(pos);
+            return p_par;
         }
-        return std::make_shared<ast::TupleElements>(elems);
+        auto p_telem = std::make_shared<ast::TupleElements>(elems);
+        p_telem->setPos(pos);
+        return p_telem;
     }
 
     ast::RefType ref_type{ast::RefType::Normal};
@@ -644,7 +709,9 @@ auto Parser::parseFactor(std::optional<ast::AssignElementPtr> elem) -> ast::Expr
 
     auto element = parseElement(std::move(elem));
 
-    return std::make_shared<ast::Factor>(ref_type, std::move(element));
+    auto p_factor = std::make_shared<ast::Factor>(ref_type, std::move(element));
+    p_factor->setPos(pos);
+    return p_factor;
 }
 
 /**
@@ -661,25 +728,29 @@ auto Parser::parseElement(std::optional<ast::AssignElementPtr> elem) -> ast::Exp
         return elem.value();
     }
 
+    util::Position pos = current.getPos();
     if (check(TokenType::LPAREN))
     {
         advance();
         ast::ExprPtr expr = Parser::parseCmpExpr();
         expect(TokenType::RPAREN, "Expected ')'");
-        return std::make_shared<ast::ParenthesisExpr>(std::move(expr));
+        auto p_par = std::make_shared<ast::ParenthesisExpr>(std::move(expr));
+        p_par->setPos(pos);
+        return p_par;
     }
     if (check(TokenType::INT))
     {
         int value = std::stoi(current.getValue());
         advance();
-        return std::make_shared<ast::Number>(value);
+        auto p_num = std::make_shared<ast::Number>(value);
+        p_num->setPos(pos);
+        return p_num;
     }
     if (check(TokenType::ID))
     {
         if (checkAhead(TokenType::LBRACK) || checkAhead(TokenType::DOT))
         {
-            auto value = parseAssignElement();
-            return (std::move(value));
+            return parseAssignElement();
         }
         if (checkAhead(TokenType::LPAREN))
         {
@@ -687,7 +758,9 @@ auto Parser::parseElement(std::optional<ast::AssignElementPtr> elem) -> ast::Exp
         }
         std::string name = current.getValue();
         advance();
-        return std::make_shared<ast::Variable>(std::move(name));
+        auto p_var = std::make_shared<ast::Variable>(std::move(name));
+        p_var->setPos(pos);
+        return p_var;
     }
     if (check(TokenType::OP_MUL) && checkAhead(TokenType::ID))
     {
@@ -703,7 +776,11 @@ auto Parser::parseElement(std::optional<ast::AssignElementPtr> elem) -> ast::Exp
 auto Parser::parseCallExpr() -> ast::CallExprPtr
 {
     using TokenType = lexer::token::Type;
+
+    util::Position pos = current.getPos();
+
     std::string name = current.getValue();  // function name
+
     expect(TokenType::ID, "Expected function name");
 
     expect(TokenType::LPAREN, "Expected '('");
@@ -720,7 +797,9 @@ auto Parser::parseCallExpr() -> ast::CallExprPtr
     }
 
     expect(TokenType::RPAREN, "Expected ')'");
-    return std::make_shared<ast::CallExpr>(std::move(name), std::move(argv));
+    auto p_cexpr = std::make_shared<ast::CallExpr>(std::move(name), std::move(argv));
+    p_cexpr->setPos(pos);
+    return p_cexpr;
 }
 
 /**
@@ -730,6 +809,8 @@ auto Parser::parseCallExpr() -> ast::CallExprPtr
 auto Parser::parseIfStmt() -> ast::IfStmtPtr
 {
     using TokenType = lexer::token::Type;
+
+    util::Position pos = current.getPos();
 
     expect(TokenType::IF, "Expected 'if'");
     auto expr = parseCmpExpr();
@@ -747,8 +828,10 @@ auto Parser::parseIfStmt() -> ast::IfStmtPtr
         }
     }
 
-    return std::make_shared<ast::IfStmt>(std::move(expr), std::move(if_branch),
-                                         std::move(else_clauses));
+    auto p_istmt = std::make_shared<ast::IfStmt>(std::move(expr), std::move(if_branch),
+                                                 std::move(else_clauses));
+    p_istmt->setPos(pos);
+    return p_istmt;
 }
 
 /**
@@ -759,15 +842,20 @@ auto Parser::parseElseClause() -> ast::ElseClausePtr
 {
     using TokenType = lexer::token::Type;
 
+    util::Position pos = current.getPos();
     if (check(TokenType::IF))
     {
         advance();
         auto expr = parseCmpExpr();
         auto block = parseBlockStmt();
-        return std::make_shared<ast::ElseClause>(std::move(expr), std::move(block));
+        auto p_eclause = std::make_shared<ast::ElseClause>(std::move(expr), std::move(block));
+        p_eclause->setPos(pos);
+        return p_eclause;
     }
     auto block = parseBlockStmt();
-    return std::make_shared<ast::ElseClause>(std::nullopt, std::move(block));
+    auto p_eclause = std::make_shared<ast::ElseClause>(std::nullopt, std::move(block));
+    p_eclause->setPos(pos);
+    return p_eclause;
 }
 
 /**
@@ -778,12 +866,15 @@ auto Parser::parseWhileStmt() -> ast::WhileStmtPtr
 {
     using TokenType = lexer::token::Type;
 
+    util::Position pos = current.getPos();
     expect(TokenType::WHILE, "Expected 'while'");
 
     auto expr = parseCmpExpr();
     auto block = parseBlockStmt();
 
-    return std::make_shared<ast::WhileStmt>(std::move(expr), std::move(block));
+    auto p_wstmt = std::make_shared<ast::WhileStmt>(std::move(expr), std::move(block));
+    p_wstmt->setPos(pos);
+    return p_wstmt;
 }
 
 /**
@@ -794,6 +885,7 @@ auto Parser::parseForStmt() -> ast::ForStmtPtr
 {
     using TokenType = lexer::token::Type;
 
+    util::Position pos = current.getPos();
     expect(TokenType::FOR, "Expected 'for'");
 
     bool mut = false;
@@ -813,8 +905,10 @@ auto Parser::parseForStmt() -> ast::ForStmtPtr
     auto expr2 = parseCmpExpr();
     auto block = parseBlockStmt();
 
-    return std::make_shared<ast::ForStmt>(std::move(var), std::move(expr1), std::move(expr2),
-                                          std::move(block));
+    auto p_fstmt = std::make_shared<ast::ForStmt>(std::move(var), std::move(expr1),
+                                                  std::move(expr2), std::move(block));
+    p_fstmt->setPos(pos);
+    return p_fstmt;
 }
 
 /**
@@ -825,10 +919,13 @@ auto Parser::parseLoopStmt() -> ast::LoopStmtPtr
 {
     using TokenType = lexer::token::Type;
 
+    util::Position pos = current.getPos();
     expect(TokenType::LOOP, "Expected 'loop'");
     auto block = parseBlockStmt();
 
-    return std::make_shared<ast::LoopStmt>(std::move(block));
+    auto p_lstmt = std::make_shared<ast::LoopStmt>(std::move(block));
+    p_lstmt->setPos(pos);
+    return p_lstmt;
 }
 
 /**
@@ -839,6 +936,7 @@ auto Parser::parseVarType() -> ast::VarTypePtr
 {
     using TokenType = lexer::token::Type;
 
+    util::Position pos = current.getPos();
     ast::RefType ref_type{ast::RefType::Normal};
     if (check(TokenType::REF))
     {
@@ -862,7 +960,9 @@ auto Parser::parseVarType() -> ast::VarTypePtr
         int cnt = std::stoi(current.getValue());
         expect(TokenType::INT, "Expected <NUM> for Array");
         expect(TokenType::RBRACK, "Expected ']' for Array");
-        return std::make_shared<ast::Array>(cnt, elem_type, ref_type);
+        auto p_arr = std::make_shared<ast::Array>(cnt, elem_type, ref_type);
+        p_arr->setPos(pos);
+        return p_arr;
     }
 
     if (check(TokenType::LPAREN))
@@ -890,13 +990,17 @@ auto Parser::parseVarType() -> ast::VarTypePtr
         {
             return elem_types[0];
         }
-        return std::make_shared<ast::Tuple>(std::move(elem_types), ref_type);
+        auto p_tup = std::make_shared<ast::Tuple>(std::move(elem_types), ref_type);
+        p_tup->setPos(pos);
+        return p_tup;
     }
 
     if (check(TokenType::I32))
     {
         advance();
-        return std::make_shared<ast::Integer>(ref_type);
+        auto p_int = std::make_shared<ast::Integer>(ref_type);
+        p_int->setPos(pos);
+        return p_int;
     }
 
     throw std::runtime_error{"Incorrect variable type"};
@@ -910,6 +1014,7 @@ auto Parser::parseFuncExprBlockStmt() -> ast::FuncExprBlockStmtPtr
 {
     using TokenType = lexer::token::Type;
 
+    util::Position pos = current.getPos();
     expect(TokenType::LBRACE, "Expected '{' for function expression block statements");
 
     std::vector<ast::StmtPtr> stmts{};
@@ -937,8 +1042,9 @@ auto Parser::parseFuncExprBlockStmt() -> ast::FuncExprBlockStmtPtr
 
     expect(TokenType::RBRACE, "Expected '}' for block");
 
-    return std::make_shared<ast::FuncExprBlockStmt>(std::move(stmts), std::move(expr));
-    ;
+    auto p_febstmt = std::make_shared<ast::FuncExprBlockStmt>(std::move(stmts), std::move(expr));
+    p_febstmt->setPos(pos);
+    return p_febstmt;
 }
 
 /**
@@ -949,6 +1055,7 @@ auto Parser::parseIfExpr() -> ast::IfExprPtr
 {
     using TokenType = lexer::token::Type;
 
+    util::Position pos = current.getPos();
     expect(TokenType::IF, "Expected 'if' for If Expression");
 
     auto condition = parseExpr();
@@ -957,8 +1064,10 @@ auto Parser::parseIfExpr() -> ast::IfExprPtr
     expect(TokenType::ELSE, "Expected 'else' for If expression");
     auto else_branch = parseFuncExprBlockStmt();
 
-    return std::make_shared<ast::IfExpr>(std::move(condition), std::move(if_branch),
-                                         std::move(else_branch));
+    auto p_iexpr = std::make_shared<ast::IfExpr>(std::move(condition), std::move(if_branch),
+                                                 std::move(else_branch));
+    p_iexpr->setPos(pos);
+    return p_iexpr;
 }
 
 /**
@@ -969,15 +1078,20 @@ auto Parser::parseBreakStmt() -> ast::BreakStmtPtr
 {
     using TokenType = lexer::token::Type;
 
+    util::Position pos = current.getPos();
     expect(TokenType::BREAK, "Expected 'break' for break statement");
 
     if (!check(TokenType::SEMICOLON))
     {
         auto expr = parseExpr();
-        return std::make_shared<ast::BreakStmt>(std::move(expr));
+        auto p_bstmt = std::make_shared<ast::BreakStmt>(std::move(expr));
+        p_bstmt->setPos(pos);
+        return p_bstmt;
     }
 
-    return std::make_shared<ast::BreakStmt>();
+    auto p_bstmt = std::make_shared<ast::BreakStmt>();
+    p_bstmt->setPos(pos);
+    return p_bstmt;
 }
 
 /* member function definition */

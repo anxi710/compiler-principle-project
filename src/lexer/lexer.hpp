@@ -6,8 +6,8 @@
 #include <string>
 #include <vector>
 
-#include "lexer_position.hpp"
 #include "token.hpp"
+#include "util/position.hpp"
 
 namespace error
 {
@@ -37,7 +37,7 @@ class Lexer
      * @brief 重置当前扫描位置
      * @param pos 设置到的位置
      */
-    void reset(const Position& p)
+    void reset(const util::Position& p)
     {
         this->pos = p;
         this->peek = this->text[p.row][p.col];
@@ -56,7 +56,7 @@ class Lexer
     std::shared_ptr<error::ErrorReporter> reporter;  // error reporter
 
     std::vector<std::string> text;  // text to be scanned
-    Position pos;                   // the next position to be scanned
+    util::Position pos;             // the next position to be scanned
     char peek;                      // the next character to be scanned
 };
 

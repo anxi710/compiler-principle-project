@@ -5,8 +5,8 @@
 #include <memory>
 #include <optional>
 
-#include "../lexer/token.hpp"
 #include "ast.hpp"
+#include "lexer/token.hpp"
 
 namespace error
 {

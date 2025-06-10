@@ -1,7 +1,6 @@
 #pragma once
 
 #include <list>
-#include <source_location>
 #include <string>
 #include <vector>
 
@@ -77,12 +76,15 @@ struct ParseError : Error
 struct SemanticError : Error
 {
     SemanticErrorType type;
+    std::size_t row;
+    std::size_t col;
     std::string scope_name;
 
     SemanticError() = delete;
 
-    explicit SemanticError(SemanticErrorType type, const std::string& msg, std::string scope_name)
-        : Error(msg), type(type), scope_name(std::move(scope_name))
+    explicit SemanticError(SemanticErrorType type, const std::string& msg, std::size_t r,
+                           std::size_t c, std::string scope_name)
+        : Error(msg), type(type), row(r), col(c), scope_name(std::move(scope_name))
     {
     }
     ~SemanticError() override = default;
@@ -91,27 +93,6 @@ struct SemanticError : Error
     constexpr auto kind() const -> ErrorType override
     {
         return ErrorType::Semantic;
-    }
-};
-
-// 内部错误
-struct InternalError : Error
-{
-    InternalErrorType type;
-    std::source_location location;
-
-    InternalError() = delete;
-
-    template <typename T>
-    explicit InternalError(InternalErrorType t, T&& msg, const std::source_location loc)
-        : Error(std::forward<T>(msg)), type(t), location(loc)
-    {
-    }
-
-    [[nodiscard]]
-    constexpr auto kind() const -> ErrorType override
-    {
-        return ErrorType::Internal;
     }
 };
 
@@ -130,15 +111,9 @@ class ErrorReporter
     void report(const LexError& le, bool terminate = false);
 
     void report(ParseErrorType type, const std::string& msg, std::size_t r, std::size_t c,
-                const std::string& token, bool terminate = false);
-    void report(SemanticErrorType type, const std::string& msg, const std::string& scope_name,
-                bool terminate = false);
-
-    // 编译器内部错误必须终止
-    [[noreturn]] void report(InternalErrorType t, const std::string& msg,
-                             const std::source_location& loc = std::source_location::current());
-
-    [[noreturn]] void terminateProg();
+                const std::string& token);
+    void report(SemanticErrorType type, const std::string& msg, std::size_t r, std::size_t c,
+                const std::string& scope_name);
 
    public:
     void displayLexErrs() const;
@@ -173,14 +148,6 @@ class ErrorReporter
     void displayUnknownType(const LexError& err) const;
 
     void displaySemanticErr(const SemanticError& err) const;
-    void displayFuncReturnMismatch(const SemanticError& err) const;
-    void displayUndefinedFunctionCall(const SemanticError& err) const;
-    void displayArgCountMismatch(const SemanticError& err) const;
-    void displayUndeclaredVariable(const SemanticError& err) const;
-    void displayUninitializedVariable(const SemanticError& err) const;
-    void displayInvalidAssignment(const SemanticError& err) const;
-    void displayTypeInferenceFailure(const SemanticError& err) const;
-    void displayTypeMismatch(const SemanticError& err) const;
 
    private:
     std::vector<std::string> text;           // 输入文件原始文本

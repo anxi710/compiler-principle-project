@@ -196,15 +196,15 @@ auto SymbolTable::getFuncName() -> std::string
     return match[1];
 }
 
-auto SymbolTable::checkAutoTypeInference() const -> std::vector<std::string>
+auto SymbolTable::checkAutoTypeInference() const -> std::vector<VariablePtr>
 {
-    std::vector<std::string> failed_vars;
+    std::vector<VariablePtr> failed_vars;
 
     for (const auto& [name, p_var] : *p_cscope)
     {
         if (p_var->var_type == VarType::Unknown)
         {
-            failed_vars.push_back(name);
+            failed_vars.push_back(p_var);
         }
     }
 
