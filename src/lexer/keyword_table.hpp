@@ -2,11 +2,10 @@
 
 #include <cassert>
 #include <memory>
-#include <sstream>
 #include <string>
 #include <unordered_map>
 
-#include "../err_report/error_reporter.hpp"
+#include "err_report/error_reporter.hpp"
 #include "token_type.hpp"
 
 namespace lexer::keyword
@@ -37,12 +36,7 @@ class KeywordTable
      */
     auto getKeyword(const std::string& v) const -> token::Type
     {
-        std::ostringstream oss;
-        if (!keywords.contains(v))
-        {
-            oss << "调用参数（" << v << "）并非关键字";
-            reporter->report(error::InternalErrorType::UnknownKeyword, oss.str());
-        }
+        assert(keywords.contains(v));
         return keywords.find(v)->second;
     }
 

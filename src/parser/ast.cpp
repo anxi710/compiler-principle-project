@@ -4,7 +4,7 @@
 #include <sstream>
 #include <unordered_map>
 
-#include "../lexer/token_type.hpp"
+#include "lexer/token_type.hpp"
 
 namespace parser::ast
 {

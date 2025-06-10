@@ -8,14 +8,20 @@
 #include <unordered_map>
 #include <vector>
 
+#include "util/position.hpp"
+
 namespace symbol
 {
 
 struct Symbol
 {
     std::string name;
+    util::Position pos{0, 0};  // 符号声明时的位置
 
     Symbol() = default;
+
+    void setPos(std::size_t row, std::size_t col) { pos = util::Position{row, col}; }
+    void setPos(util::Position pos) { this->pos = pos; };
     explicit Symbol(std::string n) : name(std::move(n)) {}
     virtual ~Symbol() = default;
 };
@@ -115,7 +121,7 @@ class SymbolTable
 
     auto getFuncName() -> std::string;
 
-    std::vector<std::string> checkAutoTypeInference() const;
+    auto checkAutoTypeInference() const -> std::vector<VariablePtr>;
 
    private:
     using Scope = std::unordered_map<std::string, VariablePtr>;

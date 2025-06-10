@@ -2,12 +2,8 @@
 
 #include <cstddef>
 
-namespace lexer::base
+namespace util
 {
-
-// 为了消解头文件相互引用带来的问题，
-// 需要单独提出 Position 结构，
-// 而不是将其放在 lexer.hpp 或 token.hpp 中
 
 struct Position
 {
@@ -21,4 +17,4 @@ struct Position
     auto operator=(const Position& rhs) -> Position& = default;
 };
 
-}  // namespace lexer::base
+}  // namespace util

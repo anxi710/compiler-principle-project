@@ -4,7 +4,7 @@
 #include <regex>
 #include <vector>
 
-#include "../err_report/error_reporter.hpp"
+#include "err_report/error_reporter.hpp"
 #include "token.hpp"
 
 namespace lexer::impl
@@ -209,7 +209,7 @@ auto ToyLexer::nextToken() -> std::expected<token::Token, error::LexError>
         return token;
     }
 
-    base::Position p = this->pos;
+    util::Position p = this->pos;
     shiftPos(1);
 
     return std::unexpected(error::LexError{error::LexErrorType::UnknownToken,

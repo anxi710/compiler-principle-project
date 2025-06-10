@@ -43,15 +43,4 @@ enum class SemanticErrorType : std::uint8_t
 
 };
 
-// 编译器内部错误码
-enum class InternalErrorType : std::uint8_t
-{
-    FileAccess,  // 文件访问
-
-    UnknownCmdArg,  // 未知命令行参数
-    MissingCmdArg,  // 缺失命令行参数
-
-    UnknownKeyword,  // 未知关键字
-};
-
 }  // namespace error

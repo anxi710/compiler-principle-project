@@ -2,8 +2,8 @@
 
 #include <string>
 
-#include "lexer_position.hpp"
 #include "token_type.hpp"
+#include "util/position.hpp"
 
 namespace lexer::token
 {
@@ -15,7 +15,7 @@ class Token
    public:
     Token() = default;
 
-    explicit Token(const Type& t, std::string v, const base::Position& p = base::Position{0, 0})
+    explicit Token(const Type& t, std::string v, const util::Position& p = util::Position{0, 0})
         : type(t), value(std::move(v)), pos(p)
     {
     }
@@ -62,7 +62,7 @@ class Token
      * @return Position
      */
     [[nodiscard]]
-    auto getPos() const -> base::Position
+    auto getPos() const -> util::Position
     {
         return this->pos;
     }
@@ -71,7 +71,7 @@ class Token
      * @brief 设置 token 所在的文本位置
      * @param p struct Position {row, col}
      */
-    void setPos(const base::Position& p) { this->pos = p; }
+    void setPos(const util::Position& p) { this->pos = p; }
 
     /**
      * @brief 设置 token 所在的文本位置
@@ -90,7 +90,7 @@ class Token
    private:
     Type type;           // token type
     std::string value;   // 组成 token 的字符串
-    base::Position pos;  // position
+    util::Position pos;  // position
 };
 
 }  // namespace lexer::token

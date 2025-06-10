@@ -15,6 +15,7 @@
 #include "preproc/preproc.hpp"
 #include "semantic_check/semantic_checker.hpp"
 #include "semantic_check/symbol_table.hpp"
+#include "util/print.hpp"
 
 std::unique_ptr<lexer::base::Lexer> lex{};              // 词法分析器
 std::unique_ptr<parser::base::Parser> pars{};           // 语法分析器
@@ -42,53 +43,6 @@ inline void checkFileStream(T& fs, const std::string& msg)
 }
 
 /**
- * @brief 打印版本信息
- */
-void printVersion()
-{
-    /*
-     * 使用语义版本控制 (SemVer) 原则设置版本号
-     * major.minor.patch
-     */
-    std::cout << "Toy compiler: version 0.6.1" << std::endl
-              << "This is a toy compiler developed by xh, csx and qsw." << std::endl
-              << "Have fun with it!" << std::endl;
-}
-
-/**
- * @brief 打印帮助信息
- * @param exec 可执行文件名
- */
-void printHelp(const char* const exec)
-{
-    std::cout << "Usage: " << exec << " [options]" << std::endl
-              << std::endl
-              << "This is a Rust-like programming language compiler." << std::endl
-              << std::endl
-              << "Options:" << std::endl
-              << "  -h, --help             show help" << std::endl
-              << "  -v, -V, --version      show version" << std::endl
-              << "  -i, --input filename   set input file (with suffix, must set an input filename)"
-              << std::endl
-              << "  -o, --output filename  set output file (without suffix)" << std::endl
-              << "  -t, --token            output the segmented token only" << std::endl
-              << "  -p, --parse            output the abstract syntax tree (AST) only" << std::endl
-              << "  -s, --semantic         check the semantics only" << std::endl
-              << "  -g, --generate         generate IR only" << std::endl
-              << std::endl
-              << "Examples:" << std::endl
-              << "  $ path/to/toy_compiler -t -i test.txt" << std::endl
-              << "  $ path/to/toy_compiler -p -i test.txt" << std::endl
-              << "  $ path/to/toy_compiler -t -p -i test.txt" << std::endl
-              << "  $ path/to/toy_compiler -t -i test.txt -o output" << std::endl
-              << std::endl
-              << "Tips:" << std::endl
-              << "  Upon completion of the program execution, you can run this command" << std::endl
-              << "  to generate the abstract syntax tree diagram:" << std::endl
-              << "    $ dot -Tpng path/to/output.dot -o AST.png" << std::endl;
-}
-
-/**
  * @brief 编译器初始化
  */
 void initialize(std::ifstream& in)
@@ -110,19 +64,27 @@ void initialize(std::ifstream& in)
 
     if (!iss.eof())
     {
-        reporter->report(error::InternalErrorType::FileAccess, "编译器初始化时，文件读取错误");
+        std::cerr << "编译器初始化时，文件读取错误" << std::endl;
     }
 
+    // 初始化词法分析器
     lex = std::make_unique<lexer::impl::ToyLexer>(std::move(text));
-    lex->setErrReporter(reporter);
 
+    // 初始化语义检查器
     schecker = std::make_unique<semantic::SemanticChecker>();
+
+    // 初始化符号表
+    stable = std::make_shared<symbol::SymbolTable>();
+
+    // 初始化中间代码生成器
+    generator = std::make_unique<ir::IrGenerator>();
+
+    // 设置错误报告器
+    lex->setErrReporter(reporter);
     schecker->setErrorReporter(reporter);
 
-    stable = std::make_shared<symbol::SymbolTable>();
+    // 设置符号表
     schecker->setSymbolTable(stable);
-
-    generator = std::make_unique<ir::IrGenerator>();
     generator->setSymbolTable(stable);
 }
 
@@ -164,11 +126,11 @@ auto argumentParsing(int argc, char* argv[])
         switch (opt)
         {
             case 'h':  // help
-                printHelp(argv[0]);
+                util::printHelp(argv[0]);
                 exit(0);
             case 'v':  // version
             case 'V':  // version
-                printVersion();
+                util::printVersion();
                 exit(0);
             case 'i':  // input
                 in_file = std::string{optarg};
@@ -182,10 +144,10 @@ auto argumentParsing(int argc, char* argv[])
             case 'p':  // parse
                 flag_parse = true;
                 break;
-            case 's':
+            case 's':  // semantic check
                 flag_semantic = true;
                 break;
-            case 'g':
+            case 'g':  // ir generate
                 flag_generate = true;
                 break;
             case '?':  // 无效选项
@@ -208,7 +170,7 @@ auto argumentParsing(int argc, char* argv[])
  * @brief 打印分析出的所有 token 到指定文件
  * @param out 输出文件流
  */
-void printToken(std::ofstream& out)
+auto printToken(std::ofstream& out) -> bool
 {
     while (true)
     {
@@ -230,14 +192,17 @@ void printToken(std::ofstream& out)
     if (reporter->hasLexErr())
     {
         reporter->displayLexErrs();
+        return false;
     }
+
+    return true;
 }
 
 /**
  * @brief 以 dot 格式打印 AST
  * @param out 输出文件流
  */
-void printAST(std::ofstream& out)
+auto printAST(std::ofstream& out) -> bool
 {  // 初始化 parser
     auto nextTokenFunc = []()
     {
@@ -245,13 +210,19 @@ void printAST(std::ofstream& out)
     };
     pars = std::make_unique<parser::base::Parser>(nextTokenFunc);
 
-    auto ast_prog_node = pars->parseProgram();
+    auto p_prog = pars->parseProgram();
     std::cout << "Parsing success" << std::endl;
 
-    parser::ast::ast2Dot(out, ast_prog_node);
+    parser::ast::ast2Dot(out, p_prog);
+
+    return true;
 }
 
-void checkSemantic(std::ofstream& out)
+/**
+ * @brief 检查语义
+ * @param out 输出文件流
+ */
+auto checkSemantic(std::ofstream& out) -> bool
 {
     auto nextTokenFunc = []()
     {
@@ -259,18 +230,25 @@ void checkSemantic(std::ofstream& out)
     };
     pars = std::make_unique<parser::base::Parser>(nextTokenFunc);
 
-    auto ast_prog_node = pars->parseProgram();
-    schecker->checkProg(ast_prog_node);
-
-    stable->printSymbol(out);
+    auto p_prog = pars->parseProgram();
+    schecker->checkProg(p_prog);
 
     if (reporter->hasSemanticErr())
     {
         reporter->displaySemanticErrs();
+        return false;
     }
+
+    stable->printSymbol(out);
+
+    return true;
 }
 
-void generateIr(std::ofstream& out)
+/**
+ * @brief 生成中间代码
+ * @param out 输出文件流
+ */
+auto generateIr(std::ofstream& out) -> bool
 {
     auto nextTokenFunc = []()
     {
@@ -278,11 +256,19 @@ void generateIr(std::ofstream& out)
     };
     pars = std::make_unique<parser::base::Parser>(nextTokenFunc);
 
-    auto ast_prog_node = pars->parseProgram();
-    schecker->checkProg(ast_prog_node);
-    generator->generateProg(ast_prog_node);
+    auto p_prog = pars->parseProgram();
+    schecker->checkProg(p_prog);
+    if (reporter->hasSemanticErr())
+    {
+        reporter->displaySemanticErrs();
+        return false;
+    }
+
+    generator->generateProg(p_prog);
 
     generator->printQuads(out);
+
+    return true;
 }
 
 /**
@@ -316,24 +302,29 @@ auto main(int argc, char* argv[]) -> int
 
     initialize(in);
 
+    bool token_ok{false};
+    bool parse_ok{false};
+    bool semantic_ok{false};
+    bool generate_ok{false};
+
     if (flag_token)
     {
-        printToken(out_token);
+        token_ok = printToken(out_token);
     }
     if (flag_parse)
     {
-        lex->reset(lexer::base::Position(0, 0));
-        printAST(out_parse);
+        lex->reset(util::Position(0, 0));
+        parse_ok = printAST(out_parse);
     }
     if (flag_semantic)
     {
-        lex->reset(lexer::base::Position(0, 0));
-        checkSemantic(out_semantic);
+        lex->reset(util::Position(0, 0));
+        semantic_ok = checkSemantic(out_semantic);
     }
     if (flag_generate)
     {
-        lex->reset(lexer::base::Position(0, 0));
-        generateIr(out_generate);
+        lex->reset(util::Position(0, 0));
+        generate_ok = generateIr(out_generate);
     }
 
     in.close();
@@ -342,19 +333,19 @@ auto main(int argc, char* argv[]) -> int
     out_semantic.close();
     out_generate.close();
 
-    if (!flag_token)
+    if (!flag_token || !token_ok)
     {
         std::filesystem::remove(base + ".token");
     }
-    if (!flag_parse)
+    if (!flag_parse || !parse_ok)
     {
         std::filesystem::remove(base + ".dot");
     }
-    if (!flag_semantic)
+    if (!flag_semantic || !semantic_ok)
     {
         std::filesystem::remove(base + ".symbol");
     }
-    if (!flag_generate)
+    if (!flag_generate || !generate_ok)
     {
         std::filesystem::remove(base + ".ir");
     }

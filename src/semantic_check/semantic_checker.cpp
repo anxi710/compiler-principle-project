@@ -2,7 +2,7 @@
 
 #include <cassert>
 
-#include "../err_report/error_type.hpp"
+#include "err_report/error_type.hpp"
 
 using namespace parser::ast;
 
@@ -44,10 +44,9 @@ void SemanticChecker::checkFuncDecl(const FuncDeclPtr& p_fdecl)
         const auto& p_func = opt_func.value();
         if (p_func->retval_type != symbol::VarType::Null)
         {  // 有返回类型但无返回值表达式
-            p_ereporter->report(
-                error::SemanticErrorType::MissingReturnValue,
-                std::format("函数 '{}' 需要返回值，函数内没有return语句", cfunc_name),
-                p_stable->getCurScope());
+            p_ereporter->report(error::SemanticErrorType::MissingReturnValue,
+                                std::format("函数 '{}' 需要返回值，但没返回", cfunc_name),
+                                p_func->pos.row, p_func->pos.col, p_stable->getCurScope());
         }
     }
 
@@ -62,17 +61,19 @@ void SemanticChecker::checkFuncHeaderDecl(const FuncHeaderDeclPtr& p_fhdecl)
         std::string name = arg->variable->name;
         // 形参的初始值在函数调用时才会被赋予
         auto p_fparam = std::make_shared<symbol::Integer>(name, true, std::nullopt);
+        p_fparam->setPos(arg->pos);
         p_stable->declareVar(name, p_fparam);
     }
 
     auto rt = p_fhdecl->retval_type.has_value() ? symbol::VarType::I32 : symbol::VarType::Null;
 
     auto p_func = std::make_shared<symbol::Function>(p_fhdecl->name, argc, rt);
+    p_func->setPos(p_fhdecl->pos);
 
     p_stable->declareFunc(p_fhdecl->name, p_func);
 }
 
-bool SemanticChecker::checkBlockStmt(const BlockStmtPtr& p_bstmt)
+auto SemanticChecker::checkBlockStmt(const BlockStmtPtr& p_bstmt) -> bool
 {
     int if_cnt = 1;
     int while_cnt = 1;
@@ -113,11 +114,11 @@ bool SemanticChecker::checkBlockStmt(const BlockStmtPtr& p_bstmt)
     }
 
     auto failed_vars = p_stable->checkAutoTypeInference();  // 语句块后检查变量是否有类型
-    for (const auto& name : failed_vars)
+    for (const auto& p_var : failed_vars)
     {
         p_ereporter->report(error::SemanticErrorType::TypeInferenceFailure,
-                            std::format("变量 '{}' 无法通过自动类型推导确定类型", name),
-                            p_stable->getCurScope());
+                            std::format("变量 '{}' 无法通过自动类型推导确定类型", p_var->name),
+                            p_var->pos.row, p_var->pos.col, p_stable->getCurScope());
     }
 
     return has_retstmt;
@@ -135,20 +136,20 @@ void SemanticChecker::checkVarDeclStmt(const VarDeclStmtPtr& p_vdstmt)
 
     const std::string& name = p_vdstmt->variable->name;
 
+    symbol::VariablePtr p_var;
     if (p_vdstmt->var_type.has_value())
     {
         // 1: let mut a : i32; 明确类型，直接构造变量
-        auto p_var = std::make_shared<symbol::Integer>(name, false, std::nullopt);
-        p_var->initialized = false;
-        p_stable->declareVar(name, p_var);
+        p_var = std::make_shared<symbol::Integer>(name, false, std::nullopt);
     }
     else
     {
         // 2: let mut a; 自动类型推导 —— 类型未知
-        auto p_var = std::make_shared<symbol::Variable>(name, false, symbol::VarType::Unknown);
-        p_var->initialized = false;
-        p_stable->declareVar(name, p_var);
+        p_var = std::make_shared<symbol::Variable>(name, false, symbol::VarType::Unknown);
     }
+    p_var->initialized = false;
+    p_var->setPos(p_vdstmt->pos);
+    p_stable->declareVar(name, p_var);
 }
 
 void SemanticChecker::checkRetStmt(const RetStmtPtr& p_rstmt)
@@ -171,15 +172,15 @@ void SemanticChecker::checkRetStmt(const RetStmtPtr& p_rstmt)
             {  // 返回值表达式类型与函数返回类型不符
                 p_ereporter->report(error::SemanticErrorType::FuncReturnTypeMismatch,
                                     std::format("函数 '{}' return 语句返回类型错误", cfunc_name),
-                                    p_stable->getCurScope());
+                                    p_rstmt->pos.row, p_rstmt->pos.col, p_stable->getCurScope());
             }
         }
         else
         {  // 函数不需要返回值，却有返回值表达式
             p_ereporter->report(
                 error::SemanticErrorType::VoidFuncReturnValue,
-                std::format("函数 '{}' 不需要返回值，return语句却有返回值", cfunc_name),
-                p_stable->getCurScope());
+                std::format("函数 '{}' 不需要返回值，return 语句却有返回值", cfunc_name),
+                p_rstmt->pos.row, p_rstmt->pos.col, p_stable->getCurScope());
         }
     }
     else
@@ -189,7 +190,7 @@ void SemanticChecker::checkRetStmt(const RetStmtPtr& p_rstmt)
             p_ereporter->report(
                 error::SemanticErrorType::MissingReturnValue,
                 std::format("函数 '{}' 需要返回值，return语句却没有返回值", cfunc_name),
-                p_stable->getCurScope());
+                p_rstmt->pos.row, p_rstmt->pos.col, p_stable->getCurScope());
         }
     }
 }
@@ -240,7 +241,7 @@ auto SemanticChecker::checkCallExpr(const CallExprPtr& p_caexpr) -> symbol::VarT
     {
         p_ereporter->report(error::SemanticErrorType::UndefinedFunctionCall,
                             std::format("调用了未定义的函数 '{}'", p_caexpr->callee),
-                            p_stable->getCurScope());
+                            p_caexpr->pos.row, p_caexpr->pos.col, p_stable->getCurScope());
         return symbol::VarType::Null;
     }
 
@@ -251,7 +252,7 @@ auto SemanticChecker::checkCallExpr(const CallExprPtr& p_caexpr) -> symbol::VarT
         p_ereporter->report(error::SemanticErrorType::ArgCountMismatch,
                             std::format("函数 '{}' 期望 {} 个参数，但调用提供了 {} 个",
                                         p_caexpr->callee, p_func->argc, p_caexpr->argv.size()),
-                            p_stable->getCurScope());
+                            p_caexpr->pos.col, p_caexpr->pos.col, p_stable->getCurScope());
     }
 
     // 遍历所有实参与进行表达式语义检查
@@ -311,8 +312,8 @@ auto SemanticChecker::checkVariable(const VariablePtr& p_variable) -> symbol::Va
     if (!opt_var.has_value())
     {
         p_ereporter->report(error::SemanticErrorType::UndeclaredVariable,
-                            std::format("变量 '{}' 未声明", p_variable->name),
-                            p_stable->getCurScope());
+                            std::format("变量 '{}' 未声明", p_variable->name), p_variable->pos.row,
+                            p_variable->pos.col, p_stable->getCurScope());
         return symbol::VarType::Null;
     }
 
@@ -322,7 +323,7 @@ auto SemanticChecker::checkVariable(const VariablePtr& p_variable) -> symbol::Va
     {
         p_ereporter->report(error::SemanticErrorType::UninitializedVariable,
                             std::format("变量 '{}' 在第一次使用前未初始化", p_variable->name),
-                            p_stable->getCurScope());
+                            p_variable->pos.row, p_variable->pos.col, p_stable->getCurScope());
     }
 
     return p_var->var_type;
@@ -340,7 +341,8 @@ void SemanticChecker::checkAssignStmt(const AssignStmtPtr& p_astmt)
     if (!lhs_var)
     {
         p_ereporter->report(error::SemanticErrorType::AssignToNonVariable,
-                            std::format("赋值语句左侧不是变量"), p_stable->getCurScope());
+                            std::format("赋值语句左侧不是变量"), p_astmt->lvalue->pos.row,
+                            p_astmt->lvalue->pos.col, p_stable->getCurScope());
     }
 
     auto opt_var = p_stable->lookupVar(lhs_var->name);
@@ -349,6 +351,7 @@ void SemanticChecker::checkAssignStmt(const AssignStmtPtr& p_astmt)
     {
         p_ereporter->report(error::SemanticErrorType::AssignToUndeclaredVar,
                             std::format("赋值语句左侧变量 '{}' 未声明", lhs_var->name),
+                            p_astmt->lvalue->pos.row, p_astmt->lvalue->pos.col,
                             p_stable->getCurScope());
     }
 
@@ -367,6 +370,7 @@ void SemanticChecker::checkAssignStmt(const AssignStmtPtr& p_astmt)
     {
         p_ereporter->report(error::SemanticErrorType::TypeMismatch,
                             std::format("变量 '{}' 的类型不匹配", lhs_var->name),
+                            p_astmt->lvalue->pos.row, p_astmt->lvalue->pos.col,
                             p_stable->getCurScope());
     }
     // 右侧合法后，标记左侧变量为“已初始化”

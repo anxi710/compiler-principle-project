@@ -1,4 +1,4 @@
-fn foo(mut a: i32,mut b:i32)->i32
+fn foo(mut a : i32, mut b : i32) -> i32
 {
     let mut a;
     a=b;
@@ -16,16 +16,16 @@ fn foo2(mut c: i32)
         let mut c;
         c=5;
         if c>10{
-            let mut d;
+            // let mut d;
             //c=x;
         }
         else{
-            let mut xx;
+            // let mut xx;
             c=c+1;
         }
     }
     // return ;
-    //return a+foo(a,b);
+    // return a+foo(a,b);
 }
 fn main(mut a :i32)
 {
@@ -33,13 +33,13 @@ fn main(mut a :i32)
     a=1;
 
     b=666+999*(2<4);
-    b=c;
+    // b=c;
     1;
     (((a)));
-    //c;
+    // c;
     b=a*2;
     a=foo(0,0);
-    //function();
+    // function();
     foo(0,0);
     foo2(foo(a,b));
 }

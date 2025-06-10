@@ -53,119 +53,53 @@ void ErrorReporter::displayLexErr(const LexError& err) const
 
 /*---------------- SemanticError ----------------*/
 
-void ErrorReporter::displayArgCountMismatch(const SemanticError& err) const
+static auto displaySemanticErrorType(SemanticErrorType type) -> std::pair<std::string, std::string>
 {
-    std::cerr << BOLD << RED << "ERROR[ArgMismatch] " << RESET << BOLD << "函数参数个数不匹配"
-              << RESET << std::endl;
-
-    std::cerr << BLUE << "--> " << RESET << "scope: " << err.scope_name << std::endl;
-    std::cerr << "    Details: " << err.msg << std::endl << std::endl;
-}
-
-void ErrorReporter::displayFuncReturnMismatch(const SemanticError& err) const
-{
-    std::cerr << BOLD << RED << "ERROR[FuncReturnMismatch] " << RESET << BOLD
-              << "函数与返回值不匹配" << RESET << std::endl;
-
-    std::cerr << BLUE << "--> " << RESET << "scope: " << err.scope_name << std::endl;
-    std::cerr << "    Details: " << err.msg << std::endl << std::endl;
-}
-
-void ErrorReporter::displayUndefinedFunctionCall(const SemanticError& err) const
-{
-    std::cerr << BOLD << RED << "ERROR[UndefinedFunction] " << RESET << BOLD << "函数未定义"
-              << RESET << std::endl;
-
-    std::cerr << BLUE << "--> " << RESET << "scope: " << err.scope_name << std::endl;
-    std::cerr << "    Details: " << err.msg << std::endl << std::endl;
-}
-
-void ErrorReporter::displayUndeclaredVariable(const SemanticError& err) const
-{
-    std::cerr << BOLD << RED << "ERROR[UndeclaredVariable] " << RESET << BOLD << "变量未声明"
-              << RESET << std::endl;
-
-    std::cerr << BLUE << "--> " << RESET << "scope: " << err.scope_name << std::endl;
-    std::cerr << "    Details: " << err.msg << std::endl << std::endl;
-}
-
-void ErrorReporter::displayUninitializedVariable(const SemanticError& err) const
-
-{
-    std::cerr << BOLD << RED << "ERROR[UninitializedVariable] " << RESET << BOLD << "变量未初始化"
-              << RESET << std::endl;
-
-    std::cerr << BLUE << "--> " << RESET << "scope: " << err.scope_name << std::endl;
-    std::cerr << "    Details: " << err.msg << std::endl << std::endl;
-}
-
-void ErrorReporter::displayInvalidAssignment(const SemanticError& err) const
-{
-    std::cerr << BOLD << RED << "ERROR[InvalidAssignment] " << RESET << BOLD << "无效赋值语句"
-              << RESET << std::endl;
-
-    std::cerr << BLUE << "--> " << RESET << "scope: " << err.scope_name << std::endl;
-    std::cerr << "    Details: " << err.msg << std::endl << std::endl;
-}
-
-void ErrorReporter::displayTypeInferenceFailure(const SemanticError& err) const
-{
-    std::cerr << BOLD << RED << "ERROR[TypeInferenceFailure] " << RESET << BOLD
-              << "变量无法通过自动类型推导确定类型" << RESET << std::endl;
-
-    std::cerr << BLUE << "--> " << RESET << "scope: " << err.scope_name << std::endl;
-    std::cerr << "    Details: " << err.msg << std::endl << std::endl;
-}
-
-void ErrorReporter::displayTypeMismatch(const SemanticError& err) const
-{
-    std::cerr << BOLD << RED << "ERROR[TypeMismatch] " << RESET << BOLD << "变量类型不匹配" << RESET
-              << std::endl;
-
-    std::cerr << BLUE << "--> " << RESET << "scope: " << err.scope_name << std::endl;
-    std::cerr << "    Details: " << err.msg << std::endl << std::endl;
+    switch (type)
+    {
+        case SemanticErrorType::ArgCountMismatch:
+            return {std::string{"ArgMismatch"}, std::string{"函数参数个数不匹配"}};
+        case SemanticErrorType::VoidFuncReturnValue:
+        case SemanticErrorType::FuncReturnTypeMismatch:
+            return {std::string{"FuncReturnMismatch"}, std::string{"函数返回值类型不匹配"}};
+        case SemanticErrorType::MissingReturnValue:
+            return {std::string{"MissingReturnValue"}, std::string{"函数有返回值但未返回任何值"}};
+        case SemanticErrorType::UndefinedFunctionCall:
+            return {std::string{"UndefinedFunction"}, std::string{"函数未定义"}};
+        case SemanticErrorType::UndeclaredVariable:
+            return {std::string{"UndeclaredVariable"}, std::string{"变量未声明"}};
+        case SemanticErrorType::UninitializedVariable:
+            return {std::string{"UninitializedVariable"}, std::string{"变量未初始化"}};
+        case SemanticErrorType::AssignToNonVariable:
+            return {std::string{"InvalidAssignment"}, std::string{"无效赋值语句"}};
+        case SemanticErrorType::AssignToUndeclaredVar:
+            return {std::string{"InvalidAssignment"}, std::string{"无效赋值语句"}};
+        case SemanticErrorType::TypeInferenceFailure:
+            return {std::string{"TypeInferenceFailure"},
+                    std::string{"变量无法通过自动类型推导确定类型"}};
+        case SemanticErrorType::TypeMismatch:
+            return {std::string{"TypeMismatch"}, std::string{"变量类型不匹配"}};
+    }
 }
 
 void ErrorReporter::displaySemanticErr(const SemanticError& err) const
 {
-    switch (err.type)
-    {
-        default:
-            break;
-        case error::SemanticErrorType::ArgCountMismatch:
-            displayArgCountMismatch(err);
-            break;
-        case error::SemanticErrorType::FuncReturnTypeMismatch:
-            displayFuncReturnMismatch(err);
-            break;
-        case error::SemanticErrorType::VoidFuncReturnValue:
-            displayFuncReturnMismatch(err);
-            break;
-        case error::SemanticErrorType::MissingReturnValue:
-            displayFuncReturnMismatch(err);
-            break;
-        case error::SemanticErrorType::UndefinedFunctionCall:
-            displayUndefinedFunctionCall(err);
-            break;
-        case error::SemanticErrorType::UninitializedVariable:
-            displayUninitializedVariable(err);
-            break;
-        case error::SemanticErrorType::UndeclaredVariable:
-            displayUndeclaredVariable(err);
-            break;
-        case error::SemanticErrorType::AssignToUndeclaredVar:
-            displayInvalidAssignment(err);
-            break;
-        case error::SemanticErrorType::AssignToNonVariable:
-            displayInvalidAssignment(err);
-            break;
-        case error::SemanticErrorType::TypeInferenceFailure:
-            displayTypeInferenceFailure(err);
-            break;
-        case error::SemanticErrorType::TypeMismatch:
-            displayTypeMismatch(err);
-            break;
-    }
+    auto pair = displaySemanticErrorType(err.type);
+    std::cerr << BOLD << RED << "Error[" << pair.first << "]" << RESET << BOLD << ": "
+              << pair.second << RESET << std::endl;
+
+    std::cerr << BLUE << "--> " << RESET << "scope: " << err.scope_name << " <row: " << err.row + 1
+              << ", col: " << err.col + 1 << ">" << std::endl;
+
+    std::cerr << BLUE << "  |  " << std::endl
+              << BLUE << " " << err.row + 1 << " | " << RESET << this->text[err.row] << std::endl;
+
+    std::ostringstream oss;
+    oss << " " << err.row + 1 << " | ";
+    int delta = oss.str().length() + err.col - 3;
+    std::cerr << BLUE << "  |" << std::string(delta, ' ') << "^" << RESET << std::endl << std::endl;
+
+    std::cerr << "    Details: " << err.msg << std::endl << std::endl;
 }
 
 /*---------------- SemanticError ----------------*/
@@ -205,17 +139,15 @@ void ErrorReporter::report(LexErrorType type, const std::string& msg, std::size_
 
     if (terminate)
     {
-        terminateProg();
     }
 }
 
 void ErrorReporter::report(const LexError& le, bool terminate)
 {
-    this->lex_errs.push_back(le);
+    lex_errs.push_back(le);
 
     if (terminate)
     {
-        terminateProg();
     }
 }
 
@@ -229,14 +161,9 @@ void ErrorReporter::report(const LexError& le, bool terminate)
  * @param terminate 是否终止
  */
 void ErrorReporter::report(ParseErrorType type, const std::string& msg, std::size_t r,
-                           std::size_t c, const std::string& token, bool terminate)
+                           std::size_t c, const std::string& token)
 {
     parse_errs.emplace_back(type, msg, r, c, token);
-
-    if (terminate)
-    {
-        terminateProg();
-    }
 }
 
 /**
@@ -246,26 +173,10 @@ void ErrorReporter::report(ParseErrorType type, const std::string& msg, std::siz
  * @param scope_name
  * @param terminate
  */
-void ErrorReporter::report(SemanticErrorType type, const std::string& msg,
-                           const std::string& scope_name, bool terminate)
+void ErrorReporter::report(SemanticErrorType type, const std::string& msg, std::size_t r,
+                           std::size_t c, const std::string& scope_name)
 {
-    semantic_errs.emplace_back(type, msg, scope_name);
-
-    if (terminate)
-    {
-        terminateProg();
-    }
-}
-
-/**
- * @brief 报告编译器内部错误
- * @param t         词法错误类型
- * @param msg       错误信息
- * @param loc       错误发生位置
- */
-void ErrorReporter::report(InternalErrorType t, const std::string& msg,
-                           const std::source_location& loc)
-{
+    semantic_errs.emplace_back(type, msg, r, c, scope_name);
 }
 
 void ErrorReporter::displayLexErrs() const
@@ -282,15 +193,6 @@ void ErrorReporter::displaySemanticErrs() const
     {
         displaySemanticErr(semantic_err);
     }
-}
-
-void ErrorReporter::terminateProg()
-{
-    if (hasErrs())
-    {
-    }
-
-    std::exit(1);
 }
 
 }  // namespace error

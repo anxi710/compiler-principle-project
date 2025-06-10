@@ -2,8 +2,8 @@
 
 #include <memory>
 
-#include "../err_report/error_reporter.hpp"
-#include "../parser/ast.hpp"
+#include "err_report/error_reporter.hpp"
+#include "parser/ast.hpp"
 #include "symbol_table.hpp"
 
 namespace semantic

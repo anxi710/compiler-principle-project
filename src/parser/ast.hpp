@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "util/position.hpp"
+
 namespace parser::ast
 {
 
@@ -67,26 +69,27 @@ enum class NodeType : std::uint8_t
 // 所有 AST 结点的基类
 struct Node
 {
-    [[nodiscard]]
-    virtual constexpr auto type() const -> NodeType = 0;
+    util::Position pos{0, 0};
+
+    Node() = default;
     virtual ~Node() = default;
+
+    void setPos(std::size_t row, std::size_t col) { pos = util::Position{row, col}; }
+    void setPos(util::Position pos) { this->pos = pos; };
+    [[nodiscard]] virtual auto type() const -> NodeType = 0;
 };
 using NodePtr = std::shared_ptr<Node>;
 
 // Declaration
-struct Decl : Node
+struct Decl : virtual Node
 {
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::Decl;
-    }
     ~Decl() override = default;
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::Decl; }
 };
 using DeclPtr = std::shared_ptr<Decl>;
 
 // Program
-struct Prog : Node
+struct Prog : virtual Node
 {
     std::vector<DeclPtr> decls;  // declarations
 
@@ -94,16 +97,12 @@ struct Prog : Node
     explicit Prog(const std::vector<DeclPtr>& ds) : decls(ds) {}
     explicit Prog(std::vector<DeclPtr>&& ds) : decls(std::move(ds)) {}
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::Prog;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::Prog; }
 };
 using ProgPtr = std::shared_ptr<Prog>;
 
 // 变量声明内部
-struct VarDeclBody : Node
+struct VarDeclBody : virtual Node
 {
     bool mut = true;   // mutable or not
     std::string name;  // variable name
@@ -112,11 +111,7 @@ struct VarDeclBody : Node
     explicit VarDeclBody(bool mut, const std::string& n) : mut(mut), name(n) {}
     explicit VarDeclBody(bool mut, std::string&& n) : mut(mut), name(n) {}
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::VarDeclBody;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::VarDeclBody; }
 };
 using VarDeclBodyPtr = std::shared_ptr<VarDeclBody>;
 
@@ -129,7 +124,7 @@ enum class RefType : std::uint8_t
 };
 
 // Variable Type
-struct VarType : Node
+struct VarType : virtual Node
 {
     RefType ref_type = RefType::Normal;
 
@@ -137,11 +132,7 @@ struct VarType : Node
     explicit VarType(RefType rt) : ref_type(rt) {}
     ~VarType() override = default;
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::VarType;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::VarType; }
 };
 using VarTypePtr = std::shared_ptr<VarType>;
 
@@ -151,7 +142,7 @@ struct Integer : VarType
     explicit Integer(RefType rt) : VarType(rt) {}
 
     [[nodiscard]]
-    constexpr auto type() const -> NodeType override
+    auto type() const -> NodeType override
     {
         return NodeType::Integer;
     }
@@ -173,11 +164,7 @@ struct Array : VarType
     {
     }
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::Array;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::Array; }
 };
 using ArrayPtr = std::shared_ptr<Array>;
 
@@ -196,16 +183,12 @@ struct Tuple : VarType
     {
     }
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::Tuple;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::Tuple; }
 };
 using TuplePtr = std::shared_ptr<Tuple>;
 
 // Argument
-struct Arg : Node
+struct Arg : virtual Node
 {
     VarDeclBodyPtr variable;  // variable
     VarTypePtr var_type;      // variable type
@@ -217,23 +200,15 @@ struct Arg : Node
     {
     }
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::Arg;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::Arg; }
 };
 using ArgPtr = std::shared_ptr<Arg>;
 
 // Statement
-struct Stmt : Node
+struct Stmt : virtual Node
 {
     ~Stmt() override = default;
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::Stmt;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::Stmt; }
 };
 using StmtPtr = std::shared_ptr<Stmt>;
 
@@ -246,11 +221,7 @@ struct BlockStmt : Stmt
     explicit BlockStmt(const std::vector<StmtPtr>& s) : stmts(s) {}
     explicit BlockStmt(std::vector<StmtPtr>&& s) : stmts(std::move(s)) {}
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::BlockStmt;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::BlockStmt; }
 };
 using BlockStmtPtr = std::shared_ptr<BlockStmt>;
 
@@ -271,11 +242,7 @@ struct FuncHeaderDecl : Decl
     {
     }
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::FuncHeaderDecl;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::FuncHeaderDecl; }
 };
 using FuncHeaderDeclPtr = std::shared_ptr<FuncHeaderDecl>;
 
@@ -292,23 +259,15 @@ struct FuncDecl : Decl
     {
     }
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::FuncDecl;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::FuncDecl; }
 };
 using FuncDeclPtr = std::shared_ptr<FuncDecl>;
 
 // Expression
-struct Expr : Node
+struct Expr : virtual Node
 {
     ~Expr() override = default;
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::Expr;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::Expr; }
 };
 using ExprPtr = std::shared_ptr<Expr>;
 
@@ -321,11 +280,7 @@ struct ExprStmt : Stmt
     explicit ExprStmt(const ExprPtr& e) : expr(e) {}
     explicit ExprStmt(ExprPtr&& e) : expr(std::move(e)) {}
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::ExprStmt;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::ExprStmt; }
 };
 using ExprStmtPtr = std::shared_ptr<ExprStmt>;
 
@@ -339,7 +294,7 @@ struct ParenthesisExpr : Expr
     explicit ParenthesisExpr(ExprPtr&& e) : expr(std::move(e)) {}
 
     [[nodiscard]]
-    constexpr auto type() const -> NodeType override
+    auto type() const -> NodeType override
     {
         return NodeType::ParenthesisExpr;
     }
@@ -362,11 +317,7 @@ struct AssignElement : Expr
     AssignElement(Kind k) : kind(k) {}
     ~AssignElement() override = default;
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::AssignElement;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::AssignElement; }
 };
 using AssignElementPtr = std::shared_ptr<AssignElement>;
 
@@ -378,11 +329,7 @@ struct Variable : AssignElement
     explicit Variable(const std::string& n) : AssignElement(Kind::Variable), name(n) {}
     explicit Variable(std::string&& n) : AssignElement(Kind::Variable), name(std::move(n)) {}
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::Variable;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::Variable; }
 };
 using VariablePtr = std::shared_ptr<Variable>;
 
@@ -396,11 +343,7 @@ struct Dereference : AssignElement
     {
     }
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::Dereference;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::Dereference; }
 };
 using DereferencePtr = std::shared_ptr<Dereference>;
 
@@ -419,11 +362,7 @@ struct ArrayAccess : AssignElement
     {
     }
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::ArrayAccess;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::ArrayAccess; }
 };
 using ArrayAccessPtr = std::shared_ptr<ArrayAccess>;
 
@@ -442,11 +381,7 @@ struct TupleAccess : AssignElement
     {
     }
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::TupleAccess;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::TupleAccess; }
 };
 using TupleAccessPtr = std::shared_ptr<TupleAccess>;
 
@@ -457,11 +392,7 @@ struct Number : Expr
     Number() = default;
     Number(int value) : value(value) {}
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::Number;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::Number; }
 };
 using NumberPtr = std::shared_ptr<Number>;
 
@@ -474,11 +405,7 @@ struct Factor : Expr
     explicit Factor(RefType rt, const ExprPtr& e) : ref_type(rt), element(e) {}
     explicit Factor(RefType rt, ExprPtr&& e) : ref_type(rt), element(std::move(e)) {}
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::Factor;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::Factor; }
 };
 using FactorPtr = std::shared_ptr<Factor>;
 
@@ -490,11 +417,7 @@ struct ArrayElements : Expr
     explicit ArrayElements(const std::vector<ExprPtr>& els) : elements(els) {}
     explicit ArrayElements(std::vector<ExprPtr>&& els) : elements(std::move(els)) {}
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::ArrayElements;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::ArrayElements; }
 };
 using ArrayElementsPtr = std::shared_ptr<ArrayElements>;
 
@@ -506,11 +429,7 @@ struct TupleElements : Expr
     explicit TupleElements(const std::vector<ExprPtr>& els) : elements(els) {}
     explicit TupleElements(std::vector<ExprPtr>&& els) : elements(std::move(els)) {}
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::TupleElements;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::TupleElements; }
 };
 using TupleElementsPtr = std::shared_ptr<TupleElements>;
 
@@ -523,11 +442,7 @@ struct RetStmt : Stmt
     explicit RetStmt(const std::optional<ExprPtr>& rv) : ret_val(rv) {}
     explicit RetStmt(std::optional<ExprPtr>&& rv) : ret_val(std::move(rv)) {}
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::RetStmt;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::RetStmt; }
 };
 using RetStmtPtr = std::shared_ptr<RetStmt>;
 
@@ -547,11 +462,7 @@ struct VarDeclStmt : Stmt, Decl
     {
     }
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::VarDeclStmt;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::VarDeclStmt; }
 };
 using VarDeclStmtPtr = std::shared_ptr<VarDeclStmt>;
 
@@ -568,11 +479,7 @@ struct AssignStmt : Stmt
     {
     }
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::AssignStmt;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::AssignStmt; }
 };
 using AssignStmtPtr = std::shared_ptr<AssignStmt>;
 
@@ -587,11 +494,7 @@ struct VarDeclAssignStmt : VarDeclStmt
     {
     }
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::VarDeclAssignStmt;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::VarDeclAssignStmt; }
 };
 using VarDeclAssignStmtPtr = std::shared_ptr<VarDeclAssignStmt>;
 
@@ -632,11 +535,7 @@ struct ComparExpr : Expr
     {
     }
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::ComparExpr;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::ComparExpr; }
 };
 using ComparExprPtr = std::shared_ptr<ComparExpr>;
 
@@ -657,11 +556,7 @@ struct ArithExpr : Expr
     {
     }
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::ArithExpr;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::ArithExpr; }
 };
 using ArithExprPtr = std::shared_ptr<ArithExpr>;
 
@@ -680,11 +575,7 @@ struct CallExpr : Expr
     {
     }
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::CallExpr;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::CallExpr; }
 };
 using CallExprPtr = std::shared_ptr<CallExpr>;
 
@@ -699,11 +590,7 @@ struct ElseClause : Stmt
     {
     }
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::ElseClause;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::ElseClause; }
 };
 using ElseClausePtr = std::shared_ptr<ElseClause>;
 
@@ -722,11 +609,7 @@ struct IfStmt : Stmt
     {
     }
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::IfStmt;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::IfStmt; }
 };
 using IfStmtPtr = std::shared_ptr<IfStmt>;
 
@@ -741,11 +624,7 @@ struct WhileStmt : Stmt
     {
     }
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::WhileStmt;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::WhileStmt; }
 };
 using WhileStmtPtr = std::shared_ptr<WhileStmt>;
 
@@ -766,11 +645,7 @@ struct ForStmt : Stmt
     {
     }
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::ForStmt;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::ForStmt; }
 };
 using ForStmtPtr = std::shared_ptr<ForStmt>;
 
@@ -783,11 +658,7 @@ struct LoopStmt : Stmt, Expr
     explicit LoopStmt(const BlockStmtPtr& b) : block(b) {}
     explicit LoopStmt(BlockStmtPtr&& b) : block(std::move(b)) {}
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::LoopStmt;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::LoopStmt; }
 };
 using LoopStmtPtr = std::shared_ptr<LoopStmt>;
 
@@ -801,11 +672,7 @@ struct BreakStmt : Stmt
     explicit BreakStmt(std::optional<ExprPtr>&& e) : expr(std::move(e)) {}
     ~BreakStmt() override = default;
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::BreakStmt;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::BreakStmt; }
 };
 using BreakStmtPtr = std::shared_ptr<BreakStmt>;
 
@@ -813,11 +680,7 @@ using BreakStmtPtr = std::shared_ptr<BreakStmt>;
 struct ContinueStmt : Stmt
 {
     ~ContinueStmt() override = default;
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::ContinueStmt;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::ContinueStmt; }
 };
 using ContinueStmtPtr = std::shared_ptr<ContinueStmt>;
 
@@ -825,11 +688,7 @@ using ContinueStmtPtr = std::shared_ptr<ContinueStmt>;
 struct NullStmt : Stmt
 {
     ~NullStmt() override = default;
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::NullStmt;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::NullStmt; }
 };
 using NullStmtPtr = std::shared_ptr<NullStmt>;
 
@@ -844,11 +703,7 @@ struct FuncExprBlockStmt : Expr, BlockStmt
     {
     }
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::FuncExprBlockStmt;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::FuncExprBlockStmt; }
 };
 using FuncExprBlockStmtPtr = std::shared_ptr<FuncExprBlockStmt>;
 
@@ -866,11 +721,7 @@ struct IfExpr : Expr
     {
     }
 
-    [[nodiscard]]
-    constexpr auto type() const -> NodeType override
-    {
-        return NodeType::IfExpr;
-    }
+    [[nodiscard]] auto type() const -> NodeType override { return NodeType::IfExpr; }
 };
 using IfExprPtr = std::shared_ptr<IfExpr>;
 
