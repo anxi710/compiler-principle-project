@@ -53,7 +53,11 @@ void IrGenerator::generateFuncDecl(const FuncDeclPtr& p_fdecl)
 {
     p_stable->enterScope(p_fdecl->header->name, false);
     generateFuncHeaderDecl(std::dynamic_pointer_cast<FuncHeaderDecl>(p_fdecl->header));
-    generateBlockStmt(std::dynamic_pointer_cast<BlockStmt>(p_fdecl->body));
+    bool has_ret = generateBlockStmt(std::dynamic_pointer_cast<BlockStmt>(p_fdecl->body));
+    if (!has_ret)
+    {
+        pushQuads(OpCode::Return, NULL_OPERAND, NULL_OPERAND, NULL_OPERAND);
+    }
     p_stable->exitScope();
 }
 
@@ -69,7 +73,7 @@ void IrGenerator::generateFuncHeaderDecl(const FuncHeaderDeclPtr& p_fhdecl)
     }
 }
 
-void IrGenerator::generateBlockStmt(const BlockStmtPtr& p_bstmt)
+auto IrGenerator::generateBlockStmt(const BlockStmtPtr& p_bstmt) -> bool
 {
     int if_cnt = 1;
     int while_cnt = 1;
@@ -85,7 +89,7 @@ void IrGenerator::generateBlockStmt(const BlockStmtPtr& p_bstmt)
                 break;
             case NodeType::RetStmt:
                 generateRetStmt(std::dynamic_pointer_cast<RetStmt>(p_stmt));
-                return;
+                return true;
                 // break;
             case NodeType::ExprStmt:
                 generateExprStmt(std::dynamic_pointer_cast<ExprStmt>(p_stmt));
@@ -107,6 +111,8 @@ void IrGenerator::generateBlockStmt(const BlockStmtPtr& p_bstmt)
                 break;
         }
     }
+
+    return false;
 }
 
 void IrGenerator::generateVarDeclStmt(const VarDeclStmtPtr& p_vdstmt)

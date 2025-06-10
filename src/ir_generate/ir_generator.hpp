@@ -2,8 +2,8 @@
 
 #include <vector>
 
-#include "../parser/ast.hpp"
-#include "../semantic_check/symbol_table.hpp"
+#include "parser/ast.hpp"
+#include "semantic_check/symbol_table.hpp"
 
 namespace ir
 {
@@ -73,7 +73,7 @@ class IrGenerator
    private:
     void generateFuncDecl(const parser::ast::FuncDeclPtr& p_fdecl);
     void generateFuncHeaderDecl(const parser::ast::FuncHeaderDeclPtr& p_fhdecl);
-    void generateBlockStmt(const parser::ast::BlockStmtPtr& p_bstmt);
+    auto generateBlockStmt(const parser::ast::BlockStmtPtr& p_bstmt) -> bool;
     void generateVarDeclStmt(const parser::ast::VarDeclStmtPtr& p_vdstmt);
     void generateRetStmt(const parser::ast::RetStmtPtr& p_rstmt);
     void generateExprStmt(const parser::ast::ExprStmtPtr& p_estmt);
