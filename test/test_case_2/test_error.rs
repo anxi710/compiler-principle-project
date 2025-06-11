@@ -17,25 +17,22 @@ fn foo2(mut c: i32)
         c=5;
         if c>10{
             let mut d;
-            //c=x;
         }
         else{
+            let mut e;
             c=c+1;
         }
     }
-    return ;
-    //return a+foo(a,b);
+    return a+foo(a,b);
 }
 fn main(mut a :i32)
 {
     let mut b : i32;
     a=b;
-    
     b=666+999*(2<4);
-    //b=c;
+    b=c;
     1;
     (((a)));
-    //c;
     b=a*2;
     function();
     a=foo(0);
