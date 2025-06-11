@@ -1495,7 +1495,7 @@ public:
 
 public:
   void enterScope(const std::string& name, bool create_scope = true);
-  void exitScope();
+  auto exitScope() -> std::string;
 
   void declareFunc(const std::string& fname, FunctionPtr p_func);
   void declareVar(const std::string& vname, VariablePtr p_var);
@@ -1581,6 +1581,7 @@ optional<FunctionPtr> SymbolTable::lookupFunc(const string& name)
   return std::nullopt;
 }
 ```
+
 - declareVar() 与 declareFunc() 方法则用于声明符号，若重复声明则会在语义分析阶段报错。
 
 此外还提供临时值命名 getTempValName()、当前函数名获取 getFuncName()、类型自动推导检查 checkAutoTypeInference() 等辅助功能，便于后续的语义检查和中间代码生成与分析。
@@ -1588,6 +1589,7 @@ optional<FunctionPtr> SymbolTable::lookupFunc(const string& name)
 ### 6.4 符号表输出
 
 以如下代码为例：
+
 ```rs
 fn foo(mut a : i32, mut b : i32) -> i32
 {
@@ -1625,6 +1627,7 @@ fn main(mut a :i32)
     foo2(foo(a,b));
 }
 ```
+
 检查正确后，可以得到以下的符号表 **output.symbol**：
 
 <img src="ex_symboltable.png" width=500/>
@@ -2196,13 +2199,15 @@ bool IrGenerator::generateBlockStmt(const BlockStmtPtr& p_bstmt)
       generateVarDeclStmt(std::dynamic_pointer_cast<VarDeclStmt>(p_stmt));
       break;
     case NodeType::RetStmt:
-      generateRetStmt(std::dynamic_pointer_cast<RetStmt>(p_stmt));
+      generateRetStmt(dynamic_pointer_cast<RetStmt>(p_stmt));
       return true;
     case NodeType::ExprStmt:
-      generateExprStmt(std::dynamic_pointer_cast<ExprStmt>(p_stmt));
+      generateExprStmt(dynamic_pointer_cast<ExprStmt>(p_stmt));
       break;
     case NodeType::AssignStmt:
-      generateAssignStmt(std::dynamic_pointer_cast<AssignStmt>(p_stmt));
+      generateAssignStmt(
+        std::dynamic_pointer_cast<AssignStmt>(p_stmt)
+      );
       break;
     case NodeType::IfStmt:
       p_stable->enterScope(std::format("if{}", if_cnt++), false);
@@ -2210,8 +2215,13 @@ bool IrGenerator::generateBlockStmt(const BlockStmtPtr& p_bstmt)
       p_stable->exitScope();
       break;
     case NodeType::WhileStmt:
-      p_stable->enterScope(std::format("while{}", while_cnt++), false);
-      generateWhileStmt(std::dynamic_pointer_cast<WhileStmt>(p_stmt));
+      p_stable->enterScope(
+        std::format("while{}", while_cnt++),
+        false
+      );
+      generateWhileStmt(
+        std::dynamic_pointer_cast<WhileStmt>(p_stmt)
+      );
       p_stable->exitScope();
       break;
     case NodeType::NullStmt:
@@ -2235,8 +2245,7 @@ bool IrGenerator::generateBlockStmt(const BlockStmtPtr& p_bstmt)
 **2. generateIfStmt**:
 
 ```cpp
-void IrGenerator::generateIfStmt(const IfStmtPtr& p_istmt)
-{
+void IrGenerator::generateIfStmt(const IfStmtPtr& p_istmt) {
   std::string label_true = std::format(
     "{}_true",
     replaceScopeQualifiers(p_stable->getCurScope())
@@ -2254,13 +2263,16 @@ void IrGenerator::generateIfStmt(const IfStmtPtr& p_istmt)
   std::string rhs;
   OpCode op;  // 跳转到 true
 
-  // 如果 if 语句的判断条件并非比较表达式，则使用 jne condition 0 来跳转到 if 分支
+  // 如果 if 语句的判断条件并非比较表达式，
+  // 则使用 jne condition 0 来跳转到 if 分支
+  std::string scope = p_stable->exitScope();
   if (p_istmt->expr->type() != NodeType::ComparExpr) {
     lhs = generateExpr(p_istmt->expr);
     rhs = "0";
     op = OpCode::Jne;
   } else {
-    auto p_coexpr = std::dynamic_pointer_cast<ComparExpr>(p_istmt->expr);
+    auto p_coexpr =
+      std::dynamic_pointer_cast<ComparExpr>(p_istmt->expr);
     lhs = generateExpr(p_coexpr->lhs);
     rhs = generateExpr(p_coexpr->rhs);
 
@@ -2285,27 +2297,28 @@ void IrGenerator::generateIfStmt(const IfStmtPtr& p_istmt)
       break;
     }
   }
+  p_stable->enterScope(scope, false);
   pushQuads(op, lhs, rhs, label_true);
 
   // 由于基础产生式不支持 else if 分支，所以这个 assert 成立
   assert(p_istmt->else_clauses.size() <= 1);
   bool has_else = (p_istmt->else_clauses.size() == 1);
   if (has_else) {
-    pushQuads(OpCode::Goto, label_false, NULL_OPERAND, NULL_OPERAND);
+    pushQuads(Goto, label_false, NULL_OPERAND, NULL_OPERAND);
   } else {
-    pushQuads(OpCode::Goto, label_end, NULL_OPERAND, NULL_OPERAND);
+    pushQuads(Goto, label_end, NULL_OPERAND, NULL_OPERAND);
   }
 
-  pushQuads(OpCode::Label, label_true, NULL_OPERAND, NULL_OPERAND);
+  pushQuads(Label, label_true, NULL_OPERAND, NULL_OPERAND);
   generateBlockStmt(p_istmt->if_branch);
   if (has_else) {
-    pushQuads(OpCode::Goto, label_end, NULL_OPERAND, NULL_OPERAND);
-    pushQuads(OpCode::Label, label_false, NULL_OPERAND, NULL_OPERAND);
+    pushQuads(Goto, label_end, NULL_OPERAND, NULL_OPERAND);
+    pushQuads(Label, label_false, NULL_OPERAND, NULL_OPERAND);
     // 同样是因为没有 else if 所以下面的断言才成立
     assert(!p_istmt->else_clauses[0]->expr.has_value());
     generateBlockStmt(p_istmt->else_clauses[0]->block);
   }
-  pushQuads(OpCode::Label, label_end, NULL_OPERAND, NULL_OPERAND);
+  pushQuads(Label, label_end, NULL_OPERAND, NULL_OPERAND);
 }
 ```
 
@@ -2423,7 +2436,8 @@ struct SemanticError : Error {
   std::size_t col;
   std::string scope_name;  // 错误发生的作用域
 
-  SemanticError(SemanticErrorType, const string&,size_t,size_t,string)
+  SemanticError(SemanticErrorType, const string&,
+    size_t, size_t, string)
 };
 ```
 
@@ -2645,16 +2659,23 @@ void ErrorReporter::displaySemanticErr(const SemanticError& err) const {
 
 效果展示：
 
-<img src="./semantic_err.png" width=500/>
+<img src="./semantic_err.png" width=460/>
 
-<br>
-
+<p>
 
 ## 10 测试与验证
 
-### 10.1 编译器功能概述与使用方式
+### 10.1 运行环境
 
-本项目实现了一个简化版类 Rust 编程语言的编译器，命名为 `toy_compiler`，具备基础的词法分析与语法分析功能，并可生成相应的中间结果（Token 表与 AST 图）。其支持的命令行选项如下：
+本项目在 Archlinux 和 WSL (Archlinux) 环境下完成开发及测试工作，具体信息如下：
+
+<img src="./arch1.png" width=500>
+
+<img src="./arch2.png" width=500>
+
+### 10.2 编译器功能概述与使用方式
+
+本项目实现了一个类 Rust 编程语言的编译器，命名为 `toy_compiler`，具备词法分析、语法分析、语义检查和中间代码生成功能，并可生成相应的中间结果（token 表、AST 图、符号表和四元式）。其支持的命令行选项如下：
 
 **支持的命令行选项**：
 
@@ -2664,16 +2685,18 @@ void ErrorReporter::displaySemanticErr(const SemanticError& err) const {
 | `-v`, `-V`, `--version` | 显示编译器版本信息 |
 | `-i`, `--input <filename>` | 指定输入文件，必须带有后缀 |
 | `-o`, `--output <filename>` | 指定输出文件（不包含后缀） |
-| `-t`, `--token` | 输出词法分析结果（Token） |
+| `-t`, `--token` | 输出词法分析结果（token） |
 | `-p`, `--parse` | 输出语法分析结果（AST） |
+| `-s`, `--semantic` | 进行语义检查并输出符号表 |
+| `-g`, `--generate` | 生成中间代码（四元式） |
 
 **使用示例**：
 
 ```shell
-$ ./toy_compiler -t -i test.txt          # 输出词法分析结果
-$ ./toy_compiler -p -i test.txt          # 输出语法分析结果（AST）
-$ ./toy_compiler -t -p -i test.txt       # 同时输出 Token 和 AST
-$ ./toy_compiler -i test.txt -o result   # 自定义输出文件名（生成 result.token 与 result.dot）
+$ ./toy_compiler -t -i test.txt        # 输出词法分析结果
+$ ./toy_compiler -p -i test.txt        # 输出语法分析结果（AST）
+$ ./toy_compiler -t -p -i test.txt     # 同时输出 Token 和 AST
+$ ./toy_compiler -s test.txt -o result # 自定义输出文件名（生成 result.symbol）
 ```
 
 编译器生成的 .dot 文件可通过 Graphviz 工具进行可视化，命令如下：
@@ -2692,7 +2715,7 @@ $ dot -Tpng path/to/output.dot -o AST.png
 
 <img src="output_ex/ex_version.png" width=500/>
 
-### 10.2 编译器功能测试与验证
+### 10.3 编译器功能测试与验证
 
 #### 10.2.1 词法分析器
 
@@ -2784,7 +2807,7 @@ $ dot -Tpng output.dot -o output.png
 
 **2.2 赋值语句 与 3.1&2 表达式部分**：
 
-<img src="output_ex/ex5.png" width=400/>
+<img src="output_ex/ex5.png" width=360/>
 
 **2.3 变量声明赋值语句 与 3.1&2 表达式部分**：
 
@@ -2896,27 +2919,226 @@ fn main(){
 }
 ```
 
+#### 10.2.3 语义检查器
+
+语义检查器按照深度优先、从左到右的顺序遍历语法分析过程中生成的 AST 并检查是否满足事先定义的语义规则。使用 `-s` 选项以执行语义检查，具体命令如下：
+
+```shell
+$ ./build/toy_compiler -p -i test/test_case_2/test_semantic.rs
+```
+
+运行结果如下：
+
+<img src="output_ex/semantic.png" width=500>
+
+下面给出测试文件 `test_semantic.rs`：
+
+```rs
+fn foo(mut a : i32, mut b : i32) -> i32
+{
+    let mut a;
+    a=b;
+    return a+foo(a,b);
+}
+fn foo2(mut c: i32)
+{
+    let mut x;
+    if c > 1 {
+        x=c;
+    }
+    while c>1{
+        let mut c;
+        c=5;
+        if c>10{
+        }
+        else{
+            c=c+1;
+        }
+    }
+}
+fn main(mut a :i32)
+{
+    let mut b : i32;
+    a=1;
+    b=666+999*(2<4);
+    a=foo(0,0);
+    foo2(foo(a,b));
+}
+```
+
+可以看到符号搜集的结果和预期一致。
+
+下面测试代码中有语义错误的情况，首先给出测试用例 `test_error.rs`：
+
+```rs
+fn foo(mut a: i32,mut b:i32)->i32
+{
+    let mut a;
+    a=b;
+    return ;
+}
+fn foo2(mut c: i32)
+{
+    let mut x;
+
+    if c > 1 {
+        x=c;
+        c=c*2;
+    }
+    while c>1{
+        let mut c;
+        c=5;
+        if c>10{
+            let mut d;
+        }
+        else{
+            let mut e;
+            c=c+1;
+        }
+    }
+    return a+foo(a,b);
+}
+fn main(mut a :i32)
+{
+    let mut b : i32;
+    a=b;
+    b=666+999*(2<4);
+    b=c;
+    1;
+    (((a)));
+    b=a*2;
+    function();
+    a=foo(0);
+    foo(0,0);
+    foo2(foo(a));
+}
+```
+
+观察可以发现，上述代码有如下错误：
+
+1. foo 函数有返回值，但 return 语句返回值为空；
+2. foo2 函数中 while 语句的 if 语句的 true 分支中，变量 d 无法自动推导类型；
+3. foo2 函数中 while 语句的 if 语句的 else 分支中，变量 e 无法自动推导类型；
+4. foo2 函数的 return 语句中，返回值使用了未声明的变量 a 和 b；
+5. foo2 函数返回值为空，但是 return 语句有返回值；
+6. main 函数中使用了为初始化的变量 b；
+7. main 函数中使用了未声明的变量 c；
+8. main 函数中调用了未声明的函数 function；
+9. main 函数中 foo 函数调用时参数个数不匹配。
+
+下面运行 `./build/toy_compiler -s -i ./test/test_case_2/test_error.rs` 命令，测试错误检测效果，结果如下：
+
+<img src="output_ex/semantic_error_1.png" width=400>
+
+<p>
+
+<img src="output_ex/semantic_error_2.png" width=400>
+
+从输出结果可以看到，所有不符合语义规则的错误均被正确识别到了。
+
+#### 10.2.4 中间代码生成器
+
+使用 10.2.3 节中的测试用例 `test_semantic.rs`，运行如下命令可得输出文件 `output.ir`：
+
+```shell
+$ ./build/toy_compiler -g -i test/test_case_2/test_semantic.rs
+```
+
+得到的四元式序列如下：
+
+```shell
+(label, foo, -, -)
+(pop, -, -, global::foo::a)
+(pop, -, -, global::foo::b)
+(decl, global::foo::a, i32, -)
+(=, global::foo::b, -, global::foo::a)
+(push, global::foo::a, -, -)
+(push, global::foo::b, -, -)
+(call, foo, -, t0)
+(+, global::foo::a, t0, t1)
+(return, t1, -, -)
+(label, foo2, -, -)
+(pop, -, -, global::foo2::c)
+(decl, global::foo2::x, i32, -)
+(j>, global::foo2::c, 1, global_foo2_if1_true)
+(goto, global_foo2_if1_end, -, -)
+(label, global_foo2_if1_true, -, -)
+(=, global::foo2::if1::c, -, global::foo2::if1::x)
+(label, global_foo2_if1_end, -, -)
+(label, global_foo2_while1_start, -, -)
+(j<=, global::foo2::c, 1, global_foo2_while1_end)
+(decl, global::foo2::while1::c, i32, -)
+(=, 5, -, global::foo2::while1::c)
+(j>, global::foo2::while1::c, 10, global_foo2_while1_if1_true)
+(goto, global_foo2_while1_if1_false, -, -)
+(label, global_foo2_while1_if1_true, -, -)
+(goto, global_foo2_while1_if1_end, -, -)
+(label, global_foo2_while1_if1_false, -, -)
+(+, global::foo2::while1::if1::c, 1, t2)
+(=, t2, -, global::foo2::while1::if1::c)
+(label, global_foo2_while1_if1_end, -, -)
+(goto, global_foo2_while1_start, -, -)
+(label, global_foo2_while1_end, -, -)
+(return, -, -, -)
+(label, main, -, -)
+(pop, -, -, global::main::a)
+(decl, global::main::b, i32, -)
+(=, 1, -, global::main::a)
+(<, 2, 4, t3)
+(*, 999, t3, t4)
+(+, 666, t4, t5)
+(=, t5, -, global::main::b)
+(push, 0, -, -)
+(push, 0, -, -)
+(call, foo, -, t6)
+(=, t6, -, global::main::a)
+(push, global::main::a, -, -)
+(push, global::main::b, -, -)
+(call, foo, -, t7)
+(push, t7, -, -)
+(call, foo2, -, -)
+(return, -, -, -)
+```
+
+检查发现，这与预期结果完全一致。
+
+<br>
+
 ## 11 总结与展望
 
-本项目致力于实现一个类 Rust 编程语言的编译器前端系统，涵盖了 **词法分析**、**语法分析**、**AST 构建** 以及 **可视化输出** 等完整流程。在功能实现过程中，我们围绕编译器架构的核心阶段逐步搭建了清晰、模块化的系统结构，旨在为日后的语义分析、中间代码生成等后续阶段打下良好的基础。
+本项目实现了一个简化类 Rust 语言的编译器前端，涵盖了从词法分析、语法分析、语义检查到中间代码生成的完整流程。通过团队成员的协作，我们不仅实现了各模块的核心功能，还额外完成了 AST 可视化与语义错误诊断，提升了可维护性与可视化能力。
 
-具体，项目具备以下亮点与成果：
+**项目成果回顾**：
 
-- **词法分析器** 能够正确将源程序分割为一系列 Token，支持关键词、标识符、符号、操作符等多类词法单元，并附带位置信息，有助于后续阶段进行语义检查与错误定位。
-- **语法分析器** 基于抽象语法树（AST）构建原理，将 Token 序列还原为语法结构，支持函数声明、变量定义、表达式、条件语句、循环语句等语法形式，构建出具有语义层次的中间表示结构。
-- **AST 可视化模块** 支持将语法结构以 Graphviz DOT 格式输出，使抽象语法树具象为图形，提升调试可读性。通过一系列 `xxx2Dot` 函数，项目实现了 AST 结点到 DOT 图元素的转换，生成的 `.dot` 文件可直接转为图像展示。
-- **命令行工具链** 通过统一的参数接口，允许用户按需输出 Token 列表和 AST 图，并支持设置输入输出文件路径，方便灵活集成测试脚本和多种输入源。
+- 构建了基于 LL(2) 的递归下降语法分析器；
 
-整个开发过程中，我们采用面向对象设计思想和现代 C++ 技术，注重代码可维护性与模块解耦，并通过单元测试和多组样例验证了各阶段模块的稳定性与正确性。
+- 支持丰富的语法结构：如 if 表达式、函数调用、数组与元组；
 
-目前功能已基本完善，但在以下几个方面仍有进一步提升空间：
+- 实现语义分析，包括变量作用域管理与未初始化变量检查；
 
-- **面向后续语法扩展的 DOT 生成支持**：当前 AST 到 DOT 的转换函数覆盖了基础语句和表达式，但对于拓展规则，需要后续逐步补全。
-- **错误处理机制的完善**：目前词法分析只有识别到未知 token 错误，会在分析完代码后，报告 UnknownToken 错误。语法分析阶段缺乏对异常输入的鲁棒性支持，后续会加入详细的错误信息提示与定位能力。
-- **符号表的设计与实现**：目前项目未涉及语义分析层面的符号表管理，未来在支持类型检查、作用域分析和变量绑定等语义处理功能时，符号表将成为必不可少的关键组件。
+- 提供语法树可视化功能，生成 DOT 图并渲染为 PNG 图；
 
-综上所述，当前项目已搭建起完整的编译器前端基础框架，后续工作将在此基础上逐步拓展，朝着功能完整、鲁棒性强的实际编译器目标持续迭代。
+- 基于四元式格式生成中间代码，具备基本可扩展性；
 
+- 融合 clang-tidy、clang-format 和 git hooks 实现轻量级 CI 流程。
+
+**不足与未来工作**：
+
+尽管项目已经实现了预期的主要功能，但仍存在以下不足和优化空间：
+
+- 语义分析不够完备：未完全支持所有 Rust 类型系统特性，如类型推导、生命周期；
+
+- 中间代码生成待扩展：目前仅支持基本四元式生成，尚未引入优化与控制流图；
+
+- 错误恢复能力弱：一旦发生语法错误，编译流程将中断，后续可引入 panic 模式或容错机制；
+
+- 未集成后端模块：未覆盖目标代码生成与机器指令映射，完整编译链尚未闭环；
+
+- 可测试性有待增强：缺乏系统性单元测试与覆盖率分析。
+
+后续可进一步尝试集成 LLVM 后端、引入 SSA 表示、实现寄存器分配与死代码消除等优化策略，真正构建一个具备教学与实验双重价值的教学编译器。
+
+<br>
 
 ## 12 参考文献与资料
 
@@ -2928,6 +3150,7 @@ fn main(){
 | Rust 官方书籍（The Rust Programming Language） | [https://doc.rust-lang.org/book/title-page.html](https://doc.rust-lang.org/book/title-page.html) | 了解 Rust 语言，理解词法和语法规则 |
 | Graphviz DOT 语言参考文档 | [https://graphviz.org/doc/info/lang.html](https://graphviz.org/doc/info/lang.html) | 用于 AST 可视化的 DOT 图语言文档 |
 | Rust 源码中的词法分析实现 | [https://github.com/rust-lang/rust/blob/master/compiler/rustc_lexer/src/lib.rs](https://github.com/rust-lang/rust/blob/master/compiler/rustc_lexer/src/lib.rs) | Rust 编译器源码中的 lexer 模块参考 |
+| C++ 标准文档 | [https://en.cppreference.com/](https://en.cppreference.com/) | C++ 库函数用法参考 |
 
 ### 12.2 书籍资料
 
