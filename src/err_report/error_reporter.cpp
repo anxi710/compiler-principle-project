@@ -16,6 +16,10 @@ static inline const std::string BOLD = "\033[1m";
 
 /*---------------- LexError ----------------*/
 
+/**
+ * @brief 控制台输出未知Token
+ * @param err  词法错误实例
+ */
 void ErrorReporter::displayUnknownType(const LexError& err) const
 {
     std::cerr << BOLD << YELLOW << "warning[UnknownToken]" << RESET << BOLD
@@ -33,6 +37,10 @@ void ErrorReporter::displayUnknownType(const LexError& err) const
     std::cerr << BLUE << "  |" << std::string(delta, ' ') << "^" << RESET << std::endl << std::endl;
 }
 
+/**
+ * @brief 分发处理词法错误
+ * @param err  词法错误实例
+ */
 void ErrorReporter::displayLexErr(const LexError& err) const
 {
     switch (err.type)
@@ -53,6 +61,11 @@ void ErrorReporter::displayLexErr(const LexError& err) const
 
 /*---------------- SemanticError ----------------*/
 
+/**
+ * @brief 分发处理不同种类语义错误
+ * @param type  语义错误种类
+ * @return 根据type返回特定的错误报告提示
+ */
 static auto displaySemanticErrorType(SemanticErrorType type) -> std::pair<std::string, std::string>
 {
     switch (type)
@@ -82,6 +95,10 @@ static auto displaySemanticErrorType(SemanticErrorType type) -> std::pair<std::s
     }
 }
 
+/**
+ * @brief 控制台输出语义错误结果
+ * @param err  语义错误实例
+ */
 void ErrorReporter::displaySemanticErr(const SemanticError& err) const
 {
     auto pair = displaySemanticErrorType(err.type);
@@ -181,6 +198,9 @@ void ErrorReporter::report(SemanticErrorType type, const std::string& msg, std::
     semantic_errs.emplace_back(type, msg, r, c, scope_name);
 }
 
+/**
+ * @brief 处理所有词法错误
+ */
 void ErrorReporter::displayLexErrs() const
 {
     for (const auto& lex_err : lex_errs)
@@ -189,6 +209,9 @@ void ErrorReporter::displayLexErrs() const
     }
 }
 
+/**
+ * @brief 处理所有语义错误
+ */
 void ErrorReporter::displaySemanticErrs() const
 {
     for (const auto& semantic_err : semantic_errs)
