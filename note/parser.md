@@ -195,7 +195,7 @@
 - ArrayAccess -> "\<ID\>" "[" Expr "]"
 - TupleAccess -> "\<ID\>" "." "\<INT\>"
 - Variable -> "\<ID\>"
-- ExprStmt -> Expr ";"
+- ExprStmt -> Expr ";" | CallExpr ";"
 - IfStmt -> "if" CmpExpr BlockStmt (ElseClause)*
 - ElseClause -> "else" ("if" Expr)? BlockStmt
 - WhileStmt -> "while" CmpExpr BlockStmt
@@ -204,7 +204,7 @@
 - BreakStmt -> "break" (Expr)? ";"
 - ContinueStmt -> "continue" ";"
 - NullStmt -> ";"
-- Expr -> FuncExprBlockStmt | IfExpr | loopExpr | CmpExpr
+- Expr -> FuncExprBlockStmt | IfExpr | loopExpr | CmpExpr | AddExpr | MulExpr | Factor
 - CmpExpr -> AddExpr ([\< | \<= | \> | \>= | == | !=] AddExpr)*
 - AddExpr -> MulExpr ([+ | -] MulExpr)*
 - MulExpr -> Factor ([\* | /] Factor)*
@@ -214,3 +214,4 @@
 - Element -> ParenthesisExpr | "\<INT\>" | AssignElement | CallExpr | Variable
 - ParenthesisExpr -> "(" CmpExpr ")"
 - IfExpr -> "if" Expr FuncExprBlockStmt "else" FuncExprBlockStmt
+
