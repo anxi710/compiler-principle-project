@@ -136,6 +136,11 @@ auto SymbolTable::lookupVar(const std::string& name) const -> std::optional<Vari
     return flag ? std::optional<VariablePtr>{p_var} : std::nullopt;
 }
 
+/**
+ * @brief  将变量类型枚举转换为对应的字符串表示
+ * @param  vt 变量类型枚举值
+ * @return 变量类型对应的字符串
+ */
 static auto varType2Str(VarType vt) -> std::string
 {
     switch (vt)
@@ -153,6 +158,10 @@ static auto varType2Str(VarType vt) -> std::string
     throw std::runtime_error{"varType2Str(): error return."};
 }
 
+/**
+ * @brief 打印符号表
+ * @param out 输出流
+ */
 void SymbolTable::printSymbol(std::ofstream& out)
 {
     out << "搜集到如下函数符号：" << std::endl;
@@ -178,16 +187,28 @@ void SymbolTable::printSymbol(std::ofstream& out)
     }
 }
 
+/**
+ * @brief 取作用域名
+ * @return 作用域名，含global
+ */
 auto SymbolTable::getCurScope() const -> const std::string&
 {
     return cscope_name;
 }
 
+/**
+ * @brief 取变量名
+ * @return 变量全名，含作用域
+ */
 auto SymbolTable::getTempValName() -> std::string
 {
     return std::format("t{}", tv_cnt++);
 }
 
+/**
+ * @brief 取函数名
+ * @return 函数名，不含global
+ */
 auto SymbolTable::getFuncName() -> std::string
 {
     std::regex re{R"(^global::(\w+))"};
@@ -196,6 +217,10 @@ auto SymbolTable::getFuncName() -> std::string
     return match[1];
 }
 
+/**
+ * @brief 检查作用域下变量是否有类型
+ * @return 未定义类型变量 
+ */
 auto SymbolTable::checkAutoTypeInference() const -> std::vector<VariablePtr>
 {
     std::vector<VariablePtr> failed_vars;

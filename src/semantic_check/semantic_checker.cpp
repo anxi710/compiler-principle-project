@@ -9,16 +9,28 @@ using namespace parser::ast;
 namespace semantic
 {
 
+/**
+ * @brief  设置语义检查器使用的错误报告器指针
+ * @param  p_ereporter 错误报告器智能指针
+ */
 void SemanticChecker::setErrorReporter(std::shared_ptr<error::ErrorReporter> p_ereporter)
 {
     this->p_ereporter = std::move(p_ereporter);
 }
 
+/**
+ * @brief  设置语义检查器使用的符号表指针
+ * @param  p_stable 符号表智能指针
+ */
 void SemanticChecker::setSymbolTable(std::shared_ptr<symbol::SymbolTable> p_stable)
 {
     this->p_stable = std::move(p_stable);
 }
 
+/**
+ * @brief  对程序入口节点执行语义检查，递归检查所有函数声明
+ * @param  p_prog 程序根节点指针，包含所有顶层声明
+ */
 void SemanticChecker::checkProg(const ProgPtr& p_prog)
 {
     for (const auto& p_decl : p_prog->decls)
@@ -30,6 +42,10 @@ void SemanticChecker::checkProg(const ProgPtr& p_prog)
     }
 }
 
+/**
+ * @brief  执行函数声明的语义检查，包括参数和函数体
+ * @param  p_fdecl 函数声明节点指针
+ */
 void SemanticChecker::checkFuncDecl(const FuncDeclPtr& p_fdecl)
 {
     p_stable->enterScope(p_fdecl->header->name);  // 注意不要在没进入作用域时就开始声明变量！
@@ -53,6 +69,10 @@ void SemanticChecker::checkFuncDecl(const FuncDeclPtr& p_fdecl)
     p_stable->exitScope();
 }
 
+/**
+ * @brief  检查函数头部声明的语义，处理函数名、返回类型和形参
+ * @param  p_fhdecl 函数头部声明节点指针
+ */
 void SemanticChecker::checkFuncHeaderDecl(const FuncHeaderDeclPtr& p_fhdecl)
 {
     int argc = p_fhdecl->argv.size();
@@ -73,6 +93,11 @@ void SemanticChecker::checkFuncHeaderDecl(const FuncHeaderDeclPtr& p_fhdecl)
     p_stable->declareFunc(p_fhdecl->name, p_func);
 }
 
+/**
+ * @brief  检查代码块语义是否合法，并建立对应的作用域
+ * @param  p_bstmt 代码块语句节点指针
+ * @return 是否有返回语句
+ */
 auto SemanticChecker::checkBlockStmt(const BlockStmtPtr& p_bstmt) -> bool
 {
     int if_cnt = 1;
@@ -124,6 +149,10 @@ auto SemanticChecker::checkBlockStmt(const BlockStmtPtr& p_bstmt) -> bool
     return has_retstmt;
 }
 
+/**
+ * @brief  检查变量声明语句的语义，处理变量定义及初始化
+ * @param  p_vdstmt 变量声明语句节点指针
+ */
 void SemanticChecker::checkVarDeclStmt(const VarDeclStmtPtr& p_vdstmt)
 {
     // 需要实现的产生式中，所有变量声明语句声明的变量只有两种情况
@@ -152,6 +181,10 @@ void SemanticChecker::checkVarDeclStmt(const VarDeclStmtPtr& p_vdstmt)
     p_stable->declareVar(name, p_var);
 }
 
+/**
+ * @brief  检查 return 语句的语义，验证返回值类型是否匹配
+ * @param  p_rstmt 返回语句节点指针
+ */
 void SemanticChecker::checkRetStmt(const RetStmtPtr& p_rstmt)
 {
     // 由于存在函数返回值类型的自动推导，因此需要在 RetStmt
@@ -195,6 +228,11 @@ void SemanticChecker::checkRetStmt(const RetStmtPtr& p_rstmt)
     }
 }
 
+/**
+ * @brief  检查表达式语句的语义，并推导其结果类型
+ * @param  p_estmt 表达式语句节点指针
+ * @return 表达式的类型
+ */
 auto SemanticChecker::checkExprStmt(const ExprStmtPtr& p_estmt) -> symbol::VarType
 {
     switch (p_estmt->expr->type())
@@ -206,6 +244,11 @@ auto SemanticChecker::checkExprStmt(const ExprStmtPtr& p_estmt) -> symbol::VarTy
     }
 }
 
+/**
+ * @brief  语义检查表达式节点，推导并返回表达式的类型
+ * @param  p_expr 表达式节点指针
+ * @return 表达式的类型
+ */
 auto SemanticChecker::checkExpr(const ExprPtr& p_expr) -> symbol::VarType
 {
     switch (p_expr->type())
@@ -232,6 +275,11 @@ auto SemanticChecker::checkExpr(const ExprPtr& p_expr) -> symbol::VarType
     }
 }
 
+/**
+ * @brief  检查函数调用表达式的语义，验证参数和返回类型
+ * @param  p_caexpr 函数调用表达式节点指针
+ * @return 调用表达式的返回类型
+ */
 auto SemanticChecker::checkCallExpr(const CallExprPtr& p_caexpr) -> symbol::VarType
 {
     // 检查调用表达式的实参和形参是否一致
@@ -269,6 +317,11 @@ auto SemanticChecker::checkCallExpr(const CallExprPtr& p_caexpr) -> symbol::VarT
     return p_func->retval_type;
 }
 
+/**
+ * @brief  检查比较表达式的语义，确保操作数类型兼容并返回结果类型
+ * @param  p_coexpr 比较表达式节点指针
+ * @return 表达式的类型
+ */
 auto SemanticChecker::checkComparExpr(const ComparExprPtr& p_coexpr) -> symbol::VarType
 {
     // 递归检查子树中所涉及的符号是否类型匹配，是否有值能够使用
@@ -280,6 +333,11 @@ auto SemanticChecker::checkComparExpr(const ComparExprPtr& p_coexpr) -> symbol::
     return symbol::VarType::I32;
 }
 
+/**
+ * @brief  检查算术表达式的语义，验证操作数类型并推导表达式类型
+ * @param  p_aexpr 算术表达式节点指针
+ * @return 表达式的类型
+ */
 auto SemanticChecker::checkArithExpr(const ArithExprPtr& p_aexpr) -> symbol::VarType
 {
     checkExprStmt(std::make_shared<ExprStmt>(p_aexpr->lhs));
@@ -288,6 +346,11 @@ auto SemanticChecker::checkArithExpr(const ArithExprPtr& p_aexpr) -> symbol::Var
     return symbol::VarType::I32;
 }
 
+/**
+ * @brief  检查因子节点的语义，推导因子的类型
+ * @param  p_factor 因子节点指针
+ * @return 因子的类型
+ */
 auto SemanticChecker::checkFactor(const FactorPtr& p_factor) -> symbol::VarType
 {
     auto expr = p_factor->element;
@@ -305,6 +368,11 @@ auto SemanticChecker::checkFactor(const FactorPtr& p_factor) -> symbol::VarType
     }
 }
 
+/**
+ * @brief  检查变量节点的语义，获取变量的类型信息
+ * @param  p_variable 变量节点指针
+ * @return 变量的类型
+ */
 auto SemanticChecker::checkVariable(const VariablePtr& p_variable) -> symbol::VarType
 {
     auto opt_var = p_stable->lookupVar(p_variable->name);
@@ -329,11 +397,20 @@ auto SemanticChecker::checkVariable(const VariablePtr& p_variable) -> symbol::Va
     return p_var->var_type;
 }
 
+/**
+ * @brief  检查数字节点的语义，返回固定的整型类型
+ * @param  p_number 数字节点指针
+ * @return 数字的类型（固定为 I32）
+ */
 auto SemanticChecker::checkNumber(const NumberPtr& p_number) -> symbol::VarType
 {
     return symbol::VarType::I32;  // 异常简化的实现
 }
 
+/**
+ * @brief  检查赋值语句的语义，验证左值和右值合法性及类型匹配
+ * @param  p_astmt 赋值语句节点指针
+ */
 void SemanticChecker::checkAssignStmt(const AssignStmtPtr& p_astmt)
 {
     auto lhs_var = std::dynamic_pointer_cast<Variable>(p_astmt->lvalue);
@@ -377,6 +454,10 @@ void SemanticChecker::checkAssignStmt(const AssignStmtPtr& p_astmt)
     p_var->initialized = true;
 }
 
+/**
+ * @brief  检查 if 语句的语义，验证条件表达式及分支语句合法性
+ * @param  p_istmt if 语句节点指针
+ */
 void SemanticChecker::checkIfStmt(const IfStmtPtr& p_istmt)
 {
     checkExprStmt(std::make_shared<ExprStmt>(p_istmt->expr));
@@ -391,6 +472,10 @@ void SemanticChecker::checkIfStmt(const IfStmtPtr& p_istmt)
     }
 }
 
+/**
+ * @brief  检查 while 语句的语义，验证循环条件表达式及循环体合法性
+ * @param  p_wstmt while 语句节点指针
+ */
 void SemanticChecker::checkWhileStmt(const WhileStmtPtr& p_wstmt)
 {
     checkExprStmt(std::make_shared<ExprStmt>(p_wstmt->expr));
