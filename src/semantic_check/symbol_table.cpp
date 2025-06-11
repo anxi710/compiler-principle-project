@@ -10,7 +10,8 @@ namespace symbol
 
 /**
  * @brief 进入作用域
- * @param name 作用域限定符
+ * @param name         作用域限定符
+ * @param create_scope 是否新建作用域
  */
 void SymbolTable::enterScope(const std::string& name, bool create_scope)
 {
@@ -36,9 +37,10 @@ void SymbolTable::enterScope(const std::string& name, bool create_scope)
 }
 
 /**
- * @brief 退出作用域
+ * @brief  退出作用域
+ * @return 退出的作用域名
  */
-void SymbolTable::exitScope()
+auto SymbolTable::exitScope() -> std::string
 {
     std::size_t idx = cscope_name.find_last_of(':');
     if (idx >= cscope_name.length())
@@ -46,12 +48,15 @@ void SymbolTable::exitScope()
         throw std::runtime_error{"can't exit scope"};
     }
 
+    std::string name = cscope_name.substr(idx + 1);
     cscope_name = cscope_name.substr(0, idx - 1);
     if (!scopes.contains(cscope_name))
     {
         throw std::runtime_error{"can't find the upper-level scope"};
     }
     p_cscope = scopes[cscope_name];
+
+    return name;
 }
 
 /**

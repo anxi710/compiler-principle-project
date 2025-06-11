@@ -101,7 +101,7 @@ class SymbolTable
 
    public:
     void enterScope(const std::string& name, bool create_scope = true);
-    void exitScope();
+    auto exitScope() -> std::string;
 
     void declareFunc(const std::string& fname, FunctionPtr p_func);
     void declareVar(const std::string& vname, VariablePtr p_var);

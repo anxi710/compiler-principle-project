@@ -340,6 +340,7 @@ void IrGenerator::generateIfStmt(const IfStmtPtr& p_istmt)
     OpCode op;  // 跳转到 true
 
     // 如果 if 语句的判断条件并非比较表达式，则使用 jne condition 0 来跳转到 if 分支
+    std::string scope = p_stable->exitScope();
     if (p_istmt->expr->type() != NodeType::ComparExpr)
     {
         lhs = generateExpr(p_istmt->expr);
@@ -374,6 +375,7 @@ void IrGenerator::generateIfStmt(const IfStmtPtr& p_istmt)
                 break;
         }
     }
+    p_stable->enterScope(scope, false);
 
     pushQuads(op, lhs, rhs, label_true);
 
@@ -416,6 +418,7 @@ void IrGenerator::generateWhileStmt(const WhileStmtPtr& p_wstmt)
     std::string rhs;
     OpCode op;  // 跳转到 true
 
+    std::string scope = p_stable->exitScope();
     if (p_wstmt->expr->type() != NodeType::ComparExpr)
     {
         lhs = generateExpr(p_wstmt->expr);
@@ -450,6 +453,7 @@ void IrGenerator::generateWhileStmt(const WhileStmtPtr& p_wstmt)
                 break;
         }
     }
+    p_stable->enterScope(scope, false);
 
     pushQuads(op, lhs, rhs, label_end);
 

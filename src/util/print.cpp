@@ -44,7 +44,7 @@ void printHelp(const char* const exec)
               << "  $ path/to/toy_compiler -t -i test.txt" << std::endl
               << "  $ path/to/toy_compiler -p -i test.txt" << std::endl
               << "  $ path/to/toy_compiler -t -p -i test.txt" << std::endl
-              << "  $ path/to/toy_compiler -t -i test.txt -o output" << std::endl
+              << "  $ path/to/toy_compiler -s -i test.txt -o output" << std::endl
               << std::endl
               << "Tips:" << std::endl
               << "  Upon completion of the program execution, you can run this command" << std::endl

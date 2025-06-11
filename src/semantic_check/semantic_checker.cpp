@@ -297,7 +297,7 @@ auto SemanticChecker::checkCallExpr(const CallExprPtr& p_caexpr) -> symbol::VarT
         p_ereporter->report(error::SemanticErrorType::ArgCountMismatch,
                             std::format("函数 '{}' 期望 {} 个参数，但调用提供了 {} 个",
                                         p_caexpr->callee, p_func->argc, p_caexpr->argv.size()),
-                            p_caexpr->pos.col, p_caexpr->pos.col, p_stable->getCurScope());
+                            p_caexpr->pos.row, p_caexpr->pos.col, p_stable->getCurScope());
     }
 
     // 遍历所有实参与进行表达式语义检查
@@ -379,7 +379,7 @@ auto SemanticChecker::checkVariable(const VariablePtr& p_variable) -> symbol::Va
         p_ereporter->report(error::SemanticErrorType::UndeclaredVariable,
                             std::format("变量 '{}' 未声明", p_variable->name), p_variable->pos.row,
                             p_variable->pos.col, p_stable->getCurScope());
-        return symbol::VarType::Null;
+        return symbol::VarType::Unknown;
     }
 
     const auto& p_var = opt_var.value();
@@ -433,14 +433,14 @@ void SemanticChecker::checkAssignStmt(const AssignStmtPtr& p_astmt)
 
     // 先检查右侧表达式是否合法
     auto expr_stmt = std::make_shared<ExprStmt>(p_astmt->expr);
-    symbol::VarType rhs_type = checkExpr(expr_stmt->expr);  // 你已有的表达式类型检查逻辑
+    symbol::VarType rhs_type = checkExpr(expr_stmt->expr);
 
     // 自动类型推导
     if (p_var->var_type == symbol::VarType::Unknown)
     {
         p_var->var_type = rhs_type;
     }
-    else if (p_var->var_type != rhs_type)
+    else if (rhs_type != symbol::VarType::Unknown && p_var->var_type != rhs_type)
     {
         p_ereporter->report(error::SemanticErrorType::TypeMismatch,
                             std::format("变量 '{}' 的类型不匹配", lhs_var->name),
