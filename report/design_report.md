@@ -39,9 +39,9 @@
 
 ### 1.3 小组成员及分工
 
-- 2251881 徐  宏：负责代码框架搭建，方法调研，全链条参与全过程，包括文件流、词法语法分析、AST、语义检查、中间代码生成和错误处理。
-- 2253299 戚澍闻：负责词法和语法分析部分模块，实现 AST 可视化、语义检查。
-- 2253691 陈书煊：负责词法和语法分析部分模块，实现错误处理部分模块，负责文档和 ppt 撰写。
+- 2251881 徐  宏：负责代码框架搭建，方法调研，全链条参与全过程，包括文件流、词法语法分析、AST、语义检查、中间代码生成、错误处理、文档撰写。
+- 2253299 戚澍闻：负责词法和语法分析部分模块，实现 AST 可视化、语义检查，参与文档和 PPT 撰写。
+- 2253691 陈书煊：负责词法和语法分析部分模块，实现错误处理部分模块，参与文档和 PPT 撰写。
 
 ### 1.4 持续集成
 
@@ -470,7 +470,7 @@ ParenthesisExpr -> "(" CmpExpr ")"
 IfExpr -> "if" Expr FuncExprBlockStmt "else" FuncExprBlockStmt
 ```
 
-#### 4.1.2 消除左递归
+#### 4.1.2 消除左递归cccccccccccccccccccccccccccccccccc
 
 产生式左递归主要出现在 Expr 相关内容：
 
@@ -2659,7 +2659,7 @@ void ErrorReporter::displaySemanticErr(const SemanticError& err) const {
 
 效果展示：
 
-<img src="./semantic_err.png" width=460/>
+<img src="./semantic_err.png" width=320/>
 
 <p>
 
@@ -2669,9 +2669,9 @@ void ErrorReporter::displaySemanticErr(const SemanticError& err) const {
 
 本项目在 Archlinux 和 WSL (Archlinux) 环境下完成开发及测试工作，具体信息如下：
 
-<img src="./arch1.png" width=500>
+<img src="./arch1.png" width=400>
 
-<img src="./arch2.png" width=500>
+<img src="./arch2.png" width=400>
 
 ### 10.2 编译器功能概述与使用方式
 
@@ -2709,11 +2709,11 @@ $ dot -Tpng path/to/output.dot -o AST.png
 
 具体帮助信息界面截图如下：
 
-<img src="output_ex/ex_help.png" width=500/>
+<img src="output_ex/ex_help.png" width=400/>
 
 编译器版本信息如下：
 
-<img src="output_ex/ex_version.png" width=500/>
+<img src="output_ex/ex_version.png" width=400/>
 
 ### 10.3 编译器功能测试与验证
 
@@ -2773,7 +2773,7 @@ $ ./build/toy_compiler -p -i test/test_case/1-1_2.rs
 
 会给出语法分析的结果：
 
-<img src="output_ex/ex_parser_success.png" width=500/>
+<img src="output_ex/ex_parser_success.png" width=700/>
 
 如图显示 `Parsing success`，同时可以得到 `output.dot`。
 
@@ -3028,11 +3028,11 @@ fn main(mut a :i32)
 
 下面运行 `./build/toy_compiler -s -i ./test/test_case_2/test_error.rs` 命令，测试错误检测效果，结果如下：
 
-<img src="output_ex/semantic_error_1.png" width=400>
+<img src="output_ex/semantic_error_1.png" width=350>
 
 <p>
 
-<img src="output_ex/semantic_error_2.png" width=400>
+<img src="output_ex/semantic_error_2.png" width=320>
 
 从输出结果可以看到，所有不符合语义规则的错误均被正确识别到了。
 
