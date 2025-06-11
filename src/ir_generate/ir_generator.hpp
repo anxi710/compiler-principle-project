@@ -84,7 +84,7 @@ class IrGenerator
     auto generateFactor(const parser::ast::FactorPtr& p_factor) -> std::string;
     auto generateElement(const parser::ast::ExprPtr& p_element) -> std::string;
     auto generateParenthesisExpr(const parser::ast::ParenthesisExprPtr& p_pexpr) -> std::string;
-    static auto generateNumber(const parser::ast::NumberPtr& p_number) -> std::string;
+    auto generateNumber(const parser::ast::NumberPtr& p_number) -> std::string;
     auto generateVariable(const parser::ast::VariablePtr& p_variable) -> std::string;
     void generateAssignStmt(const parser::ast::AssignStmtPtr& p_astmt);
     void generateIfStmt(const parser::ast::IfStmtPtr& p_istmt);

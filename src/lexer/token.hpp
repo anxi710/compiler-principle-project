@@ -41,31 +41,19 @@ class Token
      * @brief  获取 token 的值
      * @return token value
      */
-    [[nodiscard]]
-    auto getValue() const -> const std::string&
-    {
-        return this->value;
-    }
+    [[nodiscard]] auto getValue() const -> const std::string& { return this->value; }
 
     /**
      * @brief  获取 token 的类型
      * @return token type
      */
-    [[nodiscard]]
-    auto getType() const -> Type
-    {
-        return this->type;
-    }
+    [[nodiscard]] auto getType() const -> Type { return this->type; }
 
     /**
      * @brief  获取 token 的位置
      * @return Position
      */
-    [[nodiscard]]
-    auto getPos() const -> util::Position
-    {
-        return this->pos;
-    }
+    [[nodiscard]] auto getPos() const -> util::Position { return this->pos; }
 
     /**
      * @brief 设置 token 所在的文本位置
@@ -84,8 +72,7 @@ class Token
         this->pos.col = c;
     }
 
-    [[nodiscard]]
-    auto toString() const -> std::string;
+    [[nodiscard]] auto toString() const -> std::string;
 
    private:
     Type type;           // token type

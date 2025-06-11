@@ -187,9 +187,6 @@ void SemanticChecker::checkVarDeclStmt(const VarDeclStmtPtr& p_vdstmt)
  */
 void SemanticChecker::checkRetStmt(const RetStmtPtr& p_rstmt)
 {
-    // 由于存在函数返回值类型的自动推导，因此需要在 RetStmt
-    // 中判断所处函数是否指定了返回值类型，如果指定了与当前 RetStmt 的类型是否一致；
-    // 如果未指定，则设置相应函数符号的返回值类型为 RetStmt 中返回值类型
     std::string cfunc_name = p_stable->getFuncName();
     auto opt_func = p_stable->lookupFunc(cfunc_name);
     assert(opt_func.has_value());

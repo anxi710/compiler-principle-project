@@ -219,7 +219,7 @@ auto SymbolTable::getFuncName() -> std::string
 
 /**
  * @brief 检查作用域下变量是否有类型
- * @return 未定义类型变量 
+ * @return 未定义类型变量
  */
 auto SymbolTable::checkAutoTypeInference() const -> std::vector<VariablePtr>
 {

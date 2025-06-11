@@ -75,7 +75,8 @@ struct Node
     virtual ~Node() = default;
 
     void setPos(std::size_t row, std::size_t col) { pos = util::Position{row, col}; }
-    void setPos(util::Position pos) { this->pos = pos; };
+    void setPos(util::Position pos) { this->pos = pos; }
+    [[nodiscard]] auto getPos() const -> util::Position { return pos; }
     [[nodiscard]] virtual auto type() const -> NodeType = 0;
 };
 using NodePtr = std::shared_ptr<Node>;

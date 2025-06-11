@@ -21,7 +21,7 @@ struct Symbol
     Symbol() = default;
 
     void setPos(std::size_t row, std::size_t col) { pos = util::Position{row, col}; }
-    void setPos(util::Position pos) { this->pos = pos; };
+    void setPos(util::Position pos) { this->pos = pos; }
     explicit Symbol(std::string n) : name(std::move(n)) {}
     virtual ~Symbol() = default;
 };
