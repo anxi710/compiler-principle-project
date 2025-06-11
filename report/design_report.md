@@ -1668,7 +1668,7 @@ fn main(mut a :i32)
 
 - 保证表达式类型一致性
 
-- 支持作用域嵌套与遮蔽：`变量重影`
+- 支持作用域嵌套与遮蔽，及`变量重影`
 
 ### 7.2 类结构概览
 
@@ -1965,7 +1965,7 @@ auto SemanticChecker::checkCallExpr(const CallExprPtr& p_caexpr) -> symbol::VarT
     return p_func->retval_type;
 }
 ```
-按照顺序依次检查函数是否，然后检查实参与形参的个数是否匹配，最后检查所有实参的表达式。
+按照顺序依次检查函数是否定义，然后检查实参与形参的个数是否匹配，最后检查所有实参的表达式。
 
 2. 函数返回检查
 ```cpp
