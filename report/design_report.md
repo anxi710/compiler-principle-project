@@ -1,6 +1,6 @@
 <head>
     <meta charset="UTF-8">
-    <title>编译原理大作业 1 设计文档</title>
+    <title>编译原理大作业设计文档</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -12,34 +12,20 @@
 
 本项目使用 `C++` 实现一个类 `Rust` 语言的编译器前端，包括词法分析、语法分析、语义检查和中间代码生成四个部分。
 
-基本功能是对输入的类 `Rust` 程序实现词法分析、语法分析、语义检查和中间代码生成，并输出若干文件体现分析结果。
+基本功能是对输入的类 `Rust` 程序实现词法分析、语法分析、语义检查和中间代码生成，并输出若干文件展示分析结果。
 
-采用 \<type: , value: \>@pos 格式展示词法分析后的 Token 序列；采用 AST 树的形式展示语法分析结果；采用打印符号表和错误报告的方式展示语义检查结果；采用 (op, arg1, arg2, res) 格式展示中间代码生成结果。
+具体来说，采用 \<type: , value: \>@pos 格式展示词法分析后的 Token 序列；采用 AST 树的形式展示语法分析结果；采用打印符号表和错误报告的方式展示语义检查结果；采用 (op, arg1, arg2, res) 格式展示中间代码生成结果。
 
-<img src="grammar_graph.png" width=500/>
+项目实现的词法和语法分析器能够支持给出的所有产生式的推导，但是由于时间关系，AST 打印和后续的语义检查及中间代码生成只实现了基础部分。
 
-项目实现的词法和语法分析器能够支持所有给出的产生式的推导需求，但是由于时间关系，AST 打印和后续的语义检查及中间代码生成只实现了基础部分。
-
-### 1.2 持续集成
-
-为提升代码质量和团队协作效率，本项目集成了多种开发辅助工具，包括：
-
-- 使用 `clang-format` 和 `.editorconfig` 统一代码风格；
-
-- 利用 `clang-tidy` 进行静态代码分析；
-
-- 通过 `git hooks` 实现提交前自动格式化与编译检查。
-
-这些工具共同构成了项目开发中的 “轻量级持续集成（CI）” 流程的一部分，确保每次提交都满足基本的代码规范与质量要求。
-
-### 1.3 文件组织架构说明
+### 1.2 文件组织架构说明
 
 ```shell
 .
-├── .clang-format    # clang-format 格式设置
-├── .clang-tidy      # clang-tidy lint 检查设置
-├── .editorconfig    # 基础格式设置
-├── Makefile       # 构建文件
+├── .clang-format      # clang-format 格式设置
+├── .clang-tidy        # clang-tidy lint 检查设置
+├── .editorconfig      # 基础格式设置
+├── Makefile           # 构建文件
 └── src                # 源代码
     ├── preproc        # 预处理
     ├── lexer          # 词法分析
@@ -51,11 +37,25 @@
     └── main.cpp       # 程序入口点
 ```
 
-### 1.4 小组成员及分工
+### 1.3 小组成员及分工
 
 - 2251881 徐  宏：负责代码框架搭建，方法调研，全链条参与全过程，包括文件流、词法语法分析、AST、语义检查、中间代码生成和错误处理。
-- 2253299 戚澍闻：负责词法和语法分析部分模块，实现AST可视化、语义检查。
+- 2253299 戚澍闻：负责词法和语法分析部分模块，实现 AST 可视化、语义检查。
 - 2253691 陈书煊：负责词法和语法分析部分模块，实现错误处理部分模块，负责文档和 ppt 撰写。
+
+### 1.4 持续集成
+
+为提升代码质量和团队协作效率，本项目集成了多种开发辅助工具，包括：
+
+- 使用 `clang-format` 和 `.editorconfig` 统一代码风格；
+
+- 利用 `clang-tidy` 进行静态代码分析；
+
+- 通过 `git hooks` 实现提交前自动格式化与编译检查。
+
+这些工具共同构成了项目开发中的 “轻量级持续集成（CI）” 流程的一部分，确保每次提交都满足基本的代码规范与质量要求。
+
+<br>
 
 ## 2 总体设计
 
@@ -91,15 +91,21 @@
 
 ### 2.2 工作流程
 
-1. `main()` 函数接收命令行参数，根据参数确认输入文件 `in_file` 和输出文件 `output.token` & `output.dot`，实例化词法分析器 lexer 和语法分析器 parser。
+1. `main()` 函数接收命令行参数，根据参数确认输入和输出文件，实例化词法分析器 lexer 、语法分析器 parser、语义检查器 semantic checker、中间代码生成器 ir generator 和错误报告器 error reporter
 
-2. `lexer` 初始化一个 `keyword_table` 来记录需要识别的关键词，`lexer::nextToken()` 解析后续字符串，首先通过正则表达式识别 INT 和 ID 两类文法，在 ID 中识别各种关键词和保留字，在非 ID 和 INT 字符串中接着依次识别各种符号。
+2. lexer 初始化一个 keyword_table 来记录语言内置的关键字，并提供了 `lexer::nextToken()` 方法来遍历输入程序字符流解析词法单元 token
 
-3. `parser` 实现了 `advance`, `match`, `check`, `checkAhead` 和 `expect` 等工具对词法分析后的 token 进行匹配、检查、前向检查等操作，并从 `parseProgram()` 开始对所有的非终结符节点进行递归下降分析。
+3. parser 实现了 `advance`, `match`, `check`, `checkAhead` 和 `expect` 等工具函数对词法分析后的 token 进行匹配、检查、前向检查等操作，并从 `parseProgram()` 开始对所有的非终结符节点进行递归下降分析
 
-4. `ast` 根据 parser 的分析结果，将各个结点采用 dot 形式绘制出语法树。
+4. ast 根据 parser 的分析结果，将各个结点以 dot 文件格式打印输出，以便使用 Graphviz Dot 工具生成 AST 图片
 
-5. `error reporter` 在程序词法和语法分析器工作过程中收集错误并统一报告。
+5. semantic checker 使用 `parseProgram` 方法返回的 AST 根节点，调用 `checkProg` 方法深度优先、从左到右的遍历语法树，检查各节点对应的产生式附带的语义规则是否被满足
+
+6. ir generator 在语义检查通过后，根据产生式的语义规则以同样的顺序遍历 AST，并生成四元式
+
+7. error reporter 在程序词法和语法分析器工作过程中收集错误并统一报告
+
+<br>
 
 ## 3 词法分析详细设计
 
@@ -112,42 +118,29 @@
 ```cpp
 class Token {
 public:
-    Token() = default;
-    explicit Token(const Type& t, const std::string& v,
-        const base::Position& p = base::Position{0, 0})
-        : type(t), value(v), pos(p) {}
-    Token(const Token& other) : type(other.type), value(other.value), pos(other.pos) {}
-    Token(Token&& other) : type(std::move(other.type)),
-        value(std::move(other.value)), pos(std::move(other.pos)) {}
+  Token() = default;
+  Token(const Type&, std::string, const util::Position&);
+  Token(const Token& other) = default;
+  Token(Token&& other) noexcept;
+  ~Token() = default;
 
-    ~Token() = default;
+  Token& operator=(const Token& rhs);
+  bool operator==(const Token& rhs);
 
-    Token& operator=(const Token& rhs) = default;
-    bool operator==(const Token& rhs) {
-        return this->type == rhs.type && this->value == rhs.value;
-    }
 public:
-    inline const std::string& getValue() const {
-        return this->value;
-    }
-    inline const Type getType() const {
-        return this->type;
-    }
-    inline const base::Position getPos() const {
-        return this->pos;
-    }
-    inline void setPos(const base::Position& p) {
-        this->pos = p;
-    }
-    inline void setPos(std::size_t r, std::size_t c) {
-        this->pos.row = r;
-        this->pos.col = c;
-    }
-    const std::string toString() const;
+  [[nodiscard]] auto getValue() const -> const std::string&;
+  [[nodiscard]] auto getType() const -> Type;
+  [[nodiscard]] auto getPos() const -> util::Position;
+
+  void setPos(const util::Position& p);
+  void setPos(std::size_t r, std::size_t c);
+
+  [[nodiscard]] auto toString() const -> std::string;
+
 private:
-    Type           type;  // token type
-    std::string    value; // string
-    base::Position pos;   // position
+  Type type;           // token type
+  std::string value;   // 组成 token 的字符串
+  util::Position pos;  // position
 };
 ```
 
@@ -156,52 +149,52 @@ private:
 ```cpp
 // token type
 enum class Type {
-    // Group 0
-    END, // end of file
+  // Group 0
+  END, // end of file
 
-    // Group 1
-    ID, INT, // identifier, integer
-    IF, ELSE,
-    WHILE, FOR,
-    I32,
-    LET,
-    RETURN,
-    MUT,
-    FN,
-    IN,
-    LOOP,
-    BREAK, CONTINUE,
+  // Group 1
+  ID, INT, // identifier, integer
+  IF, ELSE,
+  WHILE, FOR,
+  I32,
+  LET,
+  RETURN,
+  MUT,
+  FN,
+  IN,
+  LOOP,
+  BREAK, CONTINUE,
 
-    REF,        //  &
-    LPAREN,     //  (
-    RPAREN,     //  )
-    LBRACE,     //  {
-    RBRACE,     //  }
-    LBRACK,     //  [
-    RBRACK,     //  ]
-    SEMICOLON,  //  ;
-    COLON,      //  :
-    COMMA,      //  ,
-    OP_PLUS,    //  +
+  REF,        //  &
+  LPAREN,     //  (
+  RPAREN,     //  )
+  LBRACE,     //  {
+  RBRACE,     //  }
+  LBRACK,     //  [
+  RBRACK,     //  ]
+  SEMICOLON,  //  ;
+  COLON,      //  :
+  COMMA,      //  ,
+  OP_PLUS,    //  +
 
-    // Group 2
-    ASSIGN,     //  =
-    OP_MINUS,   //  -
-    OP_MUL,     //  *
-    OP_DIV,     //  /
-    OP_GT,      //  >
-    OP_LT,      //  <
-    DOT,        //  .
+  // Group 2
+  ASSIGN,     //  =
+  OP_MINUS,   //  -
+  OP_MUL,     //  *
+  OP_DIV,     //  /
+  OP_GT,      //  >
+  OP_LT,      //  <
+  DOT,        //  .
 
-    OP_EQ,      //  ==
-    OP_NEQ,     //  !=
-    OP_GE,      //  >=
-    OP_LE,      //  <=
-    DOTS,       //  ..
-    ARROW,      //  ->
-    SIN_COM,    //  //
-    LMUL_COM,   //  /*
-    RMUL_COM    //  */
+  OP_EQ,      //  ==
+  OP_NEQ,     //  !=
+  OP_GE,      //  >=
+  OP_LE,      //  <=
+  DOTS,       //  ..
+  ARROW,      //  ->
+  SIN_COM,    //  //
+  LMUL_COM,   //  /*
+  RMUL_COM    //  */
 };
 ```
 
@@ -209,68 +202,53 @@ enum class Type {
 
 #### 3.2.1 关键字表实现
 
-关键字表包含一个 `std::unordered_map` 哈希表结构，外部可以通过传入 name 获得对应的 token type. 这里的 token type 是枚举类 `lexer::token::Type` 中的一员。
+关键字表包含一个 `std::unordered_map` 存储关键字，外部可以通过传入 name 获得对应的 token type. 这里的 token type 是枚举类 `lexer::token::Type` 中的一员。
 
 ```cpp
 class KeywordTable {
 public:
-    KeywordTable()  = default;
-    ~KeywordTable() = default;
+  KeywordTable() = default;
+  ~KeywordTable() = default;
+
 public:
-    inline bool iskeyword(std::string v) const {
-        return (keywords.find(v) != keywords.end());
-    }
-    token::Type getKeyword(std::string v) const {
-        std::ostringstream oss;
-        if (keywords.find(v) == keywords.end()) {
-            oss << "parameter (" << v << ") is not a keyword!";
-            reporter->report(
-                error::InternalErrorType::UnknownKeyword,
-                oss.str()
-            );
-        }
-        return keywords.find(v)->second;
-    }
-    inline void addKeyword(std::string n, token::Type t) {
-        this->keywords.emplace(n, t);
-    }
-    inline void setErrReporter(std::shared_ptr<error::ErrorReporter> reporter) {
-        this->reporter = std::move(reporter);
-    }
+  bool iskeyword(const std::string&) const;
+  token::Type getKeyword(const std::string&) const;
+  void addKeyword(std::string, token::Type);
+  void setErrReporter(std::shared_ptr<error::ErrorReporter>);
+
 private:
-    std::shared_ptr<error::ErrorReporter>        reporter;
-    std::unordered_map<std::string, token::Type> keywords;
+  std::shared_ptr<error::ErrorReporter> reporter;
+  std::unordered_map<std::string, token::Type> keywords;
 };
 ```
 
 Lexer 在初始化时构造关键词表,供后续词法分析使用.
 
 ```cpp
-void ToyLexer::initKeywordTable(void) {
-    using token::Token;
-    keyword_table.addKeyword("if",       Token::IF);
-    keyword_table.addKeyword("fn",       Token::FN);
-    keyword_table.addKeyword("in",       Token::IN);
-    keyword_table.addKeyword("i32",      Token::I32);
-    keyword_table.addKeyword("let",      Token::LET);
-    keyword_table.addKeyword("mut",      Token::MUT);
-    keyword_table.addKeyword("for",      Token::FOR);
-    keyword_table.addKeyword("loop",     Token::LOOP);
-    keyword_table.addKeyword("else",     Token::ELSE);
-    keyword_table.addKeyword("break",    Token::BREAK);
-    keyword_table.addKeyword("while",    Token::WHILE);
-    keyword_table.addKeyword("return",   Token::RETURN);
-    keyword_table.addKeyword("continue", Token::CONTINUE);
-    this->keyword_table.setErrReporter(this->reporter);
+void ToyLexer::initKeywordTable() {
+  using token::Token;
+  keyword_table.addKeyword("if",       Token::IF);
+  keyword_table.addKeyword("fn",       Token::FN);
+  keyword_table.addKeyword("in",       Token::IN);
+  keyword_table.addKeyword("i32",      Token::I32);
+  keyword_table.addKeyword("let",      Token::LET);
+  keyword_table.addKeyword("mut",      Token::MUT);
+  keyword_table.addKeyword("for",      Token::FOR);
+  keyword_table.addKeyword("loop",     Token::LOOP);
+  keyword_table.addKeyword("else",     Token::ELSE);
+  keyword_table.addKeyword("break",    Token::BREAK);
+  keyword_table.addKeyword("while",    Token::WHILE);
+  keyword_table.addKeyword("return",   Token::RETURN);
+  keyword_table.addKeyword("continue", Token::CONTINUE);
+  this->keyword_table.setErrReporter(this->reporter);
 }
 ```
 
 #### 3.2.2 有限自动机设计
 
-<br>
-<img src="lexer_DFA_1.png" height=600/>
+<img src="lexer_DFA_1.png" height=500/>
 
-<img src="lexer_DFA_2.png" height=700/>
+<img src="lexer_DFA_2.png" height=500/>
 
 #### 3.2.3有限自动机实现
 
@@ -278,8 +256,8 @@ step 1：采用 `std::regex` 库使用正则表达式匹配 INT 和 ID 类。
 
 ```cpp
 static const std::vector<std::pair<token::Type, std::regex>> patterns {
-    {token::Type::ID,  std::regex{R"(^[a-zA-Z_]\w*)"}},
-    {token::Type::INT, std::regex{R"(^\d+)"}}
+  {token::Type::ID,  std::regex{R"(^[a-zA-Z_]\w*)"}},
+  {token::Type::INT, std::regex{R"(^\d+)"}}
 };
 ```
 
@@ -288,16 +266,16 @@ step 2: 若匹配到ID,检查是否为关键词.
 ```cpp
 std::string view {this->text[this->pos.row].substr(this->pos.col)};
 for (const auto& [type, expression] : patterns) {
-    std::smatch match;
-    if (std::regex_search(view, match, expression)) {
-        auto p = this->pos;
-        shiftPos(match.length(0));
-        if (type == token::Type::ID && this->keyword_table.iskeyword(match.str(0))) {
-            auto keyword_type = this->keyword_table.getKeyword(match.str(0));
-            return Token{keyword_type, match.str(0), p};
-        }
-        return Token{type, match.str(0), p};
+  std::smatch match;
+  if (std::regex_search(view, match, expression)) {
+    auto p = this->pos;
+    shiftPos(match.length(0));
+    if (type == token::Type::ID && this->keyword_table.iskeyword(match.str(0))) {
+      auto keyword_type = this->keyword_table.getKeyword(match.str(0));
+      return Token{keyword_type, match.str(0), p};
     }
+    return Token{type, match.str(0), p};
+  }
 }
 ```
 
@@ -311,125 +289,121 @@ char  second_char {view.length() > 1 ? view[1] : '\0'}; // 第二个字符
 // 检测算符和标点符号
 switch (first_char) {
 default:
-    break;
+  break;
 case '(':
-    token = Token{token::Type::LPAREN, std::string{"("}};
-    break;
+  token = Token{token::Type::LPAREN, std::string{"("}};
+  break;
 case ')':
-    token = Token{token::Type::RPAREN, std::string{")"}};
-    break;
+  token = Token{token::Type::RPAREN, std::string{")"}};
+  break;
 case '{':
-    token = Token{token::Type::LBRACE, std::string{"{"}};
-    break;
+  token = Token{token::Type::LBRACE, std::string{"{"}};
+  break;
 case '}':
-    token = Token{token::Type::RBRACE, std::string{"}"}};
-    break;
+  token = Token{token::Type::RBRACE, std::string{"}"}};
+  break;
 case '[':
-    token = Token{token::Type::LBRACK, std::string{"["}};
-    break;
+  token = Token{token::Type::LBRACK, std::string{"["}};
+  break;
 case ']':
-    token = Token{token::Type::RBRACK, std::string{"]"}};
-    break;
+  token = Token{token::Type::RBRACK, std::string{"]"}};
+  break;
 case ';':
-    token = Token{token::Type::SEMICOLON, std::string{";"}};
-    break;
+  token = Token{token::Type::SEMICOLON, std::string{";"}};
+  break;
 case ':':
-    token = Token{token::Type::COLON, std::string{":"}};
-    break;
+  token = Token{token::Type::COLON, std::string{":"}};
+  break;
 case ',':
-    token = Token{token::Type::COMMA, std::string{","}};
-    break;
+  token = Token{token::Type::COMMA, std::string{","}};
+  break;
 case '+':
-    token = Token{token::Type::OP_PLUS, std::string{"+"}};
-    break;
+  token = Token{token::Type::OP_PLUS, std::string{"+"}};
+  break;
 case '=':
-    if (second_char == '='){
-        token = Token{token::Type::OP_EQ, std::string{"=="}};
-    } else {
-        token = Token{token::Type::ASSIGN, std::string{"="}};
-    }
-    break;
+  if (second_char == '='){
+    token = Token{token::Type::OP_EQ, std::string{"=="}};
+  } else {
+    token = Token{token::Type::ASSIGN, std::string{"="}};
+  }
+  break;
 case '-':
-    if (second_char == '>'){
-        token = Token{token::Type::ARROW, std::string{"->"}};
-    } else {
-        token = Token{token::Type::OP_MINUS, std::string{"-"}};
-    }
-    break;
+  if (second_char == '>'){
+    token = Token{token::Type::ARROW, std::string{"->"}};
+  } else {
+    token = Token{token::Type::OP_MINUS, std::string{"-"}};
+  }
+  break;
 case '*':
-    if (second_char == '/'){
-        token = Token{token::Type::RMUL_COM, std::string{"*/"}};
-    } else {
-        token = Token{token::Type::OP_MUL, std::string{"*"}};
-    }
-    break;
+  if (second_char == '/'){
+    token = Token{token::Type::RMUL_COM, std::string{"*/"}};
+  } else {
+    token = Token{token::Type::OP_MUL, std::string{"*"}};
+  }
+  break;
 case '/':
-    if (second_char == '/'){
-        token = Token{token::Type::SIN_COM, std::string{"//"}};
-    } else if (second_char == '*'){
-        token = Token{token::Type::LMUL_COM, std::string{"/*"}};
-    } else {
-        token = Token{token::Type::OP_DIV, std::string{"/"}};
-    }
-    break;
+  if (second_char == '/'){
+    token = Token{token::Type::SIN_COM, std::string{"//"}};
+  } else if (second_char == '*'){
+    token = Token{token::Type::LMUL_COM, std::string{"/*"}};
+  } else {
+    token = Token{token::Type::OP_DIV, std::string{"/"}};
+  }
+  break;
 case '>':
-    if (second_char == '=') {
-        token = Token{token::Type::OP_GE, std::string{">="}};
-    } else {
-        token = Token{token::Type::OP_GT, std::string{">"}};
-    }
-    break;
+  if (second_char == '=') {
+    token = Token{token::Type::OP_GE, std::string{">="}};
+  } else {
+    token = Token{token::Type::OP_GT, std::string{">"}};
+  }
+  break;
 case '<':
-    if (second_char == '='){
-        token = Token{token::Type::OP_LE, std::string{"<="}};
-    } else {
-        token = Token{token::Type::OP_LT, std::string{"<"}};
-    }
-    break;
+  if (second_char == '='){
+    token = Token{token::Type::OP_LE, std::string{"<="}};
+  } else {
+    token = Token{token::Type::OP_LT, std::string{"<"}};
+  }
+  break;
 case '.':
-    if(second_char == '.'){
-        token = Token{token::Type::DOTS, std::string{".."}};
-    } else{
-        token = Token{token::Type::DOT, std::string{"."}};
-    }
-    break;
+  if(second_char == '.'){
+    token = Token{token::Type::DOTS, std::string{".."}};
+  } else{
+    token = Token{token::Type::DOT, std::string{"."}};
+  }
+  break;
 case '!':
-    if(second_char == '='){
-        token = Token{token::Type::OP_NEQ, std::string{"!="}};
-    }
-    break;
+  if(second_char == '='){
+    token = Token{token::Type::OP_NEQ, std::string{"!="}};
+  }
+  break;
 case '&':
-    token = Token{token::Type::Ref, std::string{"&"}};
-    break;
+  token = Token{token::Type::Ref, std::string{"&"}};
+  break;
 }
 
 token.setPos(this->pos);
 if (!token.getValue().empty()) {
-    this->pos += token.getValue().length();
-    return token;
+  shiftPos(token.getValue().length());
+  return token;
 }
 
-base::Position p = this->pos;
-std::size_t idx = 0;
-for (; idx < view.length(); ++idx) {
-    if (std::isspace(view[idx])) {
-        break;
-    }
-}
-shiftPos(idx);
+util::Position p = this->pos;
+shiftPos(1);
 
 return std::unexpected(error::LexError{
-    error::LexErrorType::UnknownToken,
-    "识别到未知 token: " + view.substr(0, idx),
-    p.row,
-    p.col,
-    view.substr(0, idx)
+  error::LexErrorType::UnknownToken,
+  "识别到未知 token: " + view.substr(0, 1),
+  p.row,
+  p.col,
+  view.substr(0, 1)
 });
 ```
 
 #### 3.2.4 位置信息跟踪
 
 在 `lexer` 中定义了数据成员 `pos` 记录当前分析到的代码位置，从而获取位置信息并对每个 token 赋予位置信息。
+
+<br>
 
 ## 4 语法分析详细设计
 
@@ -440,14 +414,14 @@ return std::unexpected(error::LexError{
 采用 LL(2) 兼容的上下文无关文法，核心规则如下：
 
 ```shell
-Prog        → Decl*
-Decl        → FuncDecl
-FuncDecl    → "fn" ID "(" Args ")" ("->" VarType)? BlockStmt
-Args        → (Arg ("," Arg)*)?
-Arg         → ("mut")? ID ":" VarType
-BlockStmt   → "{" Stmt* "}"
-Stmt        → VarDeclStmt | AssignStmt | IfStmt | WhileStmt | ...
-Expr        → FuncExprBlockStmt | IfExpr | LoopStmt | CmpExpr
+Prog -> Decl*
+Decl -> FuncDecl
+FuncDecl -> "fn" ID "(" Args ")" ("->" VarType)? BlockStmt
+Args -> (Arg ("," Arg)*)?
+Arg -> ("mut")? ID ":" VarType
+BlockStmt -> "{" Stmt* "}"
+Stmt > VarDeclStmt | AssignStmt | IfStmt | WhileStmt | ...
+Expr -> FuncExprBlockStmt | IfExpr | LoopStmt | CmpExpr | ...
 ```
 
 实际实现的产生式如下：
@@ -456,26 +430,26 @@ Expr        → FuncExprBlockStmt | IfExpr | LoopStmt | CmpExpr
 Prog -> (FuncDecl)*
 FuncDecl -> FuncHeaderDecl BlockStmt
 BlockStmt -> FuncExprBlockStmt
-FuncHeaderDecl -> "fn" "<ID>" "(" (arg ("," arg)*)? ")" ("->" VarType)?
+FuncHeaderDecl -> "fn" "ID" "(" (arg ("," arg)*)? ")" ("->" VarType)?
 arg -> VarDeclBody ":" VarType
-VarDeclBody -> ("mut")? "<ID>"
+VarDeclBody -> ("mut")? "ID"
 VarType -> (["&" | "&" "mut"])? [Integer | Array | Tuple]
 Integer -> "i32"
-Array -> "[" VarType ";" "<INT>" "]"
+Array -> "[" VarType ";" "INT" "]"
 Tuple -> "(" (VarType ",")+ (VarType)? ")"
 BlockStmt -> "{" (Stmt)* "}"
 FuncExprBlockStmt -> "{" (Stmt)* Expr "}"
-Stmt -> VarDeclStmt | RetStmt | CallExpr | AssignStmt | ExprStmt | IfStmt | WhileStmt | ForStmt | LoopStmt | BreakStmt | ContinueStmt | NullStmt
-VarDeclStmt -> "let" ("mut")? "<ID>" (":" VarType)? ("=" Expr)? ";"
+Stmt -> VarDeclStmt | RetStmt | AssignStmt | ExprStmt | IfStmt | WhileStmt | ForStmt | LoopStmt | BreakStmt | ContinueStmt | NullStmt
+VarDeclStmt -> "let" ("mut")? "ID" (":" VarType)? ("=" Expr)? ";"
 RetStmt -> "return" (CmpExpr)? ";"
-CallExpr -> "<ID>" "(" (arg ("," arg)*)? ")"
+CallExpr -> "ID" "(" (arg ("," arg)*)? ")"
 AssignStmt -> AssignElement "=" Expr ";"
-AssignElement -> Deference | ArrayAccess | TupleAccess | Variable
-Deference -> "*" "<ID>"
-ArrayAccess -> "<ID>" "[" Expr "]"
-TupleAccess -> "<ID>" "." "<INT>"
-Variable -> "<ID>"
-ExprStmt -> Expr ";"
+AssignElement -> Dereference | ArrayAccess | TupleAccess | Variable
+Dereference -> "*" "ID"
+ArrayAccess -> "ID" "[" Expr "]"
+TupleAccess -> "ID" "." "INT"
+Variable -> "ID"
+ExprStmt -> Expr ";" | CallExpr ";"
 IfStmt -> "if" CmpExpr BlockStmt (ElseClause)*
 ElseClause -> "else" ("if" Expr)? BlockStmt
 WhileStmt -> "while" CmpExpr BlockStmt
@@ -484,14 +458,14 @@ LoopStmt -> "loop" BlockStmt
 BreakStmt -> "break" (Expr)? ";"
 ContinueStmt -> "continue" ";"
 NullStmt -> ";"
-Expr -> FuncExprBlockStmt | IfExpr | loopExpr | CmpExpr
+Expr -> FuncExprBlockStmt | IfExpr | loopExpr | CmpExpr | AddExpr | MulExpr | Factor
 CmpExpr -> AddExpr ([< | <= | > | >= | == | !=] AddExpr)*
 AddExpr -> MulExpr ([+ | -] MulExpr)*
 MulExpr -> Factor ([* | /] Factor)*
-Factor -> ArrayElements | TupleElements | (["&" | "&" "mut"])? Element | ParenthesisExpr
+Factor -> ArrayElements | TupleElements | (["&" | "&" "mut"])? Element
 ArrayElements -> "[" Expr ("," Expr)* "]"
 TupleElements -> "(" (Expr ",")+ (Expr)? ")"
-Element -> ParenthesisExpr | "<INT>" | AssignElement | CallExpr | Variable
+Element -> ParenthesisExpr | "INT" | AssignElement | CallExpr | Variable
 ParenthesisExpr -> "(" CmpExpr ")"
 IfExpr -> "if" Expr FuncExprBlockStmt "else" FuncExprBlockStmt
 ```
@@ -515,21 +489,21 @@ Expr -> CmpExpr
 CmpExpr -> AddExpr ([< | <= | > | >= | == | !=] AddExpr)*
 AddExpr -> MulExpr ([+ | -] MulExpr)*
 MulExpr -> Factor ([* | /] Factor)*
-Factor -> ArrayElements | TupleElements | (["&" | "&" "mut"])? Element | ParenthesisExpr
+Factor -> ArrayElements | TupleElements | (["&" | "&" "mut"])? Element
 ```
 
 #### 4.1.3 通过 vector 实现右递归减少递归层数
 
-以 `Args → (Arg ("," Arg)*)?` 为例，采用 `std::vector` 来代替右递归.
+以 `Args -> (Arg ("," Arg)*)?` 为例，采用 `std::vector` 来代替右递归.
 
 ```cpp
 std::vector<ast::ArgPtr> argv {};
 while(!check(TokenType::RPAREN)) {
-    argv.push_back(parseArg());
-    if (!check(TokenType::COMMA)) {
-        break;
-    }
-    advance();
+  argv.push_back(parseArg());
+  if (!check(TokenType::COMMA)) {
+    break;
+  }
+  advance();
 }
 ```
 
@@ -540,17 +514,17 @@ while(!check(TokenType::RPAREN)) {
 ```cpp
 class Parser {
 private:
-    void advance();
-    bool match(lexer::token::Type type);
-    bool check(lexer::token::Type type) const;
-    bool checkAhead(lexer::token::Type type);
-    void expect(lexer::token::Type type, const std::string& error_msg);
+  void advance();
+  bool match(lexer::token::Type type);
+  bool check(lexer::token::Type type) const;
+  bool checkAhead(lexer::token::Type type);
+  void expect(lexer::token::Type type, const std::string& error_msg);
 
 private:
-    std::shared_ptr<error::ErrorReporter> reporter; // error reporter
-    std::function<std::expected<lexer::token::Token, error::LexError>()> nextTokenFunc; // 获取下一个 token
-    lexer::token::Token                current;   // 当前看到的 token
-    std::optional<lexer::token::Token> lookahead; // 往后看一个 token
+  std::shared_ptr<error::ErrorReporter> reporter; // error reporter
+  std::function<std::expected<lexer::token::Token, error::LexError>()> nextTokenFunc; // 获取下一个 token
+  lexer::token::Token                current;   // 当前看到的 token
+  std::optional<lexer::token::Token> lookahead; // 往后看一个 token
 };
 ```
 
@@ -567,17 +541,17 @@ private:
  * @brief 向前扫描一个 token
  */
 void Parser::advance() {
-    if (lookahead.has_value()) {
-        current = lookahead.value();
-        lookahead.reset(); // 清除 lookahead 中的值
-    } else {
-        if (auto token = nextTokenFunc();
-            token.has_value()) {
-            current = token.value();
-        } else { // 识别到未知 token，且需立即终止
-            reporter->report(token.error(), true);
-        }
+  if (lookahead.has_value()) {
+    current = lookahead.value();
+    lookahead.reset(); // 清除 lookahead 中的值
+  } else {
+    if (auto token = nextTokenFunc();
+      token.has_value()) {
+      current = token.value();
+    } else { // 识别到未知 token，且需立即终止
+      reporter->report(token.error(), true);
     }
+  }
 }
 
 /**
@@ -586,11 +560,11 @@ void Parser::advance() {
  * @return 是否成功匹配
  */
 bool Parser::match(lexer::token::Type type) {
-    if (check(type)) {
-        advance();
-        return true;
-    }
-    return false;
+  if (check(type)) {
+    advance();
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -599,7 +573,7 @@ bool Parser::match(lexer::token::Type type) {
  * @return 是否通过检查
  */
 bool Parser::check(lexer::token::Type type) const {
-    return current.getType() == type;
+  return current.getType() == type;
 }
 
 /**
@@ -608,15 +582,15 @@ bool Parser::check(lexer::token::Type type) const {
  * @return 是否通过检查
  */
 bool Parser::checkAhead(lexer::token::Type type) {
-    if (!lookahead.has_value()) {
-        if (auto token = nextTokenFunc();
-            token.has_value()) {
-            lookahead = token.value(); // 获取下一个 token
-        } else { // 识别到未知 token，且需立即终止
-            reporter->report(token.error(), true);
-        }
+  if (!lookahead.has_value()) {
+    if (auto token = nextTokenFunc();
+      token.has_value()) {
+      lookahead = token.value(); // 获取下一个 token
+    } else { // 识别到未知 token，且需立即终止
+      reporter->report(token.error(), true);
     }
-    return lookahead.has_value() && lookahead->getType() == type;
+  }
+  return lookahead.has_value() && lookahead->getType() == type;
 }
 
 /**
@@ -625,15 +599,15 @@ bool Parser::checkAhead(lexer::token::Type type) {
  * @param msg  错误信息
  */
 void Parser::expect(lexer::token::Type type, const std::string& msg) {
-    if (!match(type)) {
-        reporter->report(
-            error::ParseErrorType::UnexpectToken,
-            msg,
-            current.getPos().row,
-            current.getPos().col,
-            current.getValue()
-        );
-    }
+  if (!match(type)) {
+    reporter->report(
+      error::ParseErrorType::UnexpectToken,
+      msg,
+      current.getPos().row,
+      current.getPos().col,
+      current.getValue()
+    );
+  }
 }
 ```
 
@@ -644,32 +618,31 @@ void Parser::expect(lexer::token::Type type, const std::string& msg) {
 对于每个非终结符，都有对应的解析函数：
 
 ```cpp
-ast::ProgPtr              parseProgram();
-ast::FuncDeclPtr          parseFuncDecl();
-ast::FuncHeaderDeclPtr    parseFuncHeaderDecl();
-ast::NodePtr              parseStmtOrExpr();
-ast::BlockStmtPtr         parseBlockStmt();
-ast::RetStmtPtr           parseRetStmt();
-ast::ArgPtr               parseArg();
-ast::VarDeclStmtPtr       parseVarDeclStmt();
-ast::AssignStmtPtr        parseAssignStmt(ast::AssignElementPtr&&);
-ast::AssignElementPtr     parseAssignElement();
-ast::ExprPtr              parseExpr(std::optional<ast::AssignElementPtr>);
-ast::ExprPtr              parseCmpExpr(std::optional<ast::AssignElementPtr>);
-ast::ExprPtr              parseAddExpr(std::optional<ast::AssignElementPtr>);
-ast::ExprPtr              parseMulExpr(std::optional<ast::AssignElementPtr>);
-ast::ExprPtr              parseFactor(std::optional<ast::AssignElementPtr>);
-ast::ExprPtr              parseElementExpr(std::optional<ast::AssignElementPtr>);
-ast::CallExprPtr          parseCallExpr();
-ast::IfStmtPtr            parseIfStmt();
-ast::ElseClausePtr        parseElseClause();
-ast::WhileStmtPtr         parseWhileStmt();
-ast::ForStmtPtr           parseForStmt();
-ast::LoopStmtPtr          parseLoopStmt();
-ast::VarTypePtr           parseVarType();
-ast::FuncExprBlockStmtPtr parseFuncExprBlockStmt();
-ast::IfExprPtr            parseIfExpr();
-ast::BreakStmtPtr         parseBreakStmt();
+auto parseArg() -> ast::ArgPtr;
+auto parseIfExpr() -> ast::IfExprPtr;
+auto parseIfStmt() -> ast::IfStmtPtr;
+auto parseForStmt() -> ast::ForStmtPtr;
+auto parseRetStmt() -> ast::RetStmtPtr;
+auto parseVarType() -> ast::VarTypePtr;
+auto parseFuncDecl() -> ast::FuncDeclPtr;
+auto parseCallExpr() -> ast::CallExprPtr;
+auto parseLoopStmt() -> ast::LoopStmtPtr;
+auto parseBlockStmt() -> ast::BlockStmtPtr;
+auto parseBreakStmt() -> ast::BreakStmtPtr;
+auto parseWhileStmt() -> ast::WhileStmtPtr;
+auto parseElseClause() -> ast::ElseClausePtr;
+auto parseStmtOrExpr() -> ast::NodePtr;
+auto parseVarDeclStmt() -> ast::VarDeclStmtPtr;
+auto parseAssignElement() -> ast::AssignElementPtr;
+auto parseFuncHeaderDecl() -> ast::FuncHeaderDeclPtr;
+auto parseFuncExprBlockStmt() -> ast::FuncExprBlockStmtPtr;
+auto parseAssignStmt(AssignElementPtr&&) -> ast::AssignStmtPtr;
+auto parseExpr(optional<AssignElementPtr>) -> ast::ExprPtr;
+auto parseFactor(optional<AssignElementPtr>) -> ast::ExprPtr;
+auto parseCmpExpr(optional<AssignElementPtr>) -> ast::ExprPtr;
+auto parseAddExpr(optional<AssignElementPtr>) -> ast::ExprPtr;
+auto parseMulExpr(optional<AssignElementPtr>) -> ast::ExprPtr;
+auto parseElement(optional<AssignElementPtr>) -> ast::ExprPtr;
 ```
 
 每个函数的返回值都是 AST 结点指针，顶层是 `parseProgram()` 供外部调用，由此逐层向下递归分析整个程序。
@@ -685,33 +658,33 @@ ast::BreakStmtPtr         parseBreakStmt();
  */
 [[nodiscard]]
 ast::FuncHeaderDeclPtr Parser::parseFuncHeaderDecl() {
-    // FuncHeaderDecl -> fn <ID> ( (arg (, arg)*)? ) (-> VarType)?
-    using TokenType = lexer::token::Type;
+  // FuncHeaderDecl -> fn <ID> ( (arg (, arg)*)? ) (-> VarType)?
+  using TokenType = lexer::token::Type;
 
-    expect(TokenType::FN, "此处期望有一个 'fn'");
+  expect(TokenType::FN, "此处期望有一个 'fn'");
 
-    std::string name = current.getValue(); // function name
-    expect(TokenType::ID, "此处期望有一个 '<ID>' 作为函数名");
+  std::string name = current.getValue(); // function name
+  expect(TokenType::ID, "此处期望有一个 '<ID>' 作为函数名");
 
-    expect(TokenType::LPAREN, "此处期望有一个 '('");
+  expect(TokenType::LPAREN, "此处期望有一个 '('");
 
-    std::vector<ast::ArgPtr> argv {};
-    while(!check(TokenType::RPAREN)) {
-        argv.push_back(parseArg());
-        if (!check(TokenType::COMMA)) {
-            break;
-        }
-        advance();
+  std::vector<ast::ArgPtr> argv {};
+  while(!check(TokenType::RPAREN)) {
+    argv.push_back(parseArg());
+    if (!check(TokenType::COMMA)) {
+      break;
     }
+    advance();
+  }
 
-    expect(TokenType::RPAREN, "Expected ')'");
+  expect(TokenType::RPAREN, "Expected ')'");
 
-    if (check(TokenType::ARROW)) {
-        expect(TokenType::ARROW, "Expected '->'");
-        auto type = parseVarType();
-        return std::make_shared<ast::FuncHeaderDecl>(std::move(name), std::move(argv), std::move(type));
-    }
-    return std::make_shared<ast::FuncHeaderDecl>(std::move(name), std::move(argv), std::nullopt);
+  if (check(TokenType::ARROW)) {
+    expect(TokenType::ARROW, "Expected '->'");
+    auto type = parseVarType();
+    return std::make_shared<ast::FuncHeaderDecl>(std::move(name), std::move(argv), std::move(type));
+  }
+  return std::make_shared<ast::FuncHeaderDecl>(std::move(name), std::move(argv), std::nullopt);
 }
 ```
 
@@ -728,59 +701,61 @@ ast::FuncHeaderDeclPtr Parser::parseFuncHeaderDecl() {
  */
 [[nodiscard]]
 ast::NodePtr Parser::parseStmtOrExpr() {
-    using TokenType = lexer::token::Type;
+  using TokenType = lexer::token::Type;
 
-    ast::StmtPtr stmt {};
-    if (check(TokenType::LET)) {
-        stmt = parseVarDeclStmt();
-    } else if (check(TokenType::RETURN)) {
-        stmt = parseRetStmt();
-    } else if (check(TokenType::ID)||check(TokenType::OP_MUL)) {
-        if (check(TokenType::ID) && checkAhead(TokenType::LPAREN)) {
-            return parseCallExpr();
-        }
-        /*
-         * x, *x, x[idx], x.idx 都即可以作为赋值语句的左值，
-         * 又可以作为表达式的一个操作数
-         */
-        auto elem = parseAssignElement();
-        if (check(TokenType::ASSIGN)) {
-            stmt =  parseAssignStmt(std::move(elem));
-        } else {
-            return parseExpr(elem);
-        }
-    } else if (check(TokenType::INT)||check(TokenType::LPAREN)) {
-        return parseExpr();
-    } else if (check(TokenType::IF)) {
-        stmt = parseIfStmt();
-    } else if (check(TokenType::WHILE)) {
-        stmt = parseWhileStmt();
-    } else if (check(TokenType::FOR)) {
-        stmt = parseForStmt();
-    } else if (check(TokenType::LOOP)) {
-        stmt = parseLoopStmt();
-    } else if (check(TokenType::BREAK)) {
-        stmt = parseBreakStmt();
-    } else if (check(TokenType::CONTINUE)) {
-        stmt = std::make_shared<ast::ContinueStmt>();
-        advance();
-        expect(TokenType::SEMICOLON,"Expected ';'");
-    } else if (check(TokenType::SEMICOLON)){
-        stmt = std::make_shared<ast::NullStmt>();
-        advance();
+  ast::StmtPtr stmt {};
+  if (check(TokenType::LET)) {
+    stmt = parseVarDeclStmt();
+  } else if (check(TokenType::RETURN)) {
+    stmt = parseRetStmt();
+  } else if (check(TokenType::ID)||check(TokenType::OP_MUL)) {
+    if (check(TokenType::ID) && checkAhead(TokenType::LPAREN)) {
+      return parseCallExpr();
     }
+    /*
+     * x, *x, x[idx], x.idx 都即可以作为赋值语句的左值，
+     * 又可以作为表达式的一个操作数
+     */
+    auto elem = parseAssignElement();
+    if (check(TokenType::ASSIGN)) {
+      stmt =  parseAssignStmt(std::move(elem));
+    } else {
+      return parseExpr(elem);
+    }
+  } else if (check(TokenType::INT)||check(TokenType::LPAREN)) {
+    return parseExpr();
+  } else if (check(TokenType::IF)) {
+    stmt = parseIfStmt();
+  } else if (check(TokenType::WHILE)) {
+    stmt = parseWhileStmt();
+  } else if (check(TokenType::FOR)) {
+    stmt = parseForStmt();
+  } else if (check(TokenType::LOOP)) {
+    stmt = parseLoopStmt();
+  } else if (check(TokenType::BREAK)) {
+    stmt = parseBreakStmt();
+  } else if (check(TokenType::CONTINUE)) {
+    stmt = std::make_shared<ast::ContinueStmt>();
+    advance();
+    expect(TokenType::SEMICOLON,"Expected ';'");
+  } else if (check(TokenType::SEMICOLON)){
+    stmt = std::make_shared<ast::NullStmt>();
+    advance();
+  }
 
-    return stmt;
+  return stmt;
 }
 ```
 
-`Parser::parseStmtOrExpr()` 是整个语法分析器中非常重要的函数，因为单个Statement是程序中最复杂的单位，需要充分的前向搜索来确定下一步调用的是哪个解析函数，而这里就使用了 checkAhead 来实现 LL(2)。
+`Parser::parseStmtOrExpr()` 是整个语法分析器中非常重要的函数，因为单个 Statement 是程序中最复杂的单位，需要充分的前向搜索来确定下一步调用的是哪个解析函数，而这里就使用了 checkAhead 来实现 LL(2)。
+
+<br>
 
 ## 5 AST详细设计
 
 ### 5.1 AST 节点设计
 
-在本项目中，我们为语言的各类语句与表达式设计了一套 **结构化、面向对象的 AST（抽象语法树）节点体系**。每类语法成分均对应一个派生自抽象基类 `Stmt` 或 `Expr` 的具体节点结构，并通过智能指针统一管理节点生命周期，便于后续分析与可视化处理。
+在本项目中，我们为语言的各类语句与表达式设计了一套 **结构化、面向对象的 AST（抽象语法树）节点体系**。每类语法成分均对应一个派生自抽象基类 `Node` 的具体节点结构，并通过智能指针统一管理节点生命周期，便于后续分析与可视化处理。
 
 #### 5.1.1 设计原则
 
@@ -855,8 +830,15 @@ ast::NodePtr Parser::parseStmtOrExpr() {
 ```cpp
 // 所有 AST 结点的基类
 struct Node {
-    virtual constexpr NodeType type() const = 0;
-    virtual ~Node() = default;
+  util::Position pos{0, 0};
+
+  Node() = default;
+  virtual ~Node() = default;
+
+  void setPos(std::size_t row, std::size_t col) { pos = util::Position{row, col}; }
+  void setPos(util::Position pos) { this->pos = pos; }
+  [[nodiscard]] auto getPos() const -> util::Position { return pos; }
+  [[nodiscard]] virtual auto type() const -> NodeType = 0;
 };
 using NodePtr = std::shared_ptr<Node>;
 ```
@@ -866,15 +848,15 @@ using NodePtr = std::shared_ptr<Node>;
 ```cpp
 // Program
 struct Prog : Node {
-    std::vector<DeclPtr> decls; // declarations
+  std::vector<DeclPtr> decls; // declarations
 
-    Prog() = default;
-    explicit Prog(const std::vector<DeclPtr>& ds);
-    explicit Prog(std::vector<DeclPtr>&& ds);
+  Prog() = default;
+  explicit Prog(const std::vector<DeclPtr>& ds);
+  explicit Prog(std::vector<DeclPtr>&& ds);
 
-    constexpr NodeType type() const override {
-        return NodeType::Prog;
-    }
+  NodeType type() const override {
+    return NodeType::Prog;
+  }
 };
 using  ProgPtr = std::shared_ptr<Prog>;
 ```
@@ -884,59 +866,59 @@ using  ProgPtr = std::shared_ptr<Prog>;
 ```cpp
 // Declaration 节点
 struct Decl : Node {
-    constexpr NodeType type() const override {
-        return NodeType::Decl;
-    }
-    virtual ~Decl() = default;
+  NodeType type() const override {
+    return NodeType::Decl;
+  }
+  virtual ~Decl() = default;
 };
 using DeclPtr = std::shared_ptr<Decl>;
 
 // Variable Type
 struct VarType : Node {
-    RefType ref_type = RefType::Normal;
+  RefType ref_type = RefType::Normal;
 
-    VarType() = default;
-    explicit VarType(RefType rt) : ref_type(rt) {}
-    virtual ~VarType() = default;
+  VarType() = default;
+  explicit VarType(RefType rt) : ref_type(rt) {}
+  virtual ~VarType() = default;
 
-    constexpr NodeType type() const override {
-        return NodeType::VarType;
-    }
+  NodeType type() const override {
+    return NodeType::VarType;
+  }
 };
 using  VarTypePtr = std::shared_ptr<VarType>;
 
 // Argument
 struct Arg : Node {
-    VarDeclBodyPtr variable; // variable
-    VarTypePtr     var_type; // variable type
+  VarDeclBodyPtr variable; // variable
+  VarTypePtr     var_type; // variable type
 
-    Arg() = default;
-    explicit Arg(const VarDeclBodyPtr& var, const VarTypePtr& vt)
-        : variable(var), var_type(vt) {}
-    explicit Arg(VarDeclBodyPtr&& var, VarTypePtr&& vt)
-        : variable(std::move(var)), var_type(std::move(vt)) {}
+  Arg() = default;
+  explicit Arg(const VarDeclBodyPtr& var, const VarTypePtr& vt)
+    : variable(var), var_type(vt) {}
+  explicit Arg(VarDeclBodyPtr&& var, VarTypePtr&& vt)
+    : variable(std::move(var)), var_type(std::move(vt)) {}
 
-    constexpr NodeType type() const override {
-        return NodeType::Arg;
-    }
+  NodeType type() const override {
+    return NodeType::Arg;
+  }
 };
 using  ArgPtr = std::shared_ptr<Arg>;
 
 // Statement
 struct Stmt : Node {
-    virtual ~Stmt() = default;
-    constexpr NodeType type() const override {
-        return NodeType::Stmt;
-    }
+  virtual ~Stmt() = default;
+  NodeType type() const override {
+    return NodeType::Stmt;
+  }
 };
 using  StmtPtr = std::shared_ptr<Stmt>;
 
 // Expression
 struct Expr : Node {
-    virtual ~Expr() = default;
-    constexpr NodeType type() const override {
-        return NodeType::Expr;
-    }
+  virtual ~Expr() = default;
+  NodeType type() const override {
+    return NodeType::Expr;
+  }
 };
 using  ExprPtr = std::shared_ptr<Expr>;
 ```
@@ -946,22 +928,22 @@ using  ExprPtr = std::shared_ptr<Expr>;
 ```cpp
 // Function header declaration
 struct FuncHeaderDecl : Decl {
-    std::string               name;        // 函数名
-    std::vector<ArgPtr>       argv;        // 参数列表
-    std::optional<VarTypePtr> retval_type; // 返回类型
+  std::string               name;        // 函数名
+  std::vector<ArgPtr>       argv;        // 参数列表
+  std::optional<VarTypePtr> retval_type; // 返回类型
 
-    FuncHeaderDecl() = default;
-    explicit FuncHeaderDecl(const std::string& n,
-        const std::vector<ArgPtr>& av,
-        const std::optional<VarTypePtr>& rt)
-        : name(n), argv(av), retval_type(rt) {}
-    explicit FuncHeaderDecl(std::string&& n,
-        std::vector<ArgPtr>&& av,
-        std::optional<VarTypePtr>&& rt);
+  FuncHeaderDecl() = default;
+  explicit FuncHeaderDecl(const std::string& n,
+    const std::vector<ArgPtr>& av,
+    const std::optional<VarTypePtr>& rt)
+    : name(n), argv(av), retval_type(rt) {}
+  explicit FuncHeaderDecl(std::string&& n,
+    std::vector<ArgPtr>&& av,
+    std::optional<VarTypePtr>&& rt);
 
-    constexpr NodeType type() const override {
-        return NodeType::FuncHeaderDecl;
-    }
+  NodeType type() const override {
+    return NodeType::FuncHeaderDecl;
+  }
 };
 using FuncHeaderDeclPtr = std::shared_ptr<FuncHeaderDecl>;
 ```
@@ -1031,27 +1013,27 @@ Node
  * @param   prog 程序的抽象语法树指针
  */
 void ast2Dot(std::ofstream& out, const ProgPtr& prog) {
-    out << "digraph AST {" << std::endl
-        << "    node [shape=ellipse, fontname=\"Courier\"]" << std::endl << std::endl
-        << "    // define nodes" << std::endl;
+  out << "digraph AST {" << std::endl
+      << "    node [shape=ellipse, fontname=\"Courier\"]" << std::endl << std::endl
+      << "    // define nodes" << std::endl;
 
-    DotNodeDecl n_prog = str2NodeDecl("Prog");
+  DotNodeDecl n_prog = str2NodeDecl("Prog");
 
-    std::ostringstream oss_nd;
-    std::ostringstream oss_ed;
+  std::ostringstream oss_nd;
+  std::ostringstream oss_ed;
 
-    oss_nd << nodeDecls2Str(n_prog);
-    for (const auto& decl : prog->decls) {
-        assert(std::dynamic_pointer_cast<FuncDecl>(decl));
-        auto [n_fd, fd_nd, fd_ed] = funcDecl2Dot(std::dynamic_pointer_cast<FuncDecl>(decl));
-        oss_nd << fd_nd;
-        oss_ed << edge2Str(n_prog, n_fd) << fd_ed;
-    }
+  oss_nd << nodeDecls2Str(n_prog);
+  for (const auto& decl : prog->decls) {
+    assert(std::dynamic_pointer_cast<FuncDecl>(decl));
+    auto [n_fd, fd_nd, fd_ed] = funcDecl2Dot(std::dynamic_pointer_cast<FuncDecl>(decl));
+    oss_nd << fd_nd;
+    oss_ed << edge2Str(n_prog, n_fd) << fd_ed;
+  }
 
-    out << oss_nd.str() << std::endl
-        << "    // define edges" << std::endl
-        << oss_ed.str() << std::endl
-        << "}" << std::endl;
+  out << oss_nd.str() << std::endl
+      << "    // define edges" << std::endl
+      << oss_ed.str() << std::endl
+      << "}" << std::endl;
 }
 ```
 
@@ -1067,23 +1049,24 @@ void ast2Dot(std::ofstream& out, const ProgPtr& prog) {
 
 ```cpp
 struct DotNodeDecl {
-    std::string name  {}; // 结点名 - 唯一，用于区分不同结点
-    std::string label {}; // 标签 - 不唯一，用于图片显示
+  std::string name  {}; // 结点名 - 唯一，用于区分不同结点
+  std::string label {}; // 标签 - 不唯一，用于图片显示
 
-    DotNodeDecl() = default;
-    explicit DotNodeDecl(const std::string& n, const std::string& l)
-        : name(n), label(l) {}
-    explicit DotNodeDecl(std::string&& n, std::string&& l)
-        : name(std::move(n)), label(std::move(l)) {}
+  DotNodeDecl() = default;
+  explicit DotNodeDecl(const std::string& n, const std::string& l)
+    : name(n), label(l) {}
+  explicit DotNodeDecl(std::string&& n, std::string&& l)
+    : name(std::move(n)), label(std::move(l)) {}
 
-    ~DotNodeDecl() = default;
+  ~DotNodeDecl() = default;
 
-    inline bool initialized() const {
-        return name.length() > 0 && label.length() > 0;
-    }
-    inline std::string toString() const { return name + label; }
+  inline bool initialized() const {
+    return name.length() > 0 && label.length() > 0;
+  }
+  inline std::string toString() const { return name + label; }
 };
 ```
+
 该结构体包含以下两个核心字段：
 
 - `name`：用于标识结点的唯一名称，在 DOT 文件中每个结点必须具有唯一标识；
@@ -1092,6 +1075,7 @@ struct DotNodeDecl {
 这个结构体作为 DOT 图生成的基础，支撑了整个 AST 向图形结构的映射过程，是可视化模块的重要组成部分。
 
 为了简化结点的构造过程，我们进一步封装了如下函数 `str2NodeDecl`：
+
 ```cpp
 /**
  * @brief  通过名称构造带编号的 DOT 节点声明
@@ -1099,12 +1083,12 @@ struct DotNodeDecl {
  * @return DotNodeDecl
  */
 static DotNodeDecl str2NodeDecl(const std::string& s) {
-    std::ostringstream oss;
-    oss << s << cnt++; // 确保唯一性
-    std::string name  {oss.str()},
-                label {"[label = \"" + s + "\"]"};
+  std::ostringstream oss;
+  oss << s << cnt++; // 确保唯一性
+  std::string name  {oss.str()},
+              label {"[label = \"" + s + "\"]"};
 
-    return DotNodeDecl{name, label};
+  return DotNodeDecl{name, label};
 }
 ```
 
@@ -1124,15 +1108,16 @@ static DotNodeDecl str2NodeDecl(const std::string& s) {
  */
 template<typename... T> // 变长参数模板
 static std::string nodeDecls2Str(const T&... nd) {
-    static_assert((std::is_same_v<T, DotNodeDecl> && ...),
-        "All arguments must be DotNodeDecl");
+  static_assert((std::is_same_v<T, DotNodeDecl> && ...),
+    "All arguments must be DotNodeDecl");
 
-    std::ostringstream oss;
-    ((oss << "    " << nd.toString() << std::endl), ...);
+  std::ostringstream oss;
+  ((oss << "    " << nd.toString() << std::endl), ...);
 
-    return oss.str();
+  return oss.str();
 }
 ```
+
 这个函数支持变长参数，允许传入多个 DotNodeDecl 类型的结点，并在编译期进行类型检查，保证类型安全。输出格式符合 DOT 图的结点声明规范。
 
 2. **DOT 边的单条转换**
@@ -1145,9 +1130,9 @@ static std::string nodeDecls2Str(const T&... nd) {
  * @return std::string DOT 边声明字符串
  */
 inline static std::string edge2Str(const DotNodeDecl& a, const DotNodeDecl& b) {
-    std::ostringstream oss;
-    oss << "    " << a.name << " -> " << b.name << std::endl;
-    return oss.str();
+  std::ostringstream oss;
+  oss << "    " << a.name << " -> " << b.name << std::endl;
+  return oss.str();
 }
 ```
 
@@ -1162,13 +1147,13 @@ inline static std::string edge2Str(const DotNodeDecl& a, const DotNodeDecl& b) {
  * @return 表示所有边的字符串，每行一条 DOT 边语句
  */
 static std::string edges2Str(std::initializer_list<std::pair<DotNodeDecl, DotNodeDecl>> edges) {
-    std::ostringstream oss;
+  std::ostringstream oss;
 
-    for(auto edge : edges) {
-        oss << "    " << edge.first.name << " -> " << edge.second.name << std::endl;
-    }
+  for(auto edge : edges) {
+    oss << "    " << edge.first.name << " -> " << edge.second.name << std::endl;
+  }
 
-    return oss.str();
+  return oss.str();
 }
 ```
 
@@ -1187,47 +1172,47 @@ static std::string edges2Str(std::initializer_list<std::pair<DotNodeDecl, DotNod
  * @return DotNodeDecl
  */
 static DotNodeDecl tokenType2NodeDecl(lexer::token::Type t) {
-    using TokenType = lexer::token::Type;
-    static const std::unordered_map<TokenType, std::string> map {
-        {TokenType::REF,       "&"},
-        {TokenType::LPAREN,    "("},
-        {TokenType::RPAREN,    ")"},
-        {TokenType::LBRACE,    "{"},
-        {TokenType::RBRACE,    "}"},
-        {TokenType::LBRACK,    "["},
-        {TokenType::RBRACK,    "]"},
-        {TokenType::SEMICOLON, ";"},
-        {TokenType::COLON,     ":"},
-        {TokenType::COMMA,     ","},
-        {TokenType::ASSIGN,    "="},
-        {TokenType::DOT,       "."},
-        {TokenType::DOTS,      ".."},
-        {TokenType::ARROW,     "->"},
-        {TokenType::IF,        "if"},
-        {TokenType::ELSE,      "else"},
-        {TokenType::WHILE,     "while"},
-        {TokenType::OP_PLUS,   "+"},
-        {TokenType::OP_MINUS,  "-"},
-        {TokenType::OP_MUL,    "*"},
-        {TokenType::OP_DIV,    "/"},
-        {TokenType::OP_EQ,     "=="},
-        {TokenType::OP_NEQ,    "!="},
-        {TokenType::OP_LT,     "<"},
-        {TokenType::OP_LE,     "<="},
-        {TokenType::OP_GT,     ">"},
-        {TokenType::OP_GE,     ">="}
-    };
+  using TokenType = lexer::token::Type;
+  static const std::unordered_map<TokenType, std::string> map {
+    {TokenType::REF,       "&"},
+    {TokenType::LPAREN,    "("},
+    {TokenType::RPAREN,    ")"},
+    {TokenType::LBRACE,    "{"},
+    {TokenType::RBRACE,    "}"},
+    {TokenType::LBRACK,    "["},
+    {TokenType::RBRACK,    "]"},
+    {TokenType::SEMICOLON, ";"},
+    {TokenType::COLON,     ":"},
+    {TokenType::COMMA,     ","},
+    {TokenType::ASSIGN,    "="},
+    {TokenType::DOT,       "."},
+    {TokenType::DOTS,      ".."},
+    {TokenType::ARROW,     "->"},
+    {TokenType::IF,        "if"},
+    {TokenType::ELSE,      "else"},
+    {TokenType::WHILE,     "while"},
+    {TokenType::OP_PLUS,   "+"},
+    {TokenType::OP_MINUS,  "-"},
+    {TokenType::OP_MUL,    "*"},
+    {TokenType::OP_DIV,    "/"},
+    {TokenType::OP_EQ,     "=="},
+    {TokenType::OP_NEQ,    "!="},
+    {TokenType::OP_LT,     "<"},
+    {TokenType::OP_LE,     "<="},
+    {TokenType::OP_GT,     ">"},
+    {TokenType::OP_GE,     ">="}
+  };
 
-    if (map.find(t) == map.end()) {
-        throw std::runtime_error{"tokenType2NodeDecl(): Unknown Token Type."};
-    }
+  if (map.find(t) == map.end()) {
+    throw std::runtime_error{"tokenType2NodeDecl(): Unknown Token Type."};
+  }
 
-    std::ostringstream oss;
-    oss << lexer::token::tokenType2str(t) << cnt++;
-    std::string name {oss.str()},
-                label = "[label = \"" + map.find(t)->second + "\"]";
+  std::ostringstream oss;
+  oss << lexer::token::tokenType2str(t) << cnt++;
+  std::string name {oss.str()},
+              label = "[label = \"" + map.find(t)->second + "\"]";
 
-    return DotNodeDecl{name, label};
+  return DotNodeDecl{name, label};
 }
 ```
 
@@ -1248,48 +1233,48 @@ static DotNodeDecl tokenType2NodeDecl(lexer::token::Type t) {
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
 static std::tuple<DotNodeDecl, std::string, std::string> stmt2Dot(const StmtPtr &stmt) {
-    using enum ast::NodeType;
-    using TokenType = lexer::token::Type;
+  using enum ast::NodeType;
+  using TokenType = lexer::token::Type;
 
-    DotNodeDecl rt{};
-    std::string nd{};
-    std::string ed{};
+  DotNodeDecl rt{};
+  std::string nd{};
+  std::string ed{};
 
-    switch (stmt->type()) {
-    case ExprStmt:
-        std::tie(rt, nd, ed) = exprStmt2Dot(std::dynamic_pointer_cast<ast::ExprStmt>(stmt));
-        break;
-    case RetStmt:
-        std::tie(rt, nd, ed) = returnStmt2Dot(std::dynamic_pointer_cast<ast::RetStmt>(stmt));
-        break;
-    case VarDeclStmt:
-        std::tie(rt, nd, ed) = varDeclStmt2Dot(std::dynamic_pointer_cast<ast::VarDeclStmt>(stmt));
-        break;
-    case AssignStmt:
-        std::tie(rt, nd, ed) = assignStmt2Dot(std::dynamic_pointer_cast<ast::AssignStmt>(stmt));
-        break;
-    case VarDeclAssignStmt:
-        std::tie(rt, nd, ed) = varDeclAssignStmt2Dot(std::dynamic_pointer_cast<ast::VarDeclAssignStmt>(stmt));
-        break;
-    case IfStmt:
-        std::tie(rt, nd, ed) = ifStmt2Dot(std::dynamic_pointer_cast<ast::IfStmt>(stmt));
-        return std::make_tuple(rt, nd, ed);  // 不加分号
-    case WhileStmt:
-        std::tie(rt, nd, ed) = whileStmt2Dot(std::dynamic_pointer_cast<ast::WhileStmt>(stmt));
-        return std::make_tuple(rt, nd, ed); // 不加分号
-    default:
-        rt = str2NodeDecl("UnknownStmt");
-        nd = nodeDecls2Str(rt);
-        ed = "";
-        break;
-    }
-    // 为普通语句添加分号
-    DotNodeDecl n_semi = tokenType2NodeDecl(TokenType::SEMICOLON);
-    std::ostringstream oss_nd, oss_ed;
-    oss_nd << nd << nodeDecls2Str(n_semi);
-    oss_ed << ed << edge2Str(rt, n_semi);
+  switch (stmt->type()) {
+  case ExprStmt:
+    std::tie(rt, nd, ed) = exprStmt2Dot(std::dynamic_pointer_cast<ast::ExprStmt>(stmt));
+    break;
+  case RetStmt:
+    std::tie(rt, nd, ed) = returnStmt2Dot(std::dynamic_pointer_cast<ast::RetStmt>(stmt));
+    break;
+  case VarDeclStmt:
+    std::tie(rt, nd, ed) = varDeclStmt2Dot(std::dynamic_pointer_cast<ast::VarDeclStmt>(stmt));
+    break;
+  case AssignStmt:
+    std::tie(rt, nd, ed) = assignStmt2Dot(std::dynamic_pointer_cast<ast::AssignStmt>(stmt));
+    break;
+  case VarDeclAssignStmt:
+    std::tie(rt, nd, ed) = varDeclAssignStmt2Dot(std::dynamic_pointer_cast<ast::VarDeclAssignStmt>(stmt));
+    break;
+  case IfStmt:
+    std::tie(rt, nd, ed) = ifStmt2Dot(std::dynamic_pointer_cast<ast::IfStmt>(stmt));
+    return std::make_tuple(rt, nd, ed);  // 不加分号
+  case WhileStmt:
+    std::tie(rt, nd, ed) = whileStmt2Dot(std::dynamic_pointer_cast<ast::WhileStmt>(stmt));
+    return std::make_tuple(rt, nd, ed); // 不加分号
+  default:
+    rt = str2NodeDecl("UnknownStmt");
+    nd = nodeDecls2Str(rt);
+    ed = "";
+    break;
+  }
+  // 为普通语句添加分号
+  DotNodeDecl n_semi = tokenType2NodeDecl(TokenType::SEMICOLON);
+  std::ostringstream oss_nd, oss_ed;
+  oss_nd << nd << nodeDecls2Str(n_semi);
+  oss_ed << ed << edge2Str(rt, n_semi);
 
-    return std::make_tuple(rt, oss_nd.str(), oss_ed.str());
+  return std::make_tuple(rt, oss_nd.str(), oss_ed.str());
 }
 ```
 转换过程：
@@ -1313,47 +1298,47 @@ static std::tuple<DotNodeDecl, std::string, std::string> stmt2Dot(const StmtPtr 
  * @return  [根节点的 DotNodeDecl, 结点声明串, 边声明串]
  */
 static auto funcHeaderDecl2Dot(const FuncHeaderDeclPtr& fhd) {
-    using TokenType = lexer::token::Type;
-    DotNodeDecl n_fhd     = str2NodeDecl("FuncHeaderDecl");
-    DotNodeDecl n_fn      = str2NodeDecl("fn");
-    DotNodeDecl n_id      = str2NodeDecl("ID");
-    DotNodeDecl n_id_name = str2NodeDecl(fhd->name);
+  using TokenType = lexer::token::Type;
+  DotNodeDecl n_fhd     = str2NodeDecl("FuncHeaderDecl");
+  DotNodeDecl n_fn      = str2NodeDecl("fn");
+  DotNodeDecl n_id      = str2NodeDecl("ID");
+  DotNodeDecl n_id_name = str2NodeDecl(fhd->name);
 
-    DotNodeDecl n_lparen  = tokenType2NodeDecl(TokenType::LPAREN);
-    DotNodeDecl n_rparen  = tokenType2NodeDecl(TokenType::RPAREN);
+  DotNodeDecl n_lparen  = tokenType2NodeDecl(TokenType::LPAREN);
+  DotNodeDecl n_rparen  = tokenType2NodeDecl(TokenType::RPAREN);
 
-    std::ostringstream oss_nd;
-    std::ostringstream oss_ed;
-    oss_nd << nodeDecls2Str(n_fhd, n_fn, n_id, n_id_name, n_lparen);
-    oss_ed << edges2Str({{n_fhd, n_fn}, {n_fhd, n_id}, {n_id, n_id_name}, {n_fhd, n_lparen}});
+  std::ostringstream oss_nd;
+  std::ostringstream oss_ed;
+  oss_nd << nodeDecls2Str(n_fhd, n_fn, n_id, n_id_name, n_lparen);
+  oss_ed << edges2Str({{n_fhd, n_fn}, {n_fhd, n_id}, {n_id, n_id_name}, {n_fhd, n_lparen}});
 
-    for (auto it = fhd->argv.begin(); it != fhd->argv.end(); ++it) {
-        auto [rt, nd, ed] = arg2Dot(*it);
-        oss_nd << nd;
-        oss_ed << ed << edge2Str(n_fhd, rt);
-        if (std::next(it) != fhd->argv.end()) {
-            DotNodeDecl n_comma = tokenType2NodeDecl(TokenType::COMMA);
-            oss_nd << nodeDecls2Str(n_comma);
-            oss_ed << edge2Str(n_fhd, n_comma);
-        }
+  for (auto it = fhd->argv.begin(); it != fhd->argv.end(); ++it) {
+    auto [rt, nd, ed] = arg2Dot(*it);
+    oss_nd << nd;
+    oss_ed << ed << edge2Str(n_fhd, rt);
+    if (std::next(it) != fhd->argv.end()) {
+      DotNodeDecl n_comma = tokenType2NodeDecl(TokenType::COMMA);
+      oss_nd << nodeDecls2Str(n_comma);
+      oss_ed << edge2Str(n_fhd, n_comma);
     }
+  }
 
-    oss_nd << nodeDecls2Str(n_rparen);
-    oss_ed << edge2Str(n_fhd, n_rparen);
+  oss_nd << nodeDecls2Str(n_rparen);
+  oss_ed << edge2Str(n_fhd, n_rparen);
 
-    if (fhd->retval_type.has_value()){
-        DotNodeDecl n_arrow = tokenType2NodeDecl(TokenType::ARROW);
+  if (fhd->retval_type.has_value()){
+    DotNodeDecl n_arrow = tokenType2NodeDecl(TokenType::ARROW);
 
-        oss_nd << nodeDecls2Str(n_arrow);
-        oss_ed << edge2Str(n_fhd, n_arrow);
+    oss_nd << nodeDecls2Str(n_arrow);
+    oss_ed << edge2Str(n_fhd, n_arrow);
 
-        auto [n_vt, nd_vt, ed_vt] = varType2Dot(fhd->retval_type.value());
+    auto [n_vt, nd_vt, ed_vt] = varType2Dot(fhd->retval_type.value());
 
-        oss_nd << nd_vt;
-        oss_ed << edge2Str(n_fhd, n_vt) << ed_vt;
-    }
+    oss_nd << nd_vt;
+    oss_ed << edge2Str(n_fhd, n_vt) << ed_vt;
+  }
 
-    return std::make_tuple(n_fhd, oss_nd.str(), oss_ed.str());
+  return std::make_tuple(n_fhd, oss_nd.str(), oss_ed.str());
 }
 ```
 
@@ -1436,50 +1421,46 @@ digraph AST {
 
 这就是所得到的AST可视化结果，可以看到所有节点名称与边信息，将所有树中的叶节点串起来，可以验证与源代码一致。
 
+<br>
+
 ## 6 符号表详细设计
 
 在编译器的构建过程中，语义分析是继词法分析和语法分析之后的关键阶段。其主要任务是对抽象语法树（AST）进行语义层面的检查，确保源程序不仅在结构上合法，更在语义上正确。本项目作为编译原理课程的实验内容，目标是实现一个简化语言的语义检查模块，识别出诸如未声明变量、变量重复声明、未初始化使用、函数调用不匹配等常见语义错误，具体会在下面给出。
 
-语义检查的实现依赖于`符号表（Symbol Table）`维护程序中的变量、函数等标识符的信息，并通过遍历抽象语法树逐个检查各类语句与表达式是否满足语言的语义规则。本模块与前期的语法分析器相衔接，作为后续中间代码生成和优化的前置保障，其准确性和鲁棒性直接影响整个编译流程的可靠性。
+语义检查的实现依赖于 *符号表（Symbol Table）* 维护程序中的变量、函数等标识符的信息，并通过遍历抽象语法树逐个检查各类语句与表达式是否满足语言的语义规则。本模块与前期的语法分析器相衔接，作为后续中间代码生成和优化的前置保障，其准确性和鲁棒性直接影响整个编译流程的可靠性。
 
 ### 6.1 符号表结构
 
-本项目中的符号表模块由命名空间 `symbol` 下的多个结构体与类构成，主要包括 `Symbol、Variable、Function` 以及核心管理类 `SymbolTable`，实现了对变量与函数的统一管理和作用域支持。 
-
+本项目中的符号表模块由命名空间 `symbol` 下的多个结构体与类构成，主要包括 `Symbol、Variable、Function` 以及核心管理类 `SymbolTable`，实现了对变量与函数的统一管理和作用域支持。
 
 ```cpp
-struct Symbol
-{
-    std::string name;
+struct Symbol {
+  std::string name;
 };
 using SymbolPtr = std::shared_ptr<Symbol>;
 
-enum class VarType : std::uint8_t
-{
-    Null,  // 返回值类型可以为空，即代表不返回任何值
-    I32,
-    Unknown,
+enum class VarType : std::uint8_t {
+  Null,  // 返回值类型可以为空，即代表不返回任何值
+  I32,
+  Unknown,
 };
 
-struct Variable : Symbol
-{
-    bool initialized = false;  // 是否已经初始化
-    bool formal = false;
-    VarType var_type = VarType::I32;  // 变量类型
+struct Variable : Symbol {
+  bool initialized = false;  // 是否已经初始化
+  bool formal = false;
+  VarType var_type = VarType::I32;  // 变量类型
 };
 using VariablePtr = std::shared_ptr<Variable>;
 
-struct Integer : Variable
-{
-    std::optional<std::int32_t> init_val;  // 初值
+struct Integer : Variable {
+  std::optional<std::int32_t> init_val;  // 初值
 };
 using IntegerPtr = std::shared_ptr<Integer>;
 
-struct Function : Symbol
-{
-    int argc;  // 参数个数 -- 基本规则中，不涉及到不可变参数及非 i32 类型变量，因此只需记录参数个数
-    VarType retval_type;
-    void setRetvalType(VarType rvt) { retval_type = rvt; }
+struct Function : Symbol {
+  int argc;  // 参数个数
+  VarType retval_type;
+  void setRetvalType(VarType rvt) { retval_type = rvt; }
 };
 using FunctionPtr = std::shared_ptr<Function>;
 ```
@@ -1488,11 +1469,11 @@ using FunctionPtr = std::shared_ptr<Function>;
 
 - Variable 继承自 Symbol，表示一个变量，包含以下核心属性：
 
-    - initialized：指示变量是否已经初始化；
+  - initialized：指示变量是否已经初始化；
 
-    - formal：是否为函数形参；
+  - formal：是否为函数形参；
 
-    - var_type：变量的类型，当前仅完成基础规则，当前默认`I32`；
+  - var_type：变量的类型，当前仅完成基础规则，当前默认`I32`；
 
 - Integer 继承自 Variable，进一步扩展支持整数初值 init_val，用于后续中间代码生成；
 
@@ -1503,41 +1484,40 @@ using FunctionPtr = std::shared_ptr<Function>;
 SymbolTable 类采用嵌套作用域管理的方式设计，使用 `std::unordered_map<std::string, ScopePtr>` 存储多个作用域（Scope），每个作用域本质上是一个从变量名到变量指针的哈希表。作用域通过名称 `cscope_name` 进行区分，进入或退出作用域时会修改当前作用域指针 `p_cscope`。
 
 ```cpp
-class SymbolTable
-{
-   public:
-    SymbolTable()
-    {
-        p_cscope = std::make_shared<Scope>();
-        cscope_name = "global";
-        scopes[cscope_name] = p_cscope;
-    }
-    ~SymbolTable() = default;
+class SymbolTable {
+public:
+  SymbolTable() {
+    p_cscope = std::make_shared<Scope>();
+    cscope_name = "global";
+    scopes[cscope_name] = p_cscope;
+  }
+  ~SymbolTable() = default;
 
-   public:
-    void enterScope(const std::string& name, bool create_scope = true);
-    void exitScope();
+public:
+  void enterScope(const std::string& name, bool create_scope = true);
+  void exitScope();
 
-    void declareFunc(const std::string& fname, FunctionPtr p_func);
-    void declareVar(const std::string& vname, VariablePtr p_var);
-    // 允许函数和变量同名，因此分成两部分处理
-    [[nodiscard]]
-    auto lookupFunc(const std::string& name) const -> std::optional<FunctionPtr>;
-    [[nodiscard]]
-    auto lookupVar(const std::string& name) const -> std::optional<VariablePtr>;
-    void printSymbol(std::ofstream& out);
-    auto getCurScope() const -> const std::string&;
-    auto getTempValName() -> std::string;
-    auto getFuncName() -> std::string;
-    std::vector<std::string> checkAutoTypeInference() const;
-   private:
-    using Scope = std::unordered_map<std::string, VariablePtr>;
-    using ScopePtr = std::shared_ptr<Scope>;
-    ScopePtr p_cscope;        // pointer (current scope)
-    std::string cscope_name;  // 作用域限定符
-    int tv_cnt;  // temp value counter
-    std::unordered_map<std::string, ScopePtr> scopes;
-    std::unordered_map<std::string, FunctionPtr> funcs;
+  void declareFunc(const std::string& fname, FunctionPtr p_func);
+  void declareVar(const std::string& vname, VariablePtr p_var);
+  // 允许函数和变量同名，因此分成两部分处理
+  [[nodiscard]]
+  optional<FunctionPtr> lookupFunc(const string& name) const;
+  [[nodiscard]]
+  optional<VariablePtr> lookupVar(const std::string& name) const;
+  void printSymbol(std::ofstream& out);
+  auto getCurScope() const -> const std::string&;
+  auto getTempValName() -> std::string;
+  auto getFuncName() -> std::string;
+  std::vector<std::string> checkAutoTypeInference() const;
+private:
+  using Scope = std::unordered_map<std::string, VariablePtr>;
+  using ScopePtr = std::shared_ptr<Scope>;
+  ScopePtr p_cscope;        // pointer (current scope)
+  std::string cscope_name;  // 作用域限定符
+
+  int tv_cnt;  // temp value counter
+  std::unordered_map<std::string, ScopePtr> scopes;
+  std::unordered_map<std::string, FunctionPtr> funcs;
 };
 ```
 
@@ -1545,9 +1525,10 @@ class SymbolTable
 
 ### 6.3 查询与声明机制
 
-为了支持变量与函数同名，SymbolTable **分别对变量与函数使用不同哈希表**管理：
+为了支持变量与函数同名，`SymbolTable` **分别对变量与函数使用不同哈希表** 管理：
 
-- lookupVar(name)：按当前作用域名查找变量；
+- `lookupVar(name)`：按当前作用域名查找变量；
+
 ```cpp
 /**
  * @brief  查找变量符号
@@ -1555,39 +1536,36 @@ class SymbolTable
  * @return std::optional<VariablePtr> 需要检查是否能查到
  */
 [[nodiscard]]
-auto SymbolTable::lookupVar(const std::string& name) const -> std::optional<VariablePtr>
+optional<VariablePtr> SymbolTable::lookupVar(const string& name)
 {
-    auto exit_scope = [](std::string& scope_name) -> bool
-    {
-        std::size_t idx = scope_name.find_last_of(':');
-        if (idx >= scope_name.length())
-        {
-            return false;
-        }
-        scope_name = scope_name.substr(0, idx - 1);
-        return true;
-    };
+  auto exit_scope = [](std::string& scope_name) -> bool {
+    std::size_t idx = scope_name.find_last_of(':');
+    if (idx >= scope_name.length()) {
+      return false;
+    }
+    scope_name = scope_name.substr(0, idx - 1);
+    return true;
+  };
 
-    auto scope_name = cscope_name;
+  auto scope_name = cscope_name;
 
-    bool flag = false;
-    VariablePtr p_var;
-    do
-    {
-        auto p_scope = scopes.find(scope_name)->second;
-        if (p_scope->contains(name))
-        {
-            flag = true;
-            p_var = p_scope->find(name)->second;
-            break;
-        }
-    } while (exit_scope(scope_name));
+  bool flag = false;
+  VariablePtr p_var;
+  do {
+    auto p_scope = scopes.find(scope_name)->second;
+    if (p_scope->contains(name)) {
+      flag = true;
+      p_var = p_scope->find(name)->second;
+      break;
+    }
+  } while (exit_scope(scope_name));
 
-    return flag ? std::optional<VariablePtr>{p_var} : std::nullopt;
+  return flag ? std::optional<VariablePtr>{p_var} : std::nullopt;
 }
 ```
 
 - lookupFunc(name)：全局查找函数；
+
 ```cpp
 /**
  * @brief  查找函数符号
@@ -1595,13 +1573,12 @@ auto SymbolTable::lookupVar(const std::string& name) const -> std::optional<Vari
  * @return std::optional<FunctionPtr> 需要检查是否能查到
  */
 [[nodiscard]]
-auto SymbolTable::lookupFunc(const std::string& name) const -> std::optional<FunctionPtr>
+optional<FunctionPtr> SymbolTable::lookupFunc(const string& name)
 {
-    if (funcs.contains(name))
-    {
-        return funcs.find(name)->second;
-    }
-    return std::nullopt;
+  if (funcs.contains(name)) {
+    return funcs.find(name)->second;
+  }
+  return std::nullopt;
 }
 ```
 - declareVar() 与 declareFunc() 方法则用于声明符号，若重复声明则会在语义分析阶段报错。
@@ -1652,6 +1629,9 @@ fn main(mut a :i32)
 
 <img src="ex_symboltable.png" width=500/>
 
+<p>
+<br>
+
 ## 7 语义检查详细设计
 
 语义检查阶段是编译器前端的重要环节，主要用于对词法与语法分析通过的抽象语法树（AST）进行更深层次的分析，以确保程序符号使用合理、类型匹配、作用域合法等语义规范。本项目语义检查的核心实现集中在 `SemanticChecker` 类中。
@@ -1675,104 +1655,103 @@ fn main(mut a :i32)
 **SemanticChecker** 是本项目中负责整个语义分析流程的核心类，提供了统一的入口与多个私有子程序，用于检查不同类型的语句与表达式：
 
 ```cpp
-class SemanticChecker
-{
-   public:
-    SemanticChecker() = default;
-    ~SemanticChecker() = default;
+class SemanticChecker {
+public:
+  SemanticChecker() = default;
+  ~SemanticChecker() = default;
 
-    void setErrorReporter(std::shared_ptr<error::ErrorReporter> p_ereporter);
-    void setSymbolTable(std::shared_ptr<symbol::SymbolTable> p_stable);
+  void setErrorReporter(std::shared_ptr<error::ErrorReporter> p_ereporter);
+  void setSymbolTable(std::shared_ptr<symbol::SymbolTable> p_stable);
 
-   public:
-    void checkProg(const parser::ast::ProgPtr& p_prog);
+public:
+  void checkProg(const ProgPtr& p_prog);
 
-   private:
-    void checkFuncDecl(const parser::ast::FuncDeclPtr& p_fdecl);
-    void checkFuncHeaderDecl(const parser::ast::FuncHeaderDeclPtr& p_fhdecl);
-    bool checkBlockStmt(const parser::ast::BlockStmtPtr& p_bstmt);
-    void checkVarDeclStmt(const parser::ast::VarDeclStmtPtr& p_vdstmt);
-    void checkRetStmt(const parser::ast::RetStmtPtr& p_rstmt);
-    auto checkExprStmt(const parser::ast::ExprStmtPtr& p_estmt) -> symbol::VarType;
-    auto checkExpr(const parser::ast::ExprPtr& p_expr) -> symbol::VarType;
-    auto checkCallExpr(const parser::ast::CallExprPtr& p_caexpr) -> symbol::VarType;
-    auto checkComparExpr(const parser::ast::ComparExprPtr& p_coexpr) -> symbol::VarType;
-    auto checkArithExpr(const parser::ast::ArithExprPtr& p_aexpr) -> symbol::VarType;
-    auto checkFactor(const parser::ast::FactorPtr& p_factor) -> symbol::VarType;
-    auto checkVariable(const parser::ast::VariablePtr& p_variable) -> symbol::VarType;
-    auto checkNumber(const parser::ast::NumberPtr& p_number) -> symbol::VarType;
-    void checkAssignStmt(const parser::ast::AssignStmtPtr& p_astmt);
-    void checkIfStmt(const parser::ast::IfStmtPtr& p_istmt);
-    void checkWhileStmt(const parser::ast::WhileStmtPtr& p_wstmt);
+private:
+  void checkFuncDecl(const FuncDeclPtr& p_fdecl);
+  void checkFuncHeaderDecl(const FuncHeaderDeclPtr& p_fhdecl);
+  bool checkBlockStmt(const BlockStmtPtr& p_bstmt);
+  void checkVarDeclStmt(const VarDeclStmtPtr& p_vdstmt);
+  void checkRetStmt(const RetStmtPtr& p_rstmt);
+  auto checkExprStmt(const ExprStmtPtr& p_estmt) -> VarType;
+  auto checkExpr(const ExprPtr& p_expr) -> VarType;
+  auto checkCallExpr(const CallExprPtr& p_caexpr) -> VarType;
+  auto checkComparExpr(const ComparExprPtr& p_coexpr) -> VarType;
+  auto checkArithExpr(const ArithExprPtr& p_aexpr) -> VarType;
+  auto checkFactor(const FactorPtr& p_factor) -> VarType;
+  auto checkVariable(const VariablePtr& p_variable) -> VarType;
+  auto checkNumber(const NumberPtr& p_number) -> VarType;
+  void checkAssignStmt(const AssignStmtPtr& p_astmt);
+  void checkIfStmt(const IfStmtPtr& p_istmt);
+  void checkWhileStmt(const WhileStmtPtr& p_wstmt);
 
-   private:
-    std::shared_ptr<symbol::SymbolTable> p_stable;
-    std::shared_ptr<error::ErrorReporter> p_ereporter;
+private:
+  std::shared_ptr<symbol::SymbolTable> p_stable;
+  std::shared_ptr<error::ErrorReporter> p_ereporter;
 };
 ```
+
 该类通过 **setSymbolTable** 和 **setErrorReporter** 方法与符号表和错误报告器进行联动，形成语义检查三大组件之一。
 
 ### 7.3 检查流程说明
 
 #### 7.3.1 程序级检查
+
 ```cpp
-void SemanticChecker::checkProg(const ProgPtr& p_prog)
-{
-    for (const auto& p_decl : p_prog->decls)
-    {
-        // 最顶层的产生式为 Prog -> (FuncDecl)*
-        auto p_fdecl = std::dynamic_pointer_cast<FuncDecl>(p_decl);
-        assert(p_fdecl);  // 在 parser 的实现中，只能解析 FuncDecl，碰到非函数声明会直接终止解析！
-        checkFuncDecl(p_fdecl);
-    }
+void SemanticChecker::checkProg(const ProgPtr& p_prog) {
+  for (const auto& p_decl : p_prog->decls) {
+    // 最顶层的产生式为 Prog -> (FuncDecl)*
+    auto p_fdecl = std::dynamic_pointer_cast<FuncDecl>(p_decl);
+    assert(p_fdecl);
+    checkFuncDecl(p_fdecl);
+  }
 }
 ```
+
 作为整个语义分析的入口，**checkProg** 接收语法分析生成的程序树，依次遍历所有函数定义与语句块，进行全面检查。
 
 #### 7.3.2 函数与作用域
+
 ```cpp
-void SemanticChecker::checkFuncDecl(const FuncDeclPtr& p_fdecl)
-{
-    p_stable->enterScope(p_fdecl->header->name);  // 注意不要在没进入作用域时就开始声明变量！
-    checkFuncHeaderDecl(p_fdecl->header);
-    if (!checkBlockStmt(p_fdecl->body))
-    {
-        // 函数内无return语句
-        std::string cfunc_name = p_stable->getFuncName();
-        auto opt_func = p_stable->lookupFunc(cfunc_name);
-        assert(opt_func.has_value());
+void SemanticChecker::checkFuncDecl(const FuncDeclPtr& p_fdecl) {
+  p_stable->enterScope(p_fdecl->header->name);
+  checkFuncHeaderDecl(p_fdecl->header);
+  if (!checkBlockStmt(p_fdecl->body)) {
+    // 函数内无return语句
+    std::string cfunc_name = p_stable->getFuncName();
+    auto opt_func = p_stable->lookupFunc(cfunc_name);
+    assert(opt_func.has_value());
 
-        const auto& p_func = opt_func.value();
-        if (p_func->retval_type != symbol::VarType::Null)
-        {  // 有返回类型但无返回值表达式
-            p_ereporter->report(
-                error::SemanticErrorType::MissingReturnValue,
-                std::format("函数 '{}' 需要返回值，函数内没有return语句", cfunc_name),
-                p_stable->getCurScope());
-        }
+    const auto& p_func = opt_func.value();
+    if (p_func->retval_type != symbol::VarType::Null) {
+      // 有返回类型但无返回值表达式
+      p_ereporter->report(
+        error::SemanticErrorType::MissingReturnValue,
+        std::format(
+          "函数 '{}' 需要返回值，但函数内没有 return 语句",
+          cfunc_name),
+        p_stable->getCurScope());
     }
+  }
 
-    p_stable->exitScope();
+  p_stable->exitScope();
 }
 
 void SemanticChecker::checkFuncHeaderDecl(const FuncHeaderDeclPtr& p_fhdecl)
 {
-    int argc = p_fhdecl->argv.size();
-    for (const auto& arg : p_fhdecl->argv)
-    {
-        std::string name = arg->variable->name;
-        // 形参的初始值在函数调用时才会被赋予
-        auto p_fparam = std::make_shared<symbol::Integer>(name, true, std::nullopt);
-        p_stable->declareVar(name, p_fparam);
-    }
+  int argc = p_fhdecl->argv.size();
+  for (const auto& arg : p_fhdecl->argv) {
+    std::string name = arg->variable->name;
+    // 形参的初始值在函数调用时才会被赋予
+    auto p_fparam = make_shared<Integer>(name, true, nullopt);
+    p_stable->declareVar(name, p_fparam);
+  }
 
-    auto rt = p_fhdecl->retval_type.has_value() ? symbol::VarType::I32 : symbol::VarType::Null;
-
-    auto p_func = std::make_shared<symbol::Function>(p_fhdecl->name, argc, rt);
-
-    p_stable->declareFunc(p_fhdecl->name, p_func);
+  auto rt = p_fhdecl->retval_type.has_value() ? I32 : Null;
+  auto p_func = make_shared<Function>(p_fhdecl->name, argc, rt);
+  p_stable->declareFunc(p_fhdecl->name, p_func);
 }
 ```
+
 对于每一个函数声明，先声明函数头并注册到符号表，再进入函数体对应作用域检查局部变量声明与语句合法性。
 
 #### 7.3.3 变量与表达式检查
@@ -1782,236 +1761,228 @@ void SemanticChecker::checkFuncHeaderDecl(const FuncHeaderDeclPtr& p_fhdecl)
 ```cpp
 void SemanticChecker::checkVarDeclStmt(const VarDeclStmtPtr& p_vdstmt)
 {
-    // 需要实现的产生式中，所有变量声明语句声明的变量只有两种情况
-    // 1. let mut a : i32;
-    // 2. let mut a;
-    // 因此，我们这里简单的记录变量
-    // 需要注意的是，由于存在自动类型推导，如果没有指定类型，理论上只能声明一个 Variable
-    // 符号，而不能直接声明一个 Variable 的子类
-    // 简单起见，这里将所有变量声明为一个 i32 的变量
+  // 需要实现的产生式中，所有变量声明语句声明的变量只有两种情况
+  // 1. let mut a : i32;
+  // 2. let mut a;
+  // 因此，我们这里简单的记录变量
 
-    const std::string& name = p_vdstmt->variable->name;
+  const std::string& name = p_vdstmt->variable->name;
 
-    if (p_vdstmt->var_type.has_value())
-    {
-        // 1: let mut a : i32; 明确类型，直接构造变量
-        auto p_var = std::make_shared<symbol::Integer>(name, false, std::nullopt);
-        p_var->initialized = false;
-        p_stable->declareVar(name, p_var);
-    }
-    else
-    {
-        // 2: let mut a; 自动类型推导 —— 类型未知
-        auto p_var = std::make_shared<symbol::Variable>(name, false, symbol::VarType::Unknown);
-        p_var->initialized = false;
-        p_stable->declareVar(name, p_var);
-    }
+  if (p_vdstmt->var_type.has_value()) {
+    // 1: let mut a : i32; 明确类型，直接构造变量
+    auto p_var = make_shared<Integer>(name, false, nullopt);
+    p_var->initialized = false;
+    p_stable->declareVar(name, p_var);
+  } else {
+    // 2: let mut a; 自动类型推导 —— 类型未知
+    auto p_var = make_shared<Variable>(name, false, Unknown);
+    p_var->initialized = false;
+    p_stable->declareVar(name, p_var);
+  }
 }
 ```
+
 在每个block结束后，会对作用域下所有变量进行检查：
+
 ```cpp
-auto SymbolTable::checkAutoTypeInference() const -> std::vector<VariablePtr>
+vector<VariablePtr> SymbolTable::checkAutoTypeInference() const
 {
-    std::vector<VariablePtr> failed_vars;
+  std::vector<VariablePtr> failed_vars;
 
-    for (const auto& [name, p_var] : *p_cscope)
-    {
-        if (p_var->var_type == VarType::Unknown)
-        {
-            failed_vars.push_back(p_var);
-        }
+  for (const auto& [name, p_var] : *p_cscope) {
+    if (p_var->var_type == VarType::Unknown) {
+      failed_vars.push_back(p_var);
     }
+  }
 
-    return failed_vars;
+  return failed_vars;
 }
 ```
+
 如果返回有值，也就是**有未确定类型的变量**，需要报错：
+
 ```cpp
-auto SemanticChecker::checkBlockStmt(const BlockStmtPtr& p_bstmt) -> bool
+bool SemanticChecker::checkBlockStmt(const BlockStmtPtr& p_bstmt)
 {
-    int if_cnt = 1;
-    int while_cnt = 1;
-    bool has_retstmt = false;
+  int if_cnt = 1;
+  int while_cnt = 1;
+  bool has_retstmt = false;
 
-    for (const auto& p_stmt : p_bstmt->stmts)
-    {
-        switch (p_stmt->type())
-        {
-            default:
-                throw std::runtime_error{"检查到不支持的语句类型"};
-            case NodeType::VarDeclStmt:
-                checkVarDeclStmt(std::dynamic_pointer_cast<VarDeclStmt>(p_stmt));
-                break;
-            case NodeType::RetStmt:
-                checkRetStmt(std::dynamic_pointer_cast<RetStmt>(p_stmt));
-                has_retstmt = true;
-                break;
-            case NodeType::ExprStmt:
-                checkExprStmt(std::dynamic_pointer_cast<ExprStmt>(p_stmt));
-                break;
-            case NodeType::AssignStmt:
-                checkAssignStmt(std::dynamic_pointer_cast<AssignStmt>(p_stmt));
-                break;
-            case NodeType::IfStmt:
-                p_stable->enterScope(std::format("if{}", if_cnt++));
-                checkIfStmt(std::dynamic_pointer_cast<IfStmt>(p_stmt));
-                p_stable->exitScope();
-                break;
-            case NodeType::WhileStmt:
-                p_stable->enterScope(std::format("while{}", while_cnt++));
-                checkWhileStmt(std::dynamic_pointer_cast<WhileStmt>(p_stmt));
-                p_stable->exitScope();
-                break;
-            case NodeType::NullStmt:
-                break;
-        }
+  for (const auto& p_stmt : p_bstmt->stmts) {
+    switch (p_stmt->type()) {
+    default:
+      throw std::runtime_error{"检查到不支持的语句类型"};
+    case NodeType::VarDeclStmt:
+      checkVarDeclStmt(std::dynamic_pointer_cast<VarDeclStmt>(p_stmt));
+      break;
+    case NodeType::RetStmt:
+      checkRetStmt(dynamic_pointer_cast<RetStmt>(p_stmt));
+      has_retstmt = true;
+      break;
+    case NodeType::ExprStmt:
+      checkExprStmt(dynamic_pointer_cast<ExprStmt>(p_stmt));
+      break;
+    case NodeType::AssignStmt:
+      checkAssignStmt(dynamic_pointer_cast<AssignStmt>(p_stmt));
+      break;
+    case NodeType::IfStmt:
+      p_stable->enterScope(format("if{}", if_cnt++));
+      checkIfStmt(dynamic_pointer_cast<IfStmt>(p_stmt));
+      p_stable->exitScope();
+      break;
+    case NodeType::WhileStmt:
+      p_stable->enterScope(format("while{}", while_cnt++));
+      checkWhileStmt(dynamic_pointer_cast<WhileStmt>(p_stmt));
+      p_stable->exitScope();
+      break;
+    case NodeType::NullStmt:
+      break;
     }
+  }
 
-    auto failed_vars = p_stable->checkAutoTypeInference();  // 语句块后检查变量是否有类型
-    for (const auto& p_var : failed_vars)
-    {
-        p_ereporter->report(error::SemanticErrorType::TypeInferenceFailure,
-                            std::format("变量 '{}' 无法通过自动类型推导确定类型", p_var->name),
-                            p_var->pos.row, p_var->pos.col, p_stable->getCurScope());
-    }
+  auto failed_vars = p_stable->checkAutoTypeInference();
+  for (const auto& p_var : failed_vars) {
+    p_ereporter->report(SemanticErrorType::TypeInferenceFailure,
+      std::format(
+        "变量 '{}' 无法通过自动类型推导确定类型",
+        p_var->name),
+      p_var->pos.row, p_var->pos.col, p_stable->getCurScope());
+  }
 
-    return has_retstmt;
+  return has_retstmt;
 }
 ```
 
 2. 在变量使用阶段，若变量未初始化即使用，则抛出语义错误；
+
 ```cpp
-auto SemanticChecker::checkVariable(const VariablePtr& p_variable) -> symbol::VarType
+VarType SemanticChecker::checkVariable(const VariablePtr& p_variable)
 {
-    auto opt_var = p_stable->lookupVar(p_variable->name);
+  auto opt_var = p_stable->lookupVar(p_variable->name);
 
-    if (!opt_var.has_value())
-    {
-        p_ereporter->report(error::SemanticErrorType::UndeclaredVariable,
-                            std::format("变量 '{}' 未声明", p_variable->name),
-                            p_stable->getCurScope());
-        return symbol::VarType::Null;
-    }
+  if (!opt_var.has_value()) {
+    p_ereporter->report(SemanticErrorType::UndeclaredVariable,
+      std::format("变量 '{}' 未声明", p_variable->name),
+      p_stable->getCurScope());
+    return symbol::VarType::Null;
+  }
 
-    const auto& p_var = opt_var.value();
+  const auto& p_var = opt_var.value();
 
-    if (!p_var->initialized && !p_var->formal)
-    {
-        p_ereporter->report(error::SemanticErrorType::UninitializedVariable,
-                            std::format("变量 '{}' 在第一次使用前未初始化", p_variable->name),
-                            p_stable->getCurScope());
-    }
+  if (!p_var->initialized && !p_var->formal) {
+    p_ereporter->report(SemanticErrorType::UninitializedVariable,
+      std::format(
+        "变量 '{}' 在第一次使用前未初始化",
+        p_variable->name),
+      p_stable->getCurScope());
+  }
 
-    return p_var->var_type;
+  return p_var->var_type;
 }
 ```
 
 3. 表达式检查会递归分析子表达式，并返回类型用于后续推导判断。顶层函数会对不同表达式进行分发：
+
 ```cpp
-auto SemanticChecker::checkExpr(const ExprPtr& p_expr) -> symbol::VarType
-{
-    switch (p_expr->type())
-    {
-        default:
-            throw std::runtime_error{"检查到不支持的表达式类型"};
-        case NodeType::ParenthesisExpr:...
-        case NodeType::CallExpr:...
-        case NodeType::ComparExpr:...
-        case NodeType::ArithExpr:...
-        case NodeType::Factor:...
-        case NodeType::Variable:...
-        case NodeType::Number:...
-    }
+VarType SemanticChecker::checkExpr(const ExprPtr& p_expr) {
+  switch (p_expr->type()) {
+  default:
+    throw std::runtime_error{"检查到不支持的表达式类型"};
+  case NodeType::ParenthesisExpr:...
+  case NodeType::CallExpr:...
+  case NodeType::ComparExpr:...
+  case NodeType::ArithExpr:...
+  case NodeType::Factor:...
+  case NodeType::Variable:...
+  case NodeType::Number:...
+  }
 }
 ```
+
 #### 7.3.4 函数调用与返回检查
 
 1. 函数调用检查
+
 ```cpp
-auto SemanticChecker::checkCallExpr(const CallExprPtr& p_caexpr) -> symbol::VarType
+VarType SemanticChecker::checkCallExpr(const CallExprPtr& p_caexpr)
 {
-    // 检查调用表达式的实参和形参是否一致
-    auto opt_func = p_stable->lookupFunc(p_caexpr->callee);
+  // 检查调用表达式的实参和形参是否一致
+  auto opt_func = p_stable->lookupFunc(p_caexpr->callee);
 
-    if (!opt_func.has_value())
-    {
-        p_ereporter->report(error::SemanticErrorType::UndefinedFunctionCall,
-                            std::format("调用了未定义的函数 '{}'", p_caexpr->callee),
-                            p_stable->getCurScope());
-        return symbol::VarType::Null;
+  if (!opt_func.has_value()) {
+    p_ereporter->report(SemanticErrorType::UndefinedFunctionCall,
+      std::format("调用了未定义的函数 '{}'", p_caexpr->callee),
+      p_stable->getCurScope());
+    return symbol::VarType::Null;
+  }
+
+  const auto& p_func = opt_func.value();
+
+  if (static_cast<int>(p_caexpr->argv.size()) != p_func->argc) {
+    p_ereporter->report(SemanticErrorType::ArgCountMismatch,
+      std::format(
+        "函数 '{}' 期望 {} 个参数，但调用提供了 {} 个",
+        p_caexpr->callee, p_func->argc, p_caexpr->argv.size()),
+      p_stable->getCurScope());
+  }
+
+  // 遍历所有实参与进行表达式语义检查
+  for (const auto& arg : p_caexpr->argv) {
+    assert(arg);
+    auto rv_type = checkExpr(arg);
+    if (rv_type != symbol::VarType::I32) {
+        // error report
     }
+  }
 
-    const auto& p_func = opt_func.value();
-
-    if (static_cast<int>(p_caexpr->argv.size()) != p_func->argc)
-    {
-        p_ereporter->report(error::SemanticErrorType::ArgCountMismatch,
-                            std::format("函数 '{}' 期望 {} 个参数，但调用提供了 {} 个",
-                                        p_caexpr->callee, p_func->argc, p_caexpr->argv.size()),
-                            p_stable->getCurScope());
-    }
-
-    // 遍历所有实参与进行表达式语义检查
-    for (const auto& arg : p_caexpr->argv)
-    {
-        assert(arg);
-        auto rv_type = checkExpr(arg);
-        if (rv_type != symbol::VarType::I32)
-        {
-            // error report
-        }
-    }
-
-    return p_func->retval_type;
+  return p_func->retval_type;
 }
 ```
+
 按照顺序依次检查函数是否定义，然后检查实参与形参的个数是否匹配，最后检查所有实参的表达式。
 
 2. 函数返回检查
+
 ```cpp
-void SemanticChecker::checkRetStmt(const RetStmtPtr& p_rstmt)
-{
-    // 由于存在函数返回值类型的自动推导，因此需要在 RetStmt
-    // 中判断所处函数是否指定了返回值类型，如果指定了与当前 RetStmt 的类型是否一致；
-    // 如果未指定，则设置相应函数符号的返回值类型为 RetStmt 中返回值类型
-    std::string cfunc_name = p_stable->getFuncName();
-    auto opt_func = p_stable->lookupFunc(cfunc_name);
-    assert(opt_func.has_value());
+void SemanticChecker::checkRetStmt(const RetStmtPtr& p_rstmt) {
+  std::string cfunc_name = p_stable->getFuncName();
+  auto opt_func = p_stable->lookupFunc(cfunc_name);
+  assert(opt_func.has_value());
 
-    const auto& p_func = opt_func.value();
-    if (p_rstmt->ret_val.has_value())
-    {  // 有返回值表达式
-        symbol::VarType ret_type = checkExpr(p_rstmt->ret_val.value());
+  const auto& p_func = opt_func.value();
+  if (p_rstmt->ret_val.has_value()) {  // 有返回值表达式
+    symbol::VarType ret_type = checkExpr(p_rstmt->ret_val.value());
 
-        if (p_func->retval_type != symbol::VarType::Null)
-        {  // 函数有明确返回类型
-            if (p_func->retval_type != ret_type)
-            {  // 返回值表达式类型与函数返回类型不符
-                p_ereporter->report(error::SemanticErrorType::FuncReturnTypeMismatch,
-                                    std::format("函数 '{}' return 语句返回类型错误", cfunc_name),
-                                    p_stable->getCurScope());
-            }
-        }
-        else
-        {  // 函数不需要返回值，却有返回值表达式
-            p_ereporter->report(
-                error::SemanticErrorType::VoidFuncReturnValue,
-                std::format("函数 '{}' 不需要返回值，return语句却有返回值", cfunc_name),
-                p_stable->getCurScope());
-        }
+    if (p_func->retval_type != symbol::VarType::Null) {
+      // 函数有明确返回类型
+      if (p_func->retval_type != ret_type) {
+        // 返回值表达式类型与函数返回类型不符
+        p_ereporter->report(
+          SemanticErrorType::FuncReturnTypeMismatch,
+          std::format(
+            "函数 '{}' return 语句返回类型错误",
+            cfunc_name),
+          p_stable->getCurScope());
+      }
+    } else {
+      // 函数不需要返回值，却有返回值表达式
+      p_ereporter->report(
+        error::SemanticErrorType::VoidFuncReturnValue,
+        std::format("函数 '{}' 不需要返回值，return语句却有返回值", cfunc_name),
+        p_stable->getCurScope());
     }
-    else
-    {  // return;
-        if (p_func->retval_type != symbol::VarType::Null)
-        {  // 有返回类型但无返回值表达式
-            p_ereporter->report(
-                error::SemanticErrorType::MissingReturnValue,
-                std::format("函数 '{}' 需要返回值，return语句却没有返回值", cfunc_name),
-                p_stable->getCurScope());
-        }
-    }
+  } else {  // return;
+      if (p_func->retval_type != symbol::VarType::Null) {
+        // 有返回类型但无返回值表达式
+        p_ereporter->report(
+          error::SemanticErrorType::MissingReturnValue,
+          std::format("函数 '{}' 需要返回值，return语句却没有返回值", cfunc_name),
+          p_stable->getCurScope());
+      }
+  }
 }
 ```
+
 区分 return 语句是否有返回值表达式
 
 - 若 return 携带返回值，则进一步检查表达式类型，并与函数返回类型比对；
@@ -2019,42 +1990,43 @@ void SemanticChecker::checkRetStmt(const RetStmtPtr& p_rstmt)
 - 若 return 无返回值，仅为 return;，则视函数是否应返回值判断合法性。
 
 需要注意的是，如果函数没有返回语句，在block调用时会有一个bool型的变量**has_retstmt**作为记录，若无返回语句，视为 **return ;** ，因此如果此函数有返回类型，则需要报错：
+
 ```cpp
-        if (p_func->retval_type != symbol::VarType::Null)
-        {  // 有返回类型但无返回值表达式
-            p_ereporter->report(
-                error::SemanticErrorType::MissingReturnValue,
-                std::format("函数 '{}' 需要返回值，函数内没有return语句", cfunc_name),
-                p_stable->getCurScope());
-        }
+if (p_func->retval_type != symbol::VarType::Null)
+{  // 有返回类型但无返回值表达式
+  p_ereporter->report(
+    error::SemanticErrorType::MissingReturnValue,
+    std::format("函数 '{}' 需要返回值，函数内没有return语句", cfunc_name),
+    p_stable->getCurScope());
+}
 ```
 
 #### 7.3.5 选择循环语句检查
 
 根据基础规则，对**IF-ELSE**和**WHILE**语句进行检查，简化检查逻辑，仅判断表达式是否合法，由于I32可以自动推导为Bool，因此只判断为I32即可。
-```cpp
-void SemanticChecker::checkIfStmt(const IfStmtPtr& p_istmt)
-{
-    checkExprStmt(std::make_shared<ExprStmt>(p_istmt->expr));
-    checkBlockStmt(p_istmt->if_branch);
 
-    assert(p_istmt->else_clauses.size() <= 1);
-    if (p_istmt->else_clauses.size() == 1)
-    {
-        p_stable->enterScope("else");
-        checkBlockStmt(p_istmt->else_clauses[0]->block);
-        p_stable->exitScope();
-    }
+```cpp
+void SemanticChecker::checkIfStmt(const IfStmtPtr& p_istmt) {
+  checkExprStmt(std::make_shared<ExprStmt>(p_istmt->expr));
+  checkBlockStmt(p_istmt->if_branch);
+
+  assert(p_istmt->else_clauses.size() <= 1);
+  if (p_istmt->else_clauses.size() == 1) {
+    p_stable->enterScope("else");
+    checkBlockStmt(p_istmt->else_clauses[0]->block);
+    p_stable->exitScope();
+  }
 }
 ```
 
 ```cpp
 void SemanticChecker::checkWhileStmt(const WhileStmtPtr& p_wstmt)
 {
-    checkExprStmt(std::make_shared<ExprStmt>(p_wstmt->expr));
-    checkBlockStmt(p_wstmt->block);
+  checkExprStmt(std::make_shared<ExprStmt>(p_wstmt->expr));
+  checkBlockStmt(p_wstmt->block);
 }
 ```
+
 ### 7.4 错误处理机制
 
 语义分析阶段发现的错误，统一通过 **ErrorReporter** 报告，并结合当前作用域提供精确定位信息。部分辅助错误信息使用 std::format 格式化输出，增强可读性。
@@ -2069,8 +2041,281 @@ void SemanticChecker::checkWhileStmt(const WhileStmtPtr& p_wstmt)
 
 - 具备错误容忍能力，可在发现错误后继续分析后续节点，增强体验。
 
+<br>
+
 ## 8 中间代码生成详细设计
 
+### 8.1 四元式设计
+
+#### 8.1.1 四元式操作符
+
+本项目选用四元式作为中间代码，为此我们设计了一套四元式操作符。这套操作符能高效的按照语义规则将源代码转换为中间代码。
+
+在 `ir_generate/ir_generate.hpp` 中定义了枚举类 `ir::OpCode` 如下：
+
+```cpp
+enum class OpCode : std::int8_t {
+  Add, Sub, Mul, Div,
+
+  Jeq, Jne, Jge,
+  Jgt, Jle, Jlt,
+
+  Eq, Neq,
+  Geq, Gne,
+  Leq, Lne,
+
+  Decl, Assign,
+
+  Label, Goto,
+
+  Push, Pop,
+  Call, Return
+};
+```
+
+这里定义了六组操作符，其中第一组用于算术运算、第二组用于控制流、第三组用于比较表达式、第四组用于变量声明和赋值、第五组用于标号声明和跳转、第六组用于函数调用和返回。
+
+规定四元式的形式为 `(op, arg1, arg2, res)`，下面给出操作符的语义动作对照表：
+
+| 操作符 | 动作 |
+|:-----:|:----:|
+| Add | res = arg1 + arg2 |
+| Sub | res = arg1 - arg2 |
+| Mul | res = arg1 * arg2 |
+| Div | res = arg1 / arg2 |
+| Jeq | if arg1 == arg2 goto res |
+| Jne | if arg1 != arg2 goto res |
+| Jge | if arg1 >= arg2 goto res |
+| Jgt | if arg1 > arg2 goto res |
+| Jle | if arg1 <= arg2 goto res |
+| Jlt | if arg1 < arg2 goto res |
+| Eq | res = arg1 == arg2 |
+| Neq | res = arg1 != arg2 |
+| Geq | res = arg1 >= arg2 |
+| Gne | res = arg1 > arg2 |
+| Leq | res = arg1 <= arg2 |
+| Lne | res = arg1 < arg2 |
+| Decl | 声明一个变量 arg1 |
+| Assign | res = arg1 |
+| Label | 声明一个标签 arg1 |
+| Goto | 跳转到 arg1 |
+| Push | 为形参 arg1 构造栈帧 |
+| Pop | 从栈帧中弹出一个参数赋给 arg1 |
+| Call | 调用 arg1 |
+| Return | 从调用函数返回 |
+
+#### 8.1.2 四元式数据结构
+
+同样在 `ir/ir_generate.hpp` 中定义了四元式 `struct Quad` 和操作数 `struct Operand` 如下：
+
+```cpp
+struct Operand {
+  std::string name;
+
+  Operand() = default;
+  Operand(std::string name) : name(std::move(name)) {}
+};
+
+struct Quad {
+  OpCode op;
+  Operand arg1;
+  Operand arg2;
+  Operand res;
+};
+```
+
+这与 8.1.1 所假设的四元式结构一致。这里简化了操作数结构，只存储了操作数的名称。
+
+### 8.2 中间代码生成器设计
+
+#### 8.2.1 IrGenerator 类
+
+在 `ir/ir_generator.hpp` 中定义了 `class IrGenerator` 如下：
+
+```cpp
+class IrGenerator {
+public:
+  IrGenerator() = default;
+  ~IrGenerator() = default;
+public:
+  void setSymbolTable(std::shared_ptr<SymbolTable> p_stable);
+  void generateProg(const ProgPtr& p_prog);
+  void printQuads(std::ofstream& out) const;
+private:
+  void generateFuncDecl(const FuncDeclPtr&);
+  void generateFuncHeaderDecl(const FuncHeaderDeclPtr&);
+  auto generateBlockStmt(const BlockStmtPtr&);
+  void generateVarDeclStmt(const VarDeclStmtPtr&);
+  void generateRetStmt(const RetStmtPtr&);
+  void generateExprStmt(const ExprStmtPtr&);
+  auto generateExpr(const ExprPtr&);
+  auto generateCallExpr(const CallExprPtr&);
+  auto generateComparExpr(const ComparExprPtr&);
+  auto generateArithExpr(const ArithExprPtr&);
+  auto generateFactor(const FactorPtr&);
+  auto generateElement(const ExprPtr&);
+  auto generateParenthesisExpr(const ParenthesisExprPtr&);
+  auto generateNumber(const NumberPtr&);
+  auto generateVariable(const VariablePtr&);
+  void generateAssignStmt(const AssignStmtPtr&);
+  void generateIfStmt(const IfStmtPtr&);
+  void generateWhileStmt(const WhileStmtPtr&);
+  [[nodiscard]] auto getVarName(const std::string&) const;
+  [[nodiscard]] auto getFuncName() const -> std::string;
+  void pushQuads(OpCode, const Operand&, const Operand&, const Operand&);
+
+private:
+  std::vector<Quad> quads;
+  std::shared_ptr<symbol::SymbolTable> p_stable;
+};
+```
+
+可以看到，中间代码生成器类中定义了一个四元式列表 `quads` 存储顺序生成的所有四元式，定义了一个 `p_stable` 指向全局共享的符号表。
+
+这里以 `generate` 开头的一组函数是整个中间代码生成器的核心，其以深度优先、从左到右的顺序遍历语法分析器生成的 AST，并根据语义规则生成中间代码。
+
+该类主要向外部暴露了两个接口：`generateProg` 和 `printQuads` 分别用于生成四元式和打印已生成的四元式。
+
+#### 8.2.2 核心代码逻辑分析
+
+下面以 `generateBlockStmt` 和 `generateIfStmt` 为例，详细说明代码逻辑。
+
+**1. generateBlockStmt**:
+
+```cpp
+bool IrGenerator::generateBlockStmt(const BlockStmtPtr& p_bstmt)
+{
+  int if_cnt = 1;
+  int while_cnt = 1;
+
+  for (const auto& p_stmt : p_bstmt->stmts) {
+    switch (p_stmt->type()) {
+    default:
+      throw std::runtime_error{"检查到不支持的语句类型"};
+    case NodeType::VarDeclStmt:
+      generateVarDeclStmt(std::dynamic_pointer_cast<VarDeclStmt>(p_stmt));
+      break;
+    case NodeType::RetStmt:
+      generateRetStmt(std::dynamic_pointer_cast<RetStmt>(p_stmt));
+      return true;
+    case NodeType::ExprStmt:
+      generateExprStmt(std::dynamic_pointer_cast<ExprStmt>(p_stmt));
+      break;
+    case NodeType::AssignStmt:
+      generateAssignStmt(std::dynamic_pointer_cast<AssignStmt>(p_stmt));
+      break;
+    case NodeType::IfStmt:
+      p_stable->enterScope(std::format("if{}", if_cnt++), false);
+      generateIfStmt(std::dynamic_pointer_cast<IfStmt>(p_stmt));
+      p_stable->exitScope();
+      break;
+    case NodeType::WhileStmt:
+      p_stable->enterScope(std::format("while{}", while_cnt++), false);
+      generateWhileStmt(std::dynamic_pointer_cast<WhileStmt>(p_stmt));
+      p_stable->exitScope();
+      break;
+    case NodeType::NullStmt:
+     break;
+    }
+  }
+  return false;
+}
+```
+
+在上述函数中，我们使用范围 for 循环遍历语句块中的每个语句，并通过 AST 节点类的 `type()` 方法进行类型分发，调用不同语句类型的处理函数。
+
+可以看到，函数逻辑上呈现递归下降的形式，对于每个产生式，都会优先生成产生式右侧符号相关的四元式，最后再生成该产生式对应的四元式。
+
+需要注意的是，我们维护了一个带有作用域的符号表，以实现作用域屏蔽功能，因此对于每个函数、If 语句 和 While 语句，都需要先进入作用域，并在生成结束后退出作用域。这里是通过调用符号表提供的 `enterScope` 和 `exitScope` 方法完成的。
+
+需要注意的是，中间代码生成环节的 `enterScope` 不需要创建一个新的作用域，因此我们传入了一个额外的参数控制这一行为。
+
+还可以看到，我们使用了两个计数器 `if_cnt` 和 `while_cnt`，这是因为同一个语句块内可能有多个 if 和 while 语句，需要通过计数器区分不同 if/while 语句的作用域。
+
+**2. generateIfStmt**:
+
+```cpp
+void IrGenerator::generateIfStmt(const IfStmtPtr& p_istmt)
+{
+  std::string label_true = std::format(
+    "{}_true",
+    replaceScopeQualifiers(p_stable->getCurScope())
+  );
+  std::string label_false = std::format(
+    "{}_false",
+    replaceScopeQualifiers(p_stable->getCurScope())
+  );
+  std::string label_end = std::format(
+    "{}_end",
+    replaceScopeQualifiers(p_stable->getCurScope())
+  );
+
+  std::string lhs;
+  std::string rhs;
+  OpCode op;  // 跳转到 true
+
+  // 如果 if 语句的判断条件并非比较表达式，则使用 jne condition 0 来跳转到 if 分支
+  if (p_istmt->expr->type() != NodeType::ComparExpr) {
+    lhs = generateExpr(p_istmt->expr);
+    rhs = "0";
+    op = OpCode::Jne;
+  } else {
+    auto p_coexpr = std::dynamic_pointer_cast<ComparExpr>(p_istmt->expr);
+    lhs = generateExpr(p_coexpr->lhs);
+    rhs = generateExpr(p_coexpr->rhs);
+
+    switch (p_coexpr->op) {
+    case ComparOperator::Equal:
+      op = OpCode::Jeq;
+      break;
+    case ComparOperator::Nequal:
+      op = OpCode::Jne;
+      break;
+    case ComparOperator::Gequal:
+      op = OpCode::Jge;
+      break;
+    case ComparOperator::Great:
+      op = OpCode::Jgt;
+      break;
+    case ComparOperator::Lequal:
+      op = OpCode::Jle;
+      break;
+    case ComparOperator::Less:
+      op = OpCode::Jlt;
+      break;
+    }
+  }
+  pushQuads(op, lhs, rhs, label_true);
+
+  // 由于基础产生式不支持 else if 分支，所以这个 assert 成立
+  assert(p_istmt->else_clauses.size() <= 1);
+  bool has_else = (p_istmt->else_clauses.size() == 1);
+  if (has_else) {
+    pushQuads(OpCode::Goto, label_false, NULL_OPERAND, NULL_OPERAND);
+  } else {
+    pushQuads(OpCode::Goto, label_end, NULL_OPERAND, NULL_OPERAND);
+  }
+
+  pushQuads(OpCode::Label, label_true, NULL_OPERAND, NULL_OPERAND);
+  generateBlockStmt(p_istmt->if_branch);
+  if (has_else) {
+    pushQuads(OpCode::Goto, label_end, NULL_OPERAND, NULL_OPERAND);
+    pushQuads(OpCode::Label, label_false, NULL_OPERAND, NULL_OPERAND);
+    // 同样是因为没有 else if 所以下面的断言才成立
+    assert(!p_istmt->else_clauses[0]->expr.has_value());
+    generateBlockStmt(p_istmt->else_clauses[0]->block);
+  }
+  pushQuads(OpCode::Label, label_end, NULL_OPERAND, NULL_OPERAND);
+}
+```
+
+在开发过程中，核心的两部分在于表达式和控制流，而相对来说控制流的生成更加复杂。所以这里以 if 语句为例解释我们如何处理控制流的生成。
+
+总的来说，对于每一个跳转分支我们都声明了一个标签，根据判断条件的计算结果跳转到不同标签处。逻辑上，先生成控制条件计算相关四元式，再生成跳转指令相关四元式，最后依次生成各跳转分支对应四元式，并在适当位置插入标签。
+
+对于 if 语句，我们设计了三个标签 `true`, `else` 和 `end`，分别表示 if 分支、else 分支和 if 语句结束。在存在 else 分支的情况下，如果判断条件为真，则跳转到 `true`，否则 `goto else`（注意这里使用到了有条件跳转的 `J` 系列操作符和无条件跳转的 `Goto`）；不存在 else 分支的情况下，如果判断条件为真，则跳转到 `true`，否则 `goto end`。
+
+<br>
 
 ## 9 错误报告器详细设计
 
@@ -2079,28 +2324,26 @@ void SemanticChecker::checkWhileStmt(const WhileStmtPtr& p_wstmt)
 本项目的错误报告器采用分层分类的设计理念，根据编译过程将错误为以下三大类：
 
 ```cpp
-enum class ErrorType : std::uint8_t
-{
-    Lex,       // 词法错误
-    Parse,     // 语法错误
-    Semantic,  // 语义错误
+enum class ErrorType : std::uint8_t {
+  Lex,       // 词法错误
+  Parse,     // 语法错误
+  Semantic,  // 语义错误
 };
 ```
 
 错误的基类Error主要包含msg，来记录实际错误发生的实际信息。
 
 ```cpp
-struct Error
-{
-    std::string msg;  // error message
+struct Error {
+  std::string msg;  // error message
 
-    Error() = default;
-    Error(const std::string& m) : msg(m) {}
-    Error(std::string&& m) : msg(std::move(m)) {}
+  Error() = default;
+  Error(const std::string& m) : msg(m) {}
+  Error(std::string&& m) : msg(std::move(m)) {}
 
-    [[nodiscard]]
-    virtual constexpr auto kind() const -> ErrorType = 0;
-    virtual ~Error() = default;
+  [[nodiscard]]
+  virtual constexpr auto kind() const -> ErrorType = 0;
+  virtual ~Error() = default;
 };
 ```
 
@@ -2109,27 +2352,21 @@ struct Error
 词法分析主要识别未知token:
 
 ```cpp
-enum class LexErrorType : std::uint8_t
-{
-    UnknownToken,  // 未知的 token
+enum class LexErrorType : std::uint8_t {
+  UnknownToken,  // 未知的 token
 };
 ```
 
 词法错误数据结构包括错误类型、位置信息和相关token:
 
 ```cpp
-struct LexError : Error
-{
-    LexErrorType type;
-    std::size_t row;
-    std::size_t col;
-    std::string token;
+struct LexError : Error {
+  LexErrorType type;
+  std::size_t row;
+  std::size_t col;
+  std::string token;
 
-    explicit LexError(LexErrorType type, const std::string& msg, std::size_t r, std::size_t c,
-                      std::string token)
-        : Error(msg), type(type), row(r), col(c), token(std::move(token))
-    {
-    }
+  LexError(LexErrorType, const string&, size_t, size_t, string);
 };
 ```
 
@@ -2138,30 +2375,22 @@ struct LexError : Error
 语法分析主要识别是否是期待Token：
 
 ```cpp
-enum class ParseErrorType : std::uint8_t
-{
-    UnexpectToken,  // 并非期望 token
+enum class ParseErrorType : std::uint8_t {
+  UnexpectToken,  // 并非期望 token
 };
 ```
 
 语法错误数据结构与词法错误类似：
 
-```cpp:
+```cpp
+struct ParseError : Error {
+  ParseErrorType type;
+  std::size_t row;
+  std::size_t col;
+  std::string token;
 
-struct ParseError : Error
-{
-    ParseErrorType type;
-    std::size_t row;
-    std::size_t col;
-    std::string token;
-
-    ParseError() = delete;
-
-    explicit ParseError(ParseErrorType type, const std::string& msg, std::size_t r, std::size_t c,
-                        std::string token)
-        : Error(msg), type(type), row(r), col(c), token(std::move(token))
-    {
-    }
+  ParseError() = delete;
+  ParseError(ParseErrorType,const string&,size_t,size_t,string)
 };
 ```
 
@@ -2170,20 +2399,18 @@ struct ParseError : Error
 语义分析阶段识别更丰富的错误类型：
 
 ```cpp
-enum class SemanticErrorType : std::uint8_t
-{
-    FuncReturnTypeMismatch,  // 函数返回值类型错误
-    VoidFuncReturnValue,     // void函数返回了值
-    MissingReturnValue,      // 非void函数未返回值
-    UndefinedFunctionCall,   // 调用未定义函数
-    ArgCountMismatch,        // 参数数量不匹配
-    UndeclaredVariable,      // 变量未声明
-    UninitializedVariable,   // 变量未初始化
-    AssignToNonVariable,     // 赋值左侧非变量
-    AssignToUndeclaredVar,   // 赋值给未声明变量
-    TypeInferenceFailure,    // 变量无法通过自动类型推导确定类型
-    TypeMismatch,            // 变量类型不匹配
-
+enum class SemanticErrorType : std::uint8_t {
+  FuncReturnTypeMismatch,  // 函数返回值类型错误
+  VoidFuncReturnValue,     // void函数返回了值
+  MissingReturnValue,      // 非void函数未返回值
+  UndefinedFunctionCall,   // 调用未定义函数
+  ArgCountMismatch,        // 参数数量不匹配
+  UndeclaredVariable,      // 变量未声明
+  UninitializedVariable,   // 变量未初始化
+  AssignToNonVariable,     // 赋值左侧非变量
+  AssignToUndeclaredVar,   // 赋值给未声明变量
+  TypeInferenceFailure,    // 变量无法通过自动类型推导确定类型
+  TypeMismatch,            // 变量类型不匹配
 };
 ```
 
@@ -2191,14 +2418,12 @@ enum class SemanticErrorType : std::uint8_t
 
 ```cpp
 struct SemanticError : Error {
-    SemanticErrorType type;
-    std::size_t row;
-    std::size_t col;
-    std::string scope_name;  // 错误发生的作用域
+  SemanticErrorType type;
+  std::size_t row;
+  std::size_t col;
+  std::string scope_name;  // 错误发生的作用域
 
-    explicit SemanticError(SemanticErrorType type, const std::string& msg,
-                          std::size_t r, std::size_t c, std::string scope_name)
-        : Error(msg), type(type), row(r), col(c), scope_name(std::move(scope_name)) {}
+  SemanticError(SemanticErrorType, const string&,size_t,size_t,string)
 };
 ```
 
@@ -2211,32 +2436,33 @@ struct SemanticError : Error {
 ```cpp
 class ErrorReporter {
 public:
-    explicit ErrorReporter(const std::string& t);  // 传入源代码文本
-    
-    // 错误报告接口
-    void report(LexErrorType type, const std::string& msg, 
-                std::size_t r, std::size_t c, const std::string& token, bool terminate = false);
-    void report(const LexError& le, bool terminate = false);
-    void report(ParseErrorType type, const std::string& msg,
-                std::size_t r, std::size_t c, const std::string& token);
-    void report(SemanticErrorType type, const std::string& msg,
-                std::size_t r, std::size_t c, const std::string& scope_name);
+  explicit ErrorReporter(const std::string& t);  // 传入源代码文本
 
-    // 错误显示接口
-    void displayLexErrs() const;
-    void displayParseErrs() const;
-    void displaySemanticErrs() const;
+  // 错误报告接口
+  void report(LexErrorType, const std::string& msg,
+    std::size_t r, std::size_t c, const std::string& token,
+    bool terminate = false);
+  void report(const LexError& le, bool terminate = false);
+  void report(ParseErrorType type, const std::string& msg,
+    std::size_t r, std::size_t c, const std::string& token);
+  void report(SemanticErrorType type, const std::string& msg,
+    std::size_t r, std::size_t c, const std::string& scope_name);
 
-    // 错误存在性检查
-    bool hasLexErr() const;
-    bool hasParseErr() const;
-    bool hasSemanticErr() const;
+  // 错误显示接口
+  void displayLexErrs() const;
+  void displayParseErrs() const;
+  void displaySemanticErrs() const;
+
+  // 错误存在性检查
+  bool hasLexErr() const;
+  bool hasParseErr() const;
+  bool hasSemanticErr() const;
 
 private:
-    std::vector<std::string> text;           // 源代码按行存储
-    std::list<LexError> lex_errs;            // 词法错误列表
-    std::list<ParseError> parse_errs;        // 语法错误列表
-    std::list<SemanticError> semantic_errs;  // 语义错误列表
+  std::vector<std::string> text;           // 源代码按行存储
+  std::list<LexError> lex_errs;            // 词法错误列表
+  std::list<ParseError> parse_errs;        // 语法错误列表
+  std::list<SemanticError> semantic_errs;  // 语义错误列表
 };
 ```
 
@@ -2250,30 +2476,24 @@ private:
 ```cpp
 // 在ToyLexer::nextToken()中的错误处理
 return std::unexpected(error::LexError{
-    error::LexErrorType::UnknownToken,
-    "识别到未知token: " + view.substr(0, 1),
-    p.row, p.col,
-    view.substr(0, 1)
+  error::LexErrorType::UnknownToken,
+  "识别到未知token: " + view.substr(0, 1),
+  p.row, p.col,
+  view.substr(0, 1)
 });
 ```
 
 ```cpp
-auto printToken(std::ofstream& out) -> bool
-{
-    while (true)
-    {
-        if (auto token = lex->nextToken(); token.has_value())
-        {
-            if (token->getType() == lexer::token::Type::END)
-            {
-                break;
-            }
-        }
-        else
-        {  // 未正确识别 token
-            reporter->report(token.error());
-        }
+auto printToken(std::ofstream& out) -> bool {
+  while (true) {
+    if (auto token = lex->nextToken(); token.has_value()) {
+      if (token->getType() == lexer::token::Type::END) {
+        break;
+      }
+    } else {  // 未正确识别 token
+      reporter->report(token.error());
     }
+  }
 }
 ```
 
@@ -2284,82 +2504,65 @@ auto printToken(std::ofstream& out) -> bool
 
 ```cpp
 // 在Parser::expect()中的错误处理
-void Parser::expect(lexer::token::Type type, const std::string& msg) {
-    if (!match(type)) {
-        reporter->report(
-            error::ParseErrorType::UnexpectToken,
-            msg,
-            current.getPos().row,
-            current.getPos().col,
-            current.getValue()
-        );
-    }
+void Parser::expect(token::Type type, const string& msg) {
+  if (!match(type)) {
+    reporter->report(
+      error::ParseErrorType::UnexpectToken,
+      msg,
+      current.getPos().row,
+      current.getPos().col,
+      current.getValue()
+    );
+  }
 }
 ```
 
 - **语义分析阶段**:
   - report会在语义分析出现错误时调用
   - 错误信息包含错误类型、位置和相关符号信息
-  - 特别地，除了Token，我们将pos的概念延伸至AST树的Node中，便于确定错误位置
-
-```cpp
-//Node结构更新
-struct Node
-{
-    util::Position pos{0, 0};
-
-    Node() = default;
-    virtual ~Node() = default;
-
-    void setPos(std::size_t row, std::size_t col) { pos = util::Position{row, col}; }
-    void setPos(util::Position pos) { this->pos = pos; };
-    [[nodiscard]] virtual auto type() const -> NodeType = 0;
-};
-```
 
 ```cpp
 // 在SemanticChecker中的错误处理示例
-void SemanticChecker::checkRetStmt(const RetStmtPtr& p_rstmt)
-{
-    // 由于存在函数返回值类型的自动推导，因此需要在 RetStmt
-    // 中判断所处函数是否指定了返回值类型，如果指定了与当前 RetStmt 的类型是否一致；
-    // 如果未指定，则设置相应函数符号的返回值类型为 RetStmt 中返回值类型
-    std::string cfunc_name = p_stable->getFuncName();
-    auto opt_func = p_stable->lookupFunc(cfunc_name);
-    assert(opt_func.has_value());
+void SemanticChecker::checkRetStmt(const RetStmtPtr& p_rstmt) {
+  std::string cfunc_name = p_stable->getFuncName();
+  auto opt_func = p_stable->lookupFunc(cfunc_name);
+  assert(opt_func.has_value());
 
-    const auto& p_func = opt_func.value();
-    if (p_rstmt->ret_val.has_value())
-    {  // 有返回值表达式
-        symbol::VarType ret_type = checkExpr(p_rstmt->ret_val.value());
+  const auto& p_func = opt_func.value();
+  if (p_rstmt->ret_val.has_value()) {  // 有返回值表达式
+    VarType ret_type = checkExpr(p_rstmt->ret_val.value());
 
-        if (p_func->retval_type != symbol::VarType::Null)
-        {  // 函数有明确返回类型
-            if (p_func->retval_type != ret_type)
-            {  // 返回值表达式类型与函数返回类型不符
-                p_ereporter->report(error::SemanticErrorType::FuncReturnTypeMismatch,
-                                    std::format("函数 '{}' return 语句返回类型错误", cfunc_name),
-                                    p_rstmt->pos.row, p_rstmt->pos.col, p_stable->getCurScope());
-            }
-        }
-        else
-        {  // 函数不需要返回值，却有返回值表达式
-            p_ereporter->report(
-                error::SemanticErrorType::VoidFuncReturnValue,
-                std::format("函数 '{}' 不需要返回值，return 语句却有返回值", cfunc_name),
-                p_rstmt->pos.row, p_rstmt->pos.col, p_stable->getCurScope());
-        }
+    if (p_func->retval_type != symbol::VarType::Null) {
+      // 函数有明确返回类型
+      if (p_func->retval_type != ret_type) {
+        // 返回值表达式类型与函数返回类型不符
+        p_ereporter->report(
+          SemanticErrorType::FuncReturnTypeMismatch,
+          std::format(
+            "函数 '{}' return 语句返回类型错误",
+            cfunc_name),
+          p_stable->getCurScope());
+      }
+    } else {
+      // 函数不需要返回值，却有返回值表达式
+      p_ereporter->report(
+        error::SemanticErrorType::VoidFuncReturnValue,
+        std::format(
+          "函数 '{}' 不需要返回值，return语句却有返回值",
+          cfunc_name),
+        p_stable->getCurScope());
     }
-    else
-    {  // return;
-        if (p_func->retval_type != symbol::VarType::Null)
-        {  // 有返回类型但无返回值表达式
-            p_ereporter->report(
-                error::SemanticErrorType::MissingReturnValue,
-                std::format("函数 '{}' 需要返回值，return语句却没有返回值", cfunc_name),
-                p_rstmt->pos.row, p_rstmt->pos.col, p_stable->getCurScope());
-        }
-    }
+  } else {  // return;
+      if (p_func->retval_type != symbol::VarType::Null) {
+        // 有返回类型但无返回值表达式
+        p_ereporter->report(
+          error::SemanticErrorType::MissingReturnValue,
+          std::format(
+            "函数 '{}' 需要返回值，return语句却没有返回值",
+            cfunc_name),
+          p_stable->getCurScope());
+      }
+  }
 }
 ```
 
@@ -2380,24 +2583,27 @@ static inline const std::string BOLD = "\033[1m";
 
 ```cpp
 void ErrorReporter::displayUnknownType(const LexError& err) const {
-    std::cerr << BOLD << YELLOW << "warning[UnknownToken]" << RESET << BOLD
-              << ": 识别到未知 token '" << err.token << "'" << RESET << std::endl;
+  std::cerr << BOLD << YELLOW << "warning[UnknownToken]"
+    << RESET << BOLD
+    << ": 识别到未知 token '" << err.token << "'"
+    << RESET << std::endl;
 
-    // 显示错误位置
-    std::cerr << BLUE << " --> " << RESET << "<row: " << err.row + 1 
-              << ", col: " << err.col + 1 << ">" << std::endl;
+  // 显示错误位置
+  std::cerr << BLUE << " --> " << RESET
+    << "<row: " << err.row + 1
+    << ", col: " << err.col + 1 << ">" << std::endl;
 
-    // 显示错误行内容
-    std::cerr << BLUE << "  |  " << std::endl
-              << BLUE << " " << err.row + 1 << " | " << RESET 
-              << this->text[err.row] << std::endl;
+  // 显示错误行内容
+  std::cerr << BLUE << "  |  " << std::endl
+            << BLUE << " " << err.row + 1 << " | " << RESET
+            << this->text[err.row] << std::endl;
 
-    // 显示错误位置标记
-    std::ostringstream oss;
-    oss << " " << err.row + 1 << " | ";
-    int delta = oss.str().length() + err.col - 3;
-    std::cerr << BLUE << "  |" << std::string(delta, ' ') 
-              << "^" << RESET << std::endl << std::endl;
+  // 显示错误位置标记
+  std::ostringstream oss;
+  oss << " " << err.row + 1 << " | ";
+  int delta = oss.str().length() + err.col - 3;
+  std::cerr << BLUE << "  |" << std::string(delta, ' ')
+            << "^" << RESET << std::endl << std::endl;
 }
 ```
 
@@ -2409,28 +2615,31 @@ void ErrorReporter::displayUnknownType(const LexError& err) const {
 
 ```cpp
 void ErrorReporter::displaySemanticErr(const SemanticError& err) const {
-    auto pair = displaySemanticErrorType(err.type);
-    std::cerr << BOLD << RED << "Error[" << pair.first << "]" << RESET << BOLD 
-              << ": " << pair.second << RESET << std::endl;
+  auto pair = displaySemanticErrorType(err.type);
+  std::cerr << BOLD << RED << "Error[" << pair.first << "]"
+    << RESET << BOLD
+    << ": " << pair.second << RESET << std::endl;
 
-    // 显示错误位置和作用域
-    std::cerr << BLUE << "--> " << RESET << "scope: " << err.scope_name 
-              << " <row: " << err.row + 1 << ", col: " << err.col + 1 << ">" << std::endl;
+  // 显示错误位置和作用域
+  std::cerr << BLUE << "--> " << RESET
+    << "scope: " << err.scope_name
+    << " <row: " << err.row + 1
+    << ", col: " << err.col + 1 << ">" << std::endl;
 
-    // 显示错误行内容
-    std::cerr << BLUE << "  |  " << std::endl
-              << BLUE << " " << err.row + 1 << " | " << RESET 
-              << this->text[err.row] << std::endl;
+  // 显示错误行内容
+  std::cerr << BLUE << "  |  " << std::endl
+            << BLUE << " " << err.row + 1 << " | " << RESET
+            << this->text[err.row] << std::endl;
 
-    // 显示错误位置标记
-    std::ostringstream oss;
-    oss << " " << err.row + 1 << " | ";
-    int delta = oss.str().length() + err.col - 3;
-    std::cerr << BLUE << "  |" << std::string(delta, ' ') 
-              << "^" << RESET << std::endl << std::endl;
+  // 显示错误位置标记
+  std::ostringstream oss;
+  oss << " " << err.row + 1 << " | ";
+  int delta = oss.str().length() + err.col - 3;
+  std::cerr << BLUE << "  |" << std::string(delta, ' ')
+            << "^" << RESET << std::endl << std::endl;
 
-    // 显示详细错误信息
-    std::cerr << "    Details: " << err.msg << std::endl << std::endl;
+  // 显示详细错误信息
+  std::cerr << "    Details: " << err.msg << std::endl << std::endl;
 }
 ```
 
