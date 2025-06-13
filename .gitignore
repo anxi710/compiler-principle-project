@@ -20,3 +20,4 @@ report/*.pdf
 !.clang-format
 !.clang-tidy
 !.editorconfig
+submission/
